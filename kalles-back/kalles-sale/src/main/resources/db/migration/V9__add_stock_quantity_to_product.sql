@@ -1,0 +1,3 @@
+ALTER TABLE product
+    ADD COLUMN stock_quantity INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN version        BIGINT  NOT NULL DEFAULT 0;

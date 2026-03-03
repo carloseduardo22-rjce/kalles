@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17.7-alpine
+    container_name: kalles_db
+    restart: always
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: kalles_admin
+      POSTGRES_PASSWORD: kalles_password
+      POSTGRES_DB: kalles
+    ports:
+      - 5432:5432
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: kalles_pgadmin
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@kalles.com
+      PGADMIN_DEFAULT_PASSWORD: admin
