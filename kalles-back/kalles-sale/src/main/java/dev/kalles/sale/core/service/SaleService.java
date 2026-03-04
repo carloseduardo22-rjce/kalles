@@ -170,14 +170,16 @@ public class SaleService {
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código interno: " + internalCode));
     }
     
-    private Sale getOrCreateSale(String sessionToken) {
+    @Transactional
+    public Sale getOrCreateSale(String sessionToken) {
+        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
         return saleRepository.findActiveSaleBySessionToken(sessionToken)
                 .orElseGet(() -> {
                     Sale newSale = Sale.createForSession(sessionToken);
                     return saleRepository.save(newSale);
                 });
     }
-	
+
     @Transactional(readOnly = true)
 	public List<Product> searchProducts(String description) {
 	    return productRepository.findByDescriptionContainingIgnoreCaseAndActiveTrue(description);

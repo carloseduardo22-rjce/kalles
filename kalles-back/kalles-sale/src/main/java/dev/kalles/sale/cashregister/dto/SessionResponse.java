@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record SessionResponse(
     UUID sessionId,
+    UUID operatorId,
     String cashRegisterCode,
     String operatorName,
     BigDecimal initialAmount,
@@ -16,6 +17,7 @@ public record SessionResponse(
     public static SessionResponse fromEntity(CashRegisterSession session) {
         return new SessionResponse(
             session.getId(),
+            session.getOperator().getId(),
             session.getCashRegister().getCode(),
             session.getOperator().getName(),
             session.getInitialAmountValue(),

@@ -54,9 +54,6 @@ public class SaleItem {
         this.product = product;
         this.quantity = quantity;
         this.unitPrice = product.getPrice(); 
-        if (this.id == null) {
-            this.id = UUID.randomUUID();
-        }
     }
 
     public void incrementQuantity() {

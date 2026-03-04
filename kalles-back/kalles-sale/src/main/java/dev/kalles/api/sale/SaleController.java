@@ -2,7 +2,10 @@ package dev.kalles.api.sale;
 
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,16 +33,34 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/sales")
+@Validated
 @RequiredArgsConstructor
 @Tag(name = "Vendas", description = "Operações de venda do PDV")
 public class SaleController {
 
     private final SaleService saleService;
     private final PaymentService paymentService;
+
+    @PostMapping("/{sessionToken}")
+    @Operation(summary = "Criar venda",
+            description = "Cria uma nova venda para a sessão do caixa. Se já existir uma venda em andamento (OPEN ou ON_HOLD), ela é retornada sem criar uma nova. Deve ser chamado após a abertura da sessão e após cada venda concluída ou cancelada para iniciar o próximo atendimento.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Venda criada ou venda em andamento retornada"),
+        @ApiResponse(responseCode = "404", description = "Sessão de caixa não encontrada", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "409", description = "Sessão de caixa não está aberta", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<SaleResponse> createSale(
+            @PathVariable @NotBlank String sessionToken) {
+
+        Sale sale = saleService.getOrCreateSale(sessionToken);
+        return ResponseEntity.status(HttpStatus.CREATED).body(SaleResponse.from(sale));
+    }
 
     @PostMapping("/{sessionToken}/items")
     @Operation(summary = "Adicionar um item à venda",
@@ -51,6 +72,8 @@ public class SaleController {
     public ResponseEntity<SaleResponse> addItem(
             @PathVariable @NotBlank String sessionToken,
             @Valid @RequestBody AddItemRequest request) {
+
+        System.out.print("Requisição addItem: " + request);
 
         Sale sale = switch (request.type()) {
             case INTERNAL_CODE -> saleService.addItemByInternalCode(sessionToken, request.code());
@@ -73,9 +96,9 @@ public class SaleController {
             @PathVariable @NotBlank String productCode,
             @RequestParam ProductCodeType type,
             @Parameter(name = "X-Operator-Id", description = "ID do operador que solicita a remoção", required = true)
-            @NotBlank @RequestHeader("X-Operator-Id") UUID operatorId,
+            @NotNull @RequestHeader("X-Operator-Id") UUID operatorId,
             @Parameter(name = "X-Authorizer-Id", description = "ID do supervisor autorizador (necessário se o operador não tiver permissão própria)", required = false)
-            @NotBlank @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
+            @NotNull @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
             switch (type) {
@@ -107,9 +130,9 @@ public class SaleController {
     public ResponseEntity<Void> cancelSale(
             @PathVariable @NotBlank String sessionToken,
             @Parameter(name = "X-Operator-Id", description = "ID do operador que solicita o cancelamento", required = true)
-            @NotBlank @RequestHeader("X-Operator-Id") UUID operatorId,
+            @NotNull @RequestHeader("X-Operator-Id") UUID operatorId,
             @Parameter(name = "X-Authorizer-Id", description = "ID do supervisor autorizador (necessário se o operador não tiver permissão própria)", required = false)
-            @NotBlank @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
+            @NotNull @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
             saleService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);
