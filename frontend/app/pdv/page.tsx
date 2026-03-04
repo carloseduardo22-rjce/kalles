@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Store, Lock, RefreshCw, XCircle, User } from "lucide-react";
+import { Store, Lock, RefreshCw, XCircle, User, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { ItemRemovalDialog } from "@/features/sales/components/item-removal-dial
 import { CancellationDialog } from "@/features/sales/components/cancellation-dialog";
 import { DiscountDialog } from "@/features/sales/components/discount-dialog";
 import { SaleStateBadge } from "@/features/sales/components/sale-state-badge";
+import { ProductLookupDialog } from "@/features/sales/components/product-lookup-dialog";
 import { CloseSessionDialog } from "@/features/cash-register/components/close-session-dialog";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
@@ -35,6 +36,7 @@ export default function PdvPage() {
   const [discountItem, setDiscountItem] = useState<SaleItemResponse | null>(
     null,
   );
+  const [lookupOpen, setLookupOpen] = useState(false);
 
   const {
     closeSession,
@@ -63,6 +65,7 @@ export default function PdvPage() {
     error: saleError,
     createSale,
     addItem,
+    decrementItem,
     removeItem,
     cancelSale,
     addPayment,
@@ -77,6 +80,20 @@ export default function PdvPage() {
       createSale();
     }
   }, [hydrated, sessionToken, sale, saleError, createSale]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "F2") {
+        e.preventDefault();
+        setLookupOpen(true);
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        router.push("/produtos");
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [router]);
 
   if (!hydrated || !sessionData) {
     return (
@@ -124,6 +141,19 @@ export default function PdvPage() {
         </div>
         <div className="flex items-center gap-2">
           {sale && <SaleStateBadge state={sale.state} />}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground"
+            onClick={() => router.push("/produtos")}
+            title="Consulta de Produtos (F4)"
+          >
+            <Package className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Produtos</span>
+            <kbd className="hidden rounded border bg-muted px-1 py-0.5 font-mono text-[10px] sm:inline">
+              F4
+            </kbd>
+          </Button>
           <CloseSessionDialog
             isLoading={sessionLoading}
             error={sessionError}
@@ -177,17 +207,21 @@ export default function PdvPage() {
                 if (item) setRemovalItem(item);
               }}
               onApplyDiscount={(item) => setDiscountItem(item)}
+              onIncrementItem={(code) => addItem("INTERNAL_CODE", code)}
+              onDecrementItem={(code) => decrementItem(code)}
             />
           </div>
 
           {/* Totals footer */}
           {sale && !isSaleComplete && (
-            <div className="space-y-1 border-t pt-3 text-sm">
+            <div className="space-y-2 border-t pt-4 text-base">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span>{formatCurrency(sale.subtotal)}</span>
+                <span className="font-medium">
+                  {formatCurrency(sale.subtotal)}
+                </span>
               </div>
-              <div className="flex justify-between font-bold">
+              <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
                 <span>{formatCurrency(sale.total)}</span>
               </div>
@@ -212,27 +246,20 @@ export default function PdvPage() {
 
         {/* Right — payment */}
         <section className="hidden w-2/5 overflow-auto p-4 md:flex md:flex-col">
-          {sale && !isSaleComplete ? (
-            sale.state === "OPEN" && sale.total > 0 ? (
-              <PaymentPanel
-                sale={sale}
-                isLoading={isLoading}
-                error={saleError}
-                onAddPayment={addPayment}
-                onCompleteSale={completeSale}
-              />
-            ) : sale.state === "PAYMENT_IN_PROGRESS" ||
-              sale.state === "PAID" ? (
-              <PaymentPanel
-                sale={sale}
-                isLoading={isLoading}
-                error={saleError}
-                onAddPayment={addPayment}
-                onCompleteSale={completeSale}
-              />
-            ) : null
+          {sale &&
+          !isSaleComplete &&
+          (sale.state === "OPEN" ||
+            sale.state === "PAYMENT_IN_PROGRESS" ||
+            sale.state === "PAID") ? (
+            <PaymentPanel
+              sale={sale}
+              isLoading={isLoading}
+              error={saleError}
+              onAddPayment={addPayment}
+              onCompleteSale={completeSale}
+            />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Adicione produtos para habilitar o pagamento.
             </div>
           )}
@@ -275,6 +302,12 @@ export default function PdvPage() {
           await applyDiscount(itemId, discount);
           setDiscountItem(null);
         }}
+      />
+
+      <ProductLookupDialog
+        open={lookupOpen}
+        onOpenChange={setLookupOpen}
+        onSelect={(code) => addItem("INTERNAL_CODE", code)}
       />
     </div>
   );

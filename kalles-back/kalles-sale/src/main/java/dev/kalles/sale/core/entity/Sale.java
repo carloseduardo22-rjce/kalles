@@ -1,9 +1,9 @@
 package dev.kalles.sale.core.entity;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import dev.kalles.sale.core.state.OpenState;
@@ -18,7 +18,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
@@ -52,12 +51,10 @@ public class Sale {
     private SaleState state = new OpenState();
 
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderColumn(name = "items_order")
-    private List<SaleItem> items = new ArrayList<>();
+    private Set<SaleItem> items = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderColumn(name = "payments_order")
-    private List<Payment> payments = new ArrayList<>();
+    private Set<Payment> payments = new LinkedHashSet<>();
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal subtotal = BigDecimal.ZERO;
@@ -87,6 +84,14 @@ public class Sale {
 
     public void doRemoveItem(Product product) {
         items.removeIf(item -> item.getProduct().getId().equals(product.getId()));
+        recalculateTotals();
+    }
+
+    public void doDecrementItem(Product product) {
+        items.stream()
+                .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .findFirst()
+                .ifPresent(SaleItem::decrementQuantity);
         recalculateTotals();
     }
 

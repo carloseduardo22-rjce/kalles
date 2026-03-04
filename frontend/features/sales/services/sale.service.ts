@@ -80,4 +80,12 @@ export const saleService = {
       itemId,
       discountAmount,
     } satisfies ApplyDiscountRequest),
+
+  decrementItem: (
+    sessionToken: string,
+    internalCode: string,
+  ): Promise<SaleResponse> =>
+    api.patch<SaleResponse>(
+      `${BASE}/${sessionToken}/items/${encodeURIComponent(internalCode)}/decrement`,
+    ),
 };

@@ -453,7 +453,7 @@ class SaleServiceTest {
         @Test
         @DisplayName("Deve aplicar desconto com sucesso via service")
         void deveAplicarDescontoComSucesso() {
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().stream().findFirst().orElseThrow().getId();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
@@ -461,7 +461,7 @@ class SaleServiceTest {
 
             saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"));
 
-            assertEquals(new BigDecimal("5.00"), sale.getItems().get(0).getDiscount());
+            assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
             assertEquals(new BigDecimal("5.00"), sale.getTotal());
             verify(saleRepository).save(sale);
         }

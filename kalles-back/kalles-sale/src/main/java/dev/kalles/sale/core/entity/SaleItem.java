@@ -60,6 +60,12 @@ public class SaleItem {
         this.quantity++;
     }
 
+    public void decrementQuantity() {
+        if (this.quantity > 1) {
+            this.quantity--;
+        }
+    }
+
     public void applyDiscount(BigDecimal discountAmount) {
         if (discountAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(

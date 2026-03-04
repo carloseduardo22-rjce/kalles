@@ -236,11 +236,11 @@ class SaleTest {
             produtoCaro.setPrice(new BigDecimal("50.00"));
 
             sale.addItem(produtoCaro);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
 
             sale.applyItemDiscount(itemId, new BigDecimal("10.00"));
 
-            SaleItem item = sale.getItems().get(0);
+            SaleItem item = sale.getItems().iterator().next();
             assertEquals(new BigDecimal("10.00"), item.getDiscount());
             assertEquals(new BigDecimal("40.00"), item.getSubtotal());
             assertEquals(new BigDecimal("40.00"), sale.getSubtotal());
@@ -256,7 +256,7 @@ class SaleTest {
             produtoCaro.setPrice(new BigDecimal("50.00"));
 
             sale.addItem(produtoCaro);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("60.00"))
@@ -269,7 +269,7 @@ class SaleTest {
         @DisplayName("BR013 — Deve bloquear desconto negativo")
         void deveBloquearDescontoNegativo() {
             sale.addItem(product);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("-5.00"))
@@ -290,7 +290,7 @@ class SaleTest {
             sale.addItem(outroProduto); 
             assertEquals(new BigDecimal("55.50"), sale.getTotal());
 
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
             sale.applyItemDiscount(itemId, new BigDecimal("5.50"));
 
             assertEquals(new BigDecimal("50.00"), sale.getTotal());
@@ -301,7 +301,7 @@ class SaleTest {
         @DisplayName("Deve impedir desconto quando venda está cancelada")
         void deveImpedirDescontoQuandoVendaCancelada() {
             sale.addItem(product);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
             sale.cancel();
 
             assertThrows(IllegalStateException.class, () ->
@@ -313,7 +313,7 @@ class SaleTest {
         @DisplayName("Deve impedir desconto quando venda está em pagamento")
         void deveImpedirDescontoQuandoVendaEmPagamento() {
             sale.addItem(product);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
 
             assertThrows(IllegalStateException.class, () ->
@@ -325,7 +325,7 @@ class SaleTest {
         @DisplayName("Deve impedir desconto quando venda está paga")
         void deveImpedirDescontoQuandoVendaPaga() {
             sale.addItem(product);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
             sale.finishPayment();
 
@@ -350,7 +350,7 @@ class SaleTest {
         @DisplayName("Deve lançar exceção quando venda está completa")
         void deveImpedirDescontoQuandoVendaCompleta() {
             sale.addItem(product);
-            UUID itemId = sale.getItems().get(0).getId();
+            UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
             sale.finishPayment();
             sale.completeSale();

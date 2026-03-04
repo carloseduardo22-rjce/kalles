@@ -10,6 +10,15 @@ export type SaleState =
 
 export type ProductCodeType = "INTERNAL_CODE" | "BAR_CODE";
 
+export interface ProductResponse {
+  id: string;
+  name: string;
+  internalCode: string;
+  barcode: string | null;
+  price: number;
+  stockQuantity: number;
+}
+
 export interface SaleItemResponse {
   id: string;
   productName: string;

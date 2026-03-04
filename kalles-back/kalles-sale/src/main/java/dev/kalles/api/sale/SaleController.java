@@ -174,6 +174,21 @@ public class SaleController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{sessionToken}/items/{productCode}/decrement")
+    @Operation(summary = "Decrementar quantidade de um item",
+            description = "Reduz em 1 a quantidade do item. A quantidade mínima é 1; use o endpoint de remoção para retirar o item da venda.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Quantidade decrementada com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Venda ou produto não encontrado", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<SaleResponse> decrementItem(
+            @PathVariable @NotBlank String sessionToken,
+            @PathVariable @NotBlank String productCode) {
+
+        Sale sale = saleService.decrementItemByInternalCode(sessionToken, productCode);
+        return ResponseEntity.ok(SaleResponse.from(sale));
+    }
+
     @PatchMapping("/{sessionToken}/items/discount")
     @Operation(summary = "Aplicar desconto em um item da venda",
             description = "Aplica um desconto por valor fixo (não percentual) em um item específico da venda. Disponível apenas no estado OPEN.")

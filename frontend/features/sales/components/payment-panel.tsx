@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { CreditCard, Banknote, Smartphone, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +11,21 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
-import { formatCurrency } from "@/shared/utils/formatters";
+import { formatCurrency, formatPaymentMethod } from "@/shared/utils/formatters";
 import type { PaymentMethod, SaleResponse } from "../types";
+
+const amountSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Informe o valor")
+    .refine(
+      (v) =>
+        !isNaN(parseFloat(v.replace(",", "."))) &&
+        parseFloat(v.replace(",", ".")) > 0,
+      "Valor deve ser maior que zero",
+    ),
+});
+type AmountForm = z.infer<typeof amountSchema>;
 
 interface PaymentPanelProps {
   sale: SaleResponse;
@@ -54,21 +70,29 @@ export function PaymentPanel({
   onCompleteSale,
 }: PaymentPanelProps) {
   const [method, setMethod] = useState<PaymentMethod>("CASH");
-  const [amountStr, setAmountStr] = useState("");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AmountForm>({
+    resolver: zodResolver(amountSchema),
+  });
 
-  async function handlePay() {
-    const amount = parseFloat(amountStr.replace(",", "."));
-    if (isNaN(amount) || amount <= 0) return;
+  // PAID = backend settled the balance, amountDue is 0 AND state is PAID
+  const isPaid = sale.state === "PAID";
+  const canPay = sale.state === "OPEN" || sale.state === "PAYMENT_IN_PROGRESS";
+
+  async function handlePay(data: AmountForm) {
+    const amount = parseFloat(data.amount.replace(",", "."));
     await onAddPayment(method, amount);
-    setAmountStr("");
+    reset();
   }
-
-  const isPaid = sale.state === "PAID" || sale.amountDue <= 0;
 
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="space-y-1 rounded-lg border bg-card p-3">
+      <div className="space-y-1.5 rounded-lg border bg-card p-3">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Subtotal</span>
           <span>{formatCurrency(sale.subtotal)}</span>
@@ -77,14 +101,14 @@ export function PaymentPanel({
           <span className="text-muted-foreground">Total</span>
           <span className="font-semibold">{formatCurrency(sale.total)}</span>
         </div>
-        {sale.amountDue > 0 && (
+        {canPay && sale.amountDue > 0 && (
           <div className="flex justify-between text-base font-bold text-destructive">
             <span>A pagar</span>
             <span>{formatCurrency(sale.amountDue)}</span>
           </div>
         )}
-        {sale.amountDue <= 0 && sale.state !== "COMPLETED" && (
-          <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+        {isPaid && (
+          <div className="flex justify-between text-sm font-medium text-green-600 dark:text-green-400">
             <span>Pagamento completo ✓</span>
           </div>
         )}
@@ -93,12 +117,15 @@ export function PaymentPanel({
       {/* Payments already registered */}
       {sale.payments.length > 0 && (
         <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Pagamentos
+          </p>
           {sale.payments.map((p) => (
             <div
               key={p.id}
               className="flex justify-between text-xs text-muted-foreground"
             >
-              <span>{p.method.replace(/_/g, " ")}</span>
+              <span>{formatPaymentMethod(p.method)}</span>
               <span>
                 {formatCurrency(p.amount)}
                 {p.changeAmount > 0 && (
@@ -115,13 +142,14 @@ export function PaymentPanel({
       <Separator />
 
       {/* Payment input — only when still needs payment */}
-      {!isPaid && (
-        <div className="space-y-3">
+      {canPay && (
+        <form onSubmit={handleSubmit(handlePay)} className="space-y-3">
           {/* Method selector */}
           <div className="grid grid-cols-4 gap-1.5">
             {PAYMENT_METHODS.map((m) => (
               <Button
                 key={m.value}
+                type="button"
                 variant={method === m.value ? "default" : "outline"}
                 size="sm"
                 className="flex flex-col h-auto py-2 gap-1 text-xs"
@@ -139,25 +167,30 @@ export function PaymentPanel({
               Valor (R$)
             </Label>
             <div className="flex gap-2">
-              <Input
-                id="payment-amount"
-                value={amountStr}
-                onChange={(e) => setAmountStr(e.target.value)}
-                placeholder={formatCurrency(sale.amountDue).replace(
-                  "R$\u00a0",
-                  "",
+              <div className="flex-1 space-y-1">
+                <Input
+                  id="payment-amount"
+                  {...register("amount")}
+                  placeholder={
+                    sale.amountDue > 0
+                      ? formatCurrency(sale.amountDue).replace("R$\u00a0", "")
+                      : "0,00"
+                  }
+                  inputMode="decimal"
+                  autoComplete="off"
+                />
+                {errors.amount && (
+                  <p className="text-xs text-destructive">
+                    {errors.amount.message}
+                  </p>
                 )}
-                inputMode="decimal"
-              />
-              <Button
-                onClick={handlePay}
-                disabled={isLoading || !amountStr.trim()}
-              >
+              </div>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? <LoadingSpinner size="sm" label="" /> : "Pagar"}
               </Button>
             </div>
           </div>
-        </div>
+        </form>
       )}
 
       {/* Complete button */}

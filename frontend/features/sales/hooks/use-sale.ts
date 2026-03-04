@@ -11,6 +11,7 @@ interface UseSaleReturn {
   error: string | null;
   createSale: () => Promise<void>;
   addItem: (type: ProductCodeType, code: string) => Promise<void>;
+  decrementItem: (internalCode: string) => Promise<void>;
   removeItem: (
     productCode: string,
     type: ProductCodeType,
@@ -154,17 +155,33 @@ export function useSale(sessionToken: string): UseSaleReturn {
           await saleService.applyDiscount(sessionToken, itemId, discountAmount);
           setSale((prev) => {
             if (!prev) return prev;
-            return {
-              ...prev,
-              items: prev.items.map((item) =>
-                item.id === itemId
-                  ? { ...item, discount: discountAmount }
-                  : item,
-              ),
-            };
+            const items = prev.items.map((item) => {
+              if (item.id !== itemId) return item;
+              const subtotal = item.unitPrice * item.quantity - discountAmount;
+              return { ...item, discount: discountAmount, subtotal };
+            });
+            const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+            return { ...prev, items, subtotal, total: subtotal };
           });
         } catch (err) {
           handleError(err, "Falha ao aplicar desconto.");
+        }
+      });
+    },
+    [sessionToken],
+  );
+
+  const decrementItem = useCallback(
+    async (internalCode: string) => {
+      await withLoading(async () => {
+        try {
+          const updated = await saleService.decrementItem(
+            sessionToken,
+            internalCode,
+          );
+          setSale(updated);
+        } catch (err) {
+          handleError(err, "Falha ao decrementar quantidade.");
         }
       });
     },
@@ -184,6 +201,7 @@ export function useSale(sessionToken: string): UseSaleReturn {
     error,
     createSale,
     addItem,
+    decrementItem,
     removeItem,
     cancelSale,
     addPayment,

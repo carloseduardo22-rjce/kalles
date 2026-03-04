@@ -239,6 +239,15 @@ public class SaleService {
     }
 
     @Transactional
+    public Sale decrementItemByInternalCode(String sessionToken, String internalCode) {
+        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        Sale sale = findActiveSale(sessionToken);
+        Product product = findProductByInternalCode(internalCode);
+        sale.doDecrementItem(product);
+        return saleRepository.save(sale);
+    }
+
+    @Transactional
     public void completeSale(String sessionToken) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 

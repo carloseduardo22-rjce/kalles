@@ -86,8 +86,8 @@ class PaymentServiceTest {
 
             assertEquals(0, BigDecimal.ZERO.compareTo(result.getAmountDue()));
             assertEquals(1, result.getPayments().size());
-            assertEquals(PaymentMethod.CASH, result.getPayments().get(0).getMethod());
-            assertTrue(result.getPayments().get(0).isConfirmed());
+            assertEquals(PaymentMethod.CASH, result.getPayments().stream().findFirst().orElseThrow().getMethod());
+            assertTrue(result.getPayments().stream().findFirst().orElseThrow().isConfirmed());
             assertEquals("PAID", result.getStateName());
         }
 
@@ -125,8 +125,8 @@ class PaymentServiceTest {
 
             assertEquals(new BigDecimal("20.00"), result.getAmountDue());
             assertEquals(1, result.getPayments().size());
-            assertEquals(PaymentMethod.CREDIT_CARD, result.getPayments().get(0).getMethod());
-            assertNotNull(result.getPayments().get(0).getTransactionId());
+            assertEquals(PaymentMethod.CREDIT_CARD, result.getPayments().stream().findFirst().orElseThrow().getMethod());
+            assertNotNull(result.getPayments().stream().findFirst().orElseThrow().getTransactionId());
             assertEquals("PAYMENT_IN_PROGRESS", result.getStateName());
         }
 
@@ -158,8 +158,8 @@ class PaymentServiceTest {
 
             assertEquals(new BigDecimal("25.00"), result.getAmountDue());
             assertEquals(1, result.getPayments().size());
-            assertEquals(PaymentMethod.PIX, result.getPayments().get(0).getMethod());
-            assertNotNull(result.getPayments().get(0).getTransactionId());
+            assertEquals(PaymentMethod.PIX, result.getPayments().stream().findFirst().orElseThrow().getMethod());
+            assertNotNull(result.getPayments().stream().findFirst().orElseThrow().getTransactionId());
         }
 
         @Test
@@ -355,8 +355,8 @@ class PaymentServiceTest {
 
             assertEquals(0, BigDecimal.ZERO.compareTo(result.getAmountDue()));
             assertEquals(1, result.getPayments().size());
-            assertEquals(new BigDecimal("80.00"), result.getPayments().get(0).getAmount());
-            assertEquals(new BigDecimal("30.00"), result.getPayments().get(0).getChangeAmount());
+            assertEquals(new BigDecimal("80.00"), result.getPayments().stream().findFirst().orElseThrow().getAmount());
+            assertEquals(new BigDecimal("30.00"), result.getPayments().stream().findFirst().orElseThrow().getChangeAmount());
             assertEquals("PAID", result.getStateName());
         }
 
@@ -371,7 +371,7 @@ class PaymentServiceTest {
             Sale result = paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, new BigDecimal("50.00"));
 
             assertEquals(0, BigDecimal.ZERO.compareTo(result.getAmountDue()));
-            assertEquals(0, BigDecimal.ZERO.compareTo(result.getPayments().get(0).getChangeAmount()));
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getPayments().stream().findFirst().orElseThrow().getChangeAmount()));
             assertEquals("PAID", result.getStateName());
         }
 
@@ -393,7 +393,7 @@ class PaymentServiceTest {
 
             assertEquals(0, BigDecimal.ZERO.compareTo(result.getAmountDue()));
             assertEquals(2, result.getPayments().size());
-            assertEquals(new BigDecimal("10.00"), result.getPayments().get(1).getChangeAmount());
+            assertEquals(new BigDecimal("10.00"), result.getPayments().stream().skip(1).findFirst().orElseThrow().getChangeAmount());
             assertEquals("PAID", result.getStateName());
         }
 
