@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Store, Lock, RefreshCw, XCircle, User, Package } from "lucide-react";
+import {
+  Store,
+  Lock,
+  RefreshCw,
+  XCircle,
+  User,
+  Package,
+  BarChart2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +148,16 @@ export default function PdvPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {sale && <SaleStateBadge state={sale.state} />}
+          {sale && <SaleStateBadge state={sale.state} />}{" "}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={() => router.push("/relatorios")}
+          >
+            <BarChart2 className="h-4 w-4" />
+            Relatórios
+          </Button>{" "}
           <Button
             variant="ghost"
             size="sm"
