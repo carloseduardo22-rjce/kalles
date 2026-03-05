@@ -11,12 +11,14 @@ import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
 import dev.kalles.sale.core.entity.SaleAuditEvent;
+import dev.kalles.sale.core.entity.Stock;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
+import dev.kalles.sale.core.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class SaleService {
     private final OperatorRepository operatorRepository;
     private final PermissionService permissionService;
     private final SaleAuditEventRepository auditRepository;
+    private final StockRepository stockRepository;
     
     @Transactional
     public Sale addItemByInternalCode(String sessionToken, String internalCode) {
@@ -266,24 +269,34 @@ public class SaleService {
 
     private void validateStock(Product product, Sale sale) {
         int currentQtyInCart = sale.getItemQuantity(product);
-        if (product.getStockQuantity() <= currentQtyInCart) {
-            throw new InsufficientStockException(product.getName(), product.getStockQuantity());
+        int totalStock = stockRepository.sumQuantityByProductId(product.getId());
+        if (totalStock <= currentQtyInCart) {
+            throw new InsufficientStockException(product.getName(), totalStock);
         }
     }
 
     private void deductStock(Sale sale) {
         sale.getItems().forEach(item -> {
-            Product product = item.getProduct();
-            product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
-            productRepository.save(product);
+            int remaining = item.getQuantity();
+            List<Stock> stocks = stockRepository.findAllByProductIdOrderByQuantityDesc(item.getProduct().getId());
+            for (var stock : stocks) {
+                if (remaining <= 0) break;
+                int deducted = Math.min(stock.getQuantity(), remaining);
+                stock.setQuantity(stock.getQuantity() - deducted);
+                remaining -= deducted;
+                stockRepository.save(stock);
+            }
         });
     }
 
     private void restoreStock(Sale sale) {
         sale.getItems().forEach(item -> {
-            Product product = item.getProduct();
-            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-            productRepository.save(product);
+            List<Stock> stocks = stockRepository.findAllByProductIdOrderByQuantityDesc(item.getProduct().getId());
+            if (!stocks.isEmpty()) {
+                var stock = stocks.get(0);
+                stock.setQuantity(stock.getQuantity() + item.getQuantity());
+                stockRepository.save(stock);
+            }
         });
     }
 }

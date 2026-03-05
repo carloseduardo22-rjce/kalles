@@ -17,6 +17,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
 	List<Product> findAllByActiveTrueOrderByNameAsc();
 
+	List<Product> findAllByOrderByNameAsc();
+
 	@Query("SELECT p FROM Product p WHERE p.active = true AND (" +
 		"LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
 		"LOWER(p.internalCode) LIKE LOWER(CONCAT('%', :q, '%')) OR " +

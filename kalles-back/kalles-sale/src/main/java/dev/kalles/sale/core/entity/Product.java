@@ -50,7 +50,4 @@ public class Product {
 	@Column(nullable = false)
 	private boolean active;
 
-	@Column(name = "stock_quantity", nullable = false)
-	private int stockQuantity;
-
 }

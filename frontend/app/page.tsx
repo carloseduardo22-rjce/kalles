@@ -8,7 +8,7 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/relatorios");
+    router.replace("/caixas");
   }, [router]);
 
   return (

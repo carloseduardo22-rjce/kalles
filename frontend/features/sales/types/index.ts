@@ -16,7 +16,6 @@ export interface ProductResponse {
   internalCode: string;
   barcode: string | null;
   price: number;
-  stockQuantity: number;
 }
 
 export interface SaleItemResponse {

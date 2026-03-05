@@ -27,9 +27,6 @@ public class CashRegisterQueryService {
     private final CashRegisterSessionRepository sessionRepository;
     private final OperatorRepository operatorRepository;
 
-    /**
-     * Lista todos os caixas ativos com o status da sessão corrente.
-     */
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
         List<CashRegister> registers = cashRegisterRepository.findAllByActiveTrueOrderByCodeAsc();
@@ -39,12 +36,10 @@ public class CashRegisterQueryService {
             .toList();
     }
 
-    /**
-     * Lista todos os operadores disponíveis para vinculação a uma sessão.
-     */
+
     @Transactional(readOnly = true)
     public List<OperatorResponse> listOperators() {
-        return operatorRepository.findAll()
+        return operatorRepository.findAllByActiveTrueOrderByNameAsc()
             .stream()
             .map(OperatorResponse::fromEntity)
             .toList();

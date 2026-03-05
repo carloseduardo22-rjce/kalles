@@ -11,7 +11,8 @@ public record ProductResponse(
     String internalCode,
     String barcode,
     BigDecimal price,
-    int stockQuantity
+    String description,
+    boolean active
 ) {
     public static ProductResponse from(Product p) {
         return new ProductResponse(
@@ -20,7 +21,8 @@ public record ProductResponse(
             p.getInternalCode(),
             p.getBarcode(),
             p.getPrice(),
-            p.getStockQuantity()
+            p.getDescription(),
+            p.isActive()
         );
     }
 }

@@ -54,6 +54,13 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }).then(handleResponse<T>),
 
+  put: <T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> =>
+    fetch(`${BASE_URL}${path}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }).then(handleResponse<T>),
+
   delete: <T>(
     path: string,
     params?: Record<string, string>,

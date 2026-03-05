@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface OperatorRepository extends JpaRepository<Operator, UUID> {
     Optional<Operator> findByCode(String code);
+    java.util.List<Operator> findAllByActiveTrueOrderByNameAsc();
 }

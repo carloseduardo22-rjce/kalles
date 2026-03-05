@@ -1,0 +1,201 @@
+package dev.kalles.sale.core.service;
+
+import dev.kalles.sale.core.dto.ClientRequest;
+import dev.kalles.sale.core.dto.ClientResponse;
+import dev.kalles.sale.core.entity.Client;
+import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.core.repository.ClientRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class ClientServiceTest {
+
+    @Mock
+    private ClientRepository clientRepository;
+
+    @InjectMocks
+    private ClientService clientService;
+
+    private ClientRequest buildRequest(String cpf) {
+        return new ClientRequest("João da Silva", LocalDate.of(1990, 5, 20), 'M',
+                cpf, "+55", "11999999999", "1234567", "Pai Teste", "Mãe Teste", null);
+    }
+
+    private Client buildClient(UUID id, String cpf) {
+        Client c = new Client();
+        c.setId(id);
+        c.setName("João da Silva");
+        c.setBirthDate(LocalDate.of(1990, 5, 20));
+        c.setGender('M');
+        c.setCpf(cpf);
+        c.setCodeCountry("+55");
+        c.setCellphone("11999999999");
+        return c;
+    }
+
+    @Test
+    void shouldCreateClientSuccessfully() {
+        UUID id = UUID.randomUUID();
+        String cpf = "529.982.247-25";
+        Client saved = buildClient(id, cpf);
+
+        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.empty());
+        when(clientRepository.save(any(Client.class))).thenReturn(saved);
+
+        ClientResponse response = clientService.create(buildRequest(cpf));
+
+        assertNotNull(response);
+        assertEquals(id, response.id());
+        assertEquals("João da Silva", response.name());
+        verify(clientRepository).save(any(Client.class));
+    }
+
+    @Test
+    void shouldThrowWhenCreatingClientWithDuplicateCpf() {
+        String cpf = "529.982.247-25";
+        Client existing = buildClient(UUID.randomUUID(), cpf);
+
+        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(existing));
+
+        assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldCreateClientWithNullCpfWithoutCheckingRepository() {
+        Client saved = buildClient(UUID.randomUUID(), null);
+        when(clientRepository.save(any(Client.class))).thenReturn(saved);
+
+        ClientRequest request = new ClientRequest("João da Silva", null, null,
+                null, null, null, null, null, null, null);
+
+        assertDoesNotThrow(() -> clientService.create(request));
+        verify(clientRepository, never()).findByCpf(any());
+        verify(clientRepository).save(any());
+    }
+
+    @Test
+    void shouldCreateClientWithBlankCpfWithoutCheckingRepository() {
+        Client saved = buildClient(UUID.randomUUID(), "");
+        when(clientRepository.save(any(Client.class))).thenReturn(saved);
+
+        ClientRequest request = new ClientRequest("João da Silva", null, null,
+                "", null, null, null, null, null, null);
+
+        assertDoesNotThrow(() -> clientService.create(request));
+        verify(clientRepository, never()).findByCpf(any());
+    }
+
+    @Test
+    void shouldFindClientById() {
+        UUID id = UUID.randomUUID();
+        Client client = buildClient(id, "529.982.247-25");
+        when(clientRepository.findById(id)).thenReturn(Optional.of(client));
+
+        ClientResponse response = clientService.findById(id);
+
+        assertEquals(id, response.id());
+        assertEquals("João da Silva", response.name());
+    }
+
+    @Test
+    void shouldThrowNotFoundWhenClientNotFoundById() {
+        UUID id = UUID.randomUUID();
+        when(clientRepository.findById(id)).thenReturn(Optional.empty());
+
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> clientService.findById(id));
+        assertTrue(ex.getMessage().contains(id.toString()));
+    }
+
+    @Test
+    void shouldListAllClientsOrderedByName() {
+        List<Client> clients = List.of(
+                buildClient(UUID.randomUUID(), "111"),
+                buildClient(UUID.randomUUID(), "222")
+        );
+        when(clientRepository.findAllByOrderByNameAsc()).thenReturn(clients);
+
+        List<ClientResponse> result = clientService.listAll();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void shouldUpdateClientSuccessfully() {
+        UUID id = UUID.randomUUID();
+        String cpf = "529.982.247-25";
+        Client existing = buildClient(id, cpf);
+        Client updated = buildClient(id, cpf);
+        updated.setName("Nome Atualizado");
+
+        when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(existing));
+        when(clientRepository.save(any(Client.class))).thenReturn(updated);
+
+        ClientRequest request = new ClientRequest("Nome Atualizado", null, null,
+                cpf, null, null, null, null, null, null);
+        ClientResponse response = clientService.update(id, request);
+
+        assertEquals("Nome Atualizado", response.name());
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingClientWithCpfBelongingToAnotherClient() {
+        UUID id = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        String cpf = "529.982.247-25";
+
+        Client existing = buildClient(id, "outro-cpf");
+        Client other = buildClient(otherId, cpf);
+
+        when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(other));
+
+        ClientRequest request = new ClientRequest("X", null, null,
+                cpf, null, null, null, null, null, null);
+
+        assertThrows(IllegalArgumentException.class, () -> clientService.update(id, request));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowNotFoundWhenUpdatingNonExistentClient() {
+        UUID id = UUID.randomUUID();
+        when(clientRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> clientService.update(id, buildRequest("529.982.247-25")));
+    }
+
+    @Test
+    void shouldDeleteClientSuccessfully() {
+        UUID id = UUID.randomUUID();
+        when(clientRepository.existsById(id)).thenReturn(true);
+
+        clientService.delete(id);
+
+        verify(clientRepository).deleteById(id);
+    }
+
+    @Test
+    void shouldThrowNotFoundWhenDeletingNonExistentClient() {
+        UUID id = UUID.randomUUID();
+        when(clientRepository.existsById(id)).thenReturn(false);
+
+        assertThrows(NotFoundException.class, () -> clientService.delete(id));
+        verify(clientRepository, never()).deleteById(any());
+    }
+}

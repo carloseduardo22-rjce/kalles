@@ -31,6 +31,9 @@ public class Operator {
     @Enumerated(EnumType.STRING)
     private PermissionLevel permissionLevel;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     public Operator(String name, String code) {
         this.name = Objects.requireNonNull(name, "Nome obrigatório");
         this.code = Objects.requireNonNull(code, "Código obrigatório");

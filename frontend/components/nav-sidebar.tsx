@@ -13,6 +13,11 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Store,
+  Terminal,
+  Users,
+  Warehouse,
+  Layers,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -56,7 +61,7 @@ function NavLink({ href, icon, children, active, soon }: NavLinkProps) {
 /* ─── Section label ─── */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+    <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
       {children}
     </p>
   );
@@ -83,8 +88,8 @@ function SidebarInner() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {/* OPERAÇÕES */}
-        <SectionLabel>Operações</SectionLabel>
+        {/* ── PDV ── */}
+        <SectionLabel>PDV</SectionLabel>
         <NavLink
           href="/caixas"
           icon={<ShoppingCart className="h-4 w-4" />}
@@ -93,17 +98,23 @@ function SidebarInner() {
           Vendas
         </NavLink>
         <NavLink
+          href="/pdv"
+          icon={<Terminal className="h-4 w-4" />}
+          active={pathname === "/pdv"}
+        >
+          Terminal
+        </NavLink>
+        <NavLink
           href="/produtos"
           icon={<Package className="h-4 w-4" />}
           active={pathname === "/produtos"}
         >
-          Produtos
+          Catálogo
         </NavLink>
 
         <Separator className="my-2" />
 
-        {/* RELATÓRIOS */}
-        <SectionLabel>Relatórios</SectionLabel>
+        {/* ── Relatórios (under PDV) ── */}
         <NavLink
           href="/relatorios?tab=resumo"
           icon={<LayoutDashboard className="h-4 w-4" />}
@@ -137,8 +148,7 @@ function SidebarInner() {
 
         <Separator className="my-2" />
 
-        {/* FINANCEIRO */}
-        <SectionLabel>Financeiro</SectionLabel>
+        {/* ── Financeiro (under PDV) ── */}
         <NavLink
           href="#"
           icon={<TrendingUp className="h-4 w-4" />}
@@ -154,6 +164,46 @@ function SidebarInner() {
           soon
         >
           A Pagar
+        </NavLink>
+
+        <Separator className="my-2" />
+
+        {/* ── Admin ── */}
+        <SectionLabel>Admin</SectionLabel>
+        <NavLink
+          href="/admin/operadores"
+          icon={<UserCog className="h-4 w-4" />}
+          active={pathname === "/admin/operadores"}
+        >
+          Operadores
+        </NavLink>
+        <NavLink
+          href="/admin/produtos"
+          icon={<Package className="h-4 w-4" />}
+          active={pathname === "/admin/produtos"}
+        >
+          Produtos
+        </NavLink>
+        <NavLink
+          href="/admin/clientes"
+          icon={<Users className="h-4 w-4" />}
+          active={pathname === "/admin/clientes"}
+        >
+          Clientes
+        </NavLink>
+        <NavLink
+          href="/admin/depositos"
+          icon={<Warehouse className="h-4 w-4" />}
+          active={pathname === "/admin/depositos"}
+        >
+          Depósitos
+        </NavLink>
+        <NavLink
+          href="/admin/estoque"
+          icon={<Layers className="h-4 w-4" />}
+          active={pathname === "/admin/estoque"}
+        >
+          Estoque
         </NavLink>
       </nav>
 
