@@ -74,11 +74,11 @@ function SidebarInner() {
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-card">
       {/* Brand */}
       <Link
-        href="/pdv"
+        href="/"
         className="flex items-center gap-2.5 border-b px-4 py-4 transition-colors hover:bg-muted/50"
       >
         <Store className="h-5 w-5 text-primary" />
-        <span className="text-sm font-semibold">Kalles PDV</span>
+        <span className="text-sm font-semibold">Kalles ERP</span>
       </Link>
 
       {/* Nav */}
@@ -86,9 +86,9 @@ function SidebarInner() {
         {/* OPERAÇÕES */}
         <SectionLabel>Operações</SectionLabel>
         <NavLink
-          href="/pdv"
+          href="/caixas"
           icon={<ShoppingCart className="h-4 w-4" />}
-          active={pathname === "/pdv"}
+          active={pathname === "/caixas"}
         >
           Vendas
         </NavLink>
@@ -159,7 +159,7 @@ function SidebarInner() {
 
       {/* Footer */}
       <div className="border-t px-4 py-3 text-[11px] text-muted-foreground/60">
-        Kalles PDV v1.0
+        Kalles ERP v1.0
       </div>
     </aside>
   );

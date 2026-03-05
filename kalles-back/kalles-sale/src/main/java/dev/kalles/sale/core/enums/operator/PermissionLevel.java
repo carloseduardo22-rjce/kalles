@@ -4,7 +4,8 @@ public enum PermissionLevel {
 
     BASIC(1),
     SUPERVISOR(2),
-    MANAGER(3);
+    MANAGER(3),
+    ADMIN(4);
 
     private final int level;
 

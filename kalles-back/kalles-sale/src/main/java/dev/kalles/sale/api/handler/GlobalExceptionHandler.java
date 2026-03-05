@@ -2,6 +2,7 @@ package dev.kalles.sale.api.handler;
 
 import dev.kalles.sale.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.sale.cashregister.exception.CashRegisterNotFoundException;
+import dev.kalles.sale.cashregister.exception.OperatorAlreadyInSessionException;
 import dev.kalles.sale.cashregister.exception.OperatorNotFoundException;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
@@ -88,6 +89,16 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Sessão ativa já existe");
+        return problem;
+    }
+
+    @ExceptionHandler(OperatorAlreadyInSessionException.class)
+    public ProblemDetail handleOperatorAlreadyInSession(OperatorAlreadyInSessionException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            ex.getMessage()
+        );
+        problem.setTitle("Operador já está em sessão ativa");
         return problem;
     }
 

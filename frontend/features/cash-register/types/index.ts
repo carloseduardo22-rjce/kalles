@@ -43,3 +43,24 @@ export interface ActiveSession {
   initialAmount: number;
   openedAt: string;
 }
+
+/** Status de um caixa com dados da sessão ativa (se existir) */
+export interface CashRegisterStatusResponse {
+  cashRegisterId: string;
+  code: string;
+  description: string;
+  active: boolean;
+  hasActiveSession: boolean;
+  activeSessionId: string | null;
+  activeOperatorName: string | null;
+  initialAmount: number | null;
+  openedAt: string | null;
+}
+
+/** Operador disponível para vinculação a uma sessão */
+export interface OperatorResponse {
+  id: string;
+  name: string;
+  code: string;
+  permissionLevel: string | null;
+}
