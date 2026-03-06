@@ -29,6 +29,7 @@ import dev.kalles.sale.core.entity.SaleAuditEvent;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
+import dev.kalles.sale.core.repository.StockRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SaleServiceTest {
@@ -50,6 +51,9 @@ class SaleServiceTest {
 
     @Mock
     private SaleAuditEventRepository auditRepository;
+
+    @Mock
+    private StockRepository stockRepository;
 
     @InjectMocks
     private SaleService saleService;

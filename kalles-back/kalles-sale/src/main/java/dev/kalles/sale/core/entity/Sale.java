@@ -2,6 +2,7 @@ package dev.kalles.sale.core.entity;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -105,7 +106,7 @@ public class Sale {
 
     public void doApplyItemDiscount(UUID itemId, BigDecimal discountAmount) {
         SaleItem item = items.stream()
-                .filter(i -> i.getId().equals(itemId))
+                .filter(i -> Objects.equals(i.getId(), itemId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Item nao encontrado na venda com o id: " + itemId));
         item.applyDiscount(discountAmount);
