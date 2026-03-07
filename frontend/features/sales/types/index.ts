@@ -47,6 +47,8 @@ export interface SaleResponse {
   subtotal: number;
   total: number;
   amountDue: number;
+  clientId: string | null;
+  fidelityDiscountApplied: number;
 }
 
 export interface AddItemRequest {

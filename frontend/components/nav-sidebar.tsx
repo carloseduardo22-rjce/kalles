@@ -20,9 +20,9 @@ import {
   UserCog,
   Gift,
   Settings,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 
@@ -42,7 +42,7 @@ function NavLink({ href, icon, children, active, soon, sub }: NavLinkProps) {
       href={soon ? "#" : href}
       className={cn(
         "flex items-center gap-2.5 py-2 text-sm transition-colors",
-        sub ? "pl-7 pr-4" : "px-4",
+        sub ? "pl-8 pr-4" : "px-4",
         active
           ? "border-primary bg-primary/10 font-medium text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -63,21 +63,48 @@ function NavLink({ href, icon, children, active, soon, sub }: NavLinkProps) {
   );
 }
 
-/* ─── Section label ─── */
-function SectionLabel({ children }: { children: React.ReactNode }) {
+/* ─── Sub-section label ─── */
+function SubSectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+    <p className="pl-8 pr-4 pb-0.5 pt-2.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/50">
       {children}
     </p>
   );
 }
 
-/* ─── Sub-section label (indented, smaller) ─── */
-function SubSectionLabel({ children }: { children: React.ReactNode }) {
+/* ─── Collapsible nav group ─── */
+interface NavGroupProps {
+  icon: React.ReactNode;
+  label: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function NavGroup({ icon, label, defaultOpen = false, children }: NavGroupProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
-    <p className="pl-4 pr-4 pb-0.5 pt-2 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-      {children}
-    </p>
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground text-foreground/80"
+      >
+        <span className="shrink-0">{icon}</span>
+        <span className="flex-1 truncate text-left">{label}</span>
+        <ChevronRight
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+            open && "rotate-90",
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="pb-1">
+          {children}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -93,6 +120,11 @@ function SidebarInner() {
   }, []);
 
   const isRelatorios = pathname === "/relatorios";
+
+  const isPdvSection =
+    ["/caixas", "/pdv", "/produtos"].includes(pathname) || isRelatorios;
+
+  const isAdminSection = pathname.startsWith("/admin");
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-card">
@@ -115,144 +147,162 @@ function SidebarInner() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
+
         {/* ── PDV ── */}
-        <SectionLabel>PDV</SectionLabel>
-
-        <SubSectionLabel>Operações</SubSectionLabel>
-        <NavLink
-          href="/caixas"
-          icon={<ShoppingCart className="h-4 w-4" />}
-          active={pathname === "/caixas"}
-          sub
-        >
-          Vendas
-        </NavLink>
-        <NavLink
-          href="/pdv"
+        <NavGroup
           icon={<Terminal className="h-4 w-4" />}
-          active={pathname === "/pdv"}
-          sub
+          label="PDV"
+          defaultOpen={isPdvSection}
         >
-          Terminal
-        </NavLink>
-        <NavLink
-          href="/produtos"
-          icon={<Package className="h-4 w-4" />}
-          active={pathname === "/produtos"}
-          sub
-        >
-          Catálogo
-        </NavLink>
+          <SubSectionLabel>Operações</SubSectionLabel>
+          <NavLink
+            href="/caixas"
+            icon={<ShoppingCart className="h-4 w-4" />}
+            active={pathname === "/caixas"}
+            sub
+          >
+            Vendas
+          </NavLink>
+          <NavLink
+            href="/pdv"
+            icon={<Terminal className="h-4 w-4" />}
+            active={pathname === "/pdv"}
+            sub
+          >
+            Terminal
+          </NavLink>
+          <NavLink
+            href="/produtos"
+            icon={<Package className="h-4 w-4" />}
+            active={pathname === "/produtos"}
+            sub
+          >
+            Catálogo
+          </NavLink>
 
-        <SubSectionLabel>Relatórios</SubSectionLabel>
-        <NavLink
-          href="/relatorios?tab=resumo"
-          icon={<LayoutDashboard className="h-4 w-4" />}
-          active={isRelatorios && tab === "resumo"}
-          sub
-        >
-          Resumo do Turno
-        </NavLink>
-        <NavLink
-          href="/relatorios?tab=pagamentos"
-          icon={<CreditCard className="h-4 w-4" />}
-          active={isRelatorios && tab === "pagamentos"}
-          sub
-        >
-          Meios de Pagamento
-        </NavLink>
-        <NavLink
-          href="/relatorios?tab=por-produto"
-          icon={<ShoppingBag className="h-4 w-4" />}
-          active={isRelatorios && tab === "por-produto"}
-          sub
-          soon
-        >
-          Por Produto
-        </NavLink>
-        <NavLink
-          href="/relatorios?tab=historico"
-          icon={<History className="h-4 w-4" />}
-          active={isRelatorios && tab === "historico"}
-          sub
-          soon
-        >
-          Histórico
-        </NavLink>
+          <SubSectionLabel>Relatórios</SubSectionLabel>
+          <NavLink
+            href="/relatorios?tab=resumo"
+            icon={<LayoutDashboard className="h-4 w-4" />}
+            active={isRelatorios && tab === "resumo"}
+            sub
+          >
+            Resumo do Turno
+          </NavLink>
+          <NavLink
+            href="/relatorios?tab=pagamentos"
+            icon={<CreditCard className="h-4 w-4" />}
+            active={isRelatorios && tab === "pagamentos"}
+            sub
+          >
+            Meios de Pagamento
+          </NavLink>
+          <NavLink
+            href="/relatorios?tab=por-produto"
+            icon={<ShoppingBag className="h-4 w-4" />}
+            active={isRelatorios && tab === "por-produto"}
+            sub
+            soon
+          >
+            Por Produto
+          </NavLink>
+          <NavLink
+            href="/relatorios?tab=historico"
+            icon={<History className="h-4 w-4" />}
+            active={isRelatorios && tab === "historico"}
+            sub
+            soon
+          >
+            Histórico
+          </NavLink>
 
-        <SubSectionLabel>Financeiro</SubSectionLabel>
-        <NavLink
-          href="#"
-          icon={<TrendingUp className="h-4 w-4" />}
-          active={false}
-          sub
-          soon
-        >
-          A Receber
-        </NavLink>
-        <NavLink
-          href="#"
-          icon={<TrendingDown className="h-4 w-4" />}
-          active={false}
-          sub
-          soon
-        >
-          A Pagar
-        </NavLink>
+          <SubSectionLabel>Financeiro</SubSectionLabel>
+          <NavLink
+            href="#"
+            icon={<TrendingUp className="h-4 w-4" />}
+            active={false}
+            sub
+            soon
+          >
+            A Receber
+          </NavLink>
+          <NavLink
+            href="#"
+            icon={<TrendingDown className="h-4 w-4" />}
+            active={false}
+            sub
+            soon
+          >
+            A Pagar
+          </NavLink>
+        </NavGroup>
 
-        <Separator className="my-2" />
+        <div className="mx-4 my-1 border-t" />
 
         {/* ── Admin ── */}
-        <SectionLabel>Admin</SectionLabel>
-        <NavLink
-          href="/admin/operadores"
+        <NavGroup
           icon={<UserCog className="h-4 w-4" />}
-          active={pathname === "/admin/operadores"}
+          label="Admin"
+          defaultOpen={isAdminSection}
         >
-          Operadores
-        </NavLink>
-        <NavLink
-          href="/admin/produtos"
-          icon={<Package className="h-4 w-4" />}
-          active={pathname === "/admin/produtos"}
-        >
-          Produtos
-        </NavLink>
-        <NavLink
-          href="/admin/clientes"
-          icon={<Users className="h-4 w-4" />}
-          active={pathname === "/admin/clientes"}
-        >
-          Clientes
-        </NavLink>
-        <NavLink
-          href="/admin/depositos"
-          icon={<Warehouse className="h-4 w-4" />}
-          active={pathname === "/admin/depositos"}
-        >
-          Depósitos
-        </NavLink>
-        <NavLink
-          href="/admin/estoque"
-          icon={<Layers className="h-4 w-4" />}
-          active={pathname === "/admin/estoque"}
-        >
-          Estoque
-        </NavLink>
-        <NavLink
-          href="/admin/fidelidade"
-          icon={<Gift className="h-4 w-4" />}
-          active={pathname === "/admin/fidelidade"}
-        >
-          Fidelidade
-        </NavLink>
-        <NavLink
-          href="/admin/configuracoes"
-          icon={<Settings className="h-4 w-4" />}
-          active={pathname === "/admin/configuracoes"}
-        >
-          Configurações
-        </NavLink>
+          <NavLink
+            href="/admin/operadores"
+            icon={<UserCog className="h-4 w-4" />}
+            active={pathname === "/admin/operadores"}
+            sub
+          >
+            Operadores
+          </NavLink>
+          <NavLink
+            href="/admin/produtos"
+            icon={<Package className="h-4 w-4" />}
+            active={pathname === "/admin/produtos"}
+            sub
+          >
+            Produtos
+          </NavLink>
+          <NavLink
+            href="/admin/clientes"
+            icon={<Users className="h-4 w-4" />}
+            active={pathname === "/admin/clientes"}
+            sub
+          >
+            Clientes
+          </NavLink>
+          <NavLink
+            href="/admin/depositos"
+            icon={<Warehouse className="h-4 w-4" />}
+            active={pathname === "/admin/depositos"}
+            sub
+          >
+            Depósitos
+          </NavLink>
+          <NavLink
+            href="/admin/estoque"
+            icon={<Layers className="h-4 w-4" />}
+            active={pathname === "/admin/estoque"}
+            sub
+          >
+            Estoque
+          </NavLink>
+          <NavLink
+            href="/admin/fidelidade"
+            icon={<Gift className="h-4 w-4" />}
+            active={pathname === "/admin/fidelidade"}
+            sub
+          >
+            Fidelidade
+          </NavLink>
+          <NavLink
+            href="/admin/configuracoes"
+            icon={<Settings className="h-4 w-4" />}
+            active={pathname === "/admin/configuracoes"}
+            sub
+          >
+            Configurações
+          </NavLink>
+        </NavGroup>
+
       </nav>
 
       {/* Footer */}

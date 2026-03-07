@@ -39,25 +39,17 @@ export function SaleItemsList({
   return (
     <div className="space-y-1">
       {items.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-stretch gap-3 rounded-md border bg-card p-2.5"
-        >
-          {/* Product info */}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-semibold">
+        <div key={item.id} className="rounded-md border bg-card px-3 py-2.5">
+          {/* Row 1: name – code – action icons */}
+          <div className="flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-base font-semibold">
               {item.productName}
             </p>
-            <p className="font-mono text-sm text-muted-foreground">
+            <p className="shrink-0 font-mono text-xs text-muted-foreground">
               {item.productInternalCode}
             </p>
-          </div>
-
-          {/* Right column: actions → prices → qty */}
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {/* Row 1 – action icons */}
             {isEditable && (
-              <div className="flex gap-0.5">
+              <div className="flex shrink-0 gap-0.5">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -80,25 +72,27 @@ export function SaleItemsList({
                 </Button>
               </div>
             )}
+          </div>
 
-            {/* Row 2 – unit price */}
-            <p className="text-xs text-muted-foreground">
-              × {formatCurrency(item.unitPrice)}
+          {/* Row 2: price / discount / subtotal */}
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <p className="text-sm text-muted-foreground">
+              {item.quantity > 1
+                ? `${item.quantity} × ${formatCurrency(item.unitPrice)}`
+                : formatCurrency(item.unitPrice)}
             </p>
-
-            {/* Row 3 – discount + subtotal */}
-            <div className="text-right">
-              {item.discount > 0 && (
-                <p className="text-xs text-destructive">
-                  − {formatCurrency(item.discount)}
-                </p>
-              )}
-              <p className="text-sm font-semibold">
-                {formatCurrency(item.subtotal)}
+            {item.discount > 0 && (
+              <p className="text-xs text-destructive">
+                − {formatCurrency(item.discount)}
               </p>
-            </div>
+            )}
+            <p className="ml-auto text-sm font-semibold">
+              {formatCurrency(item.subtotal)}
+            </p>
+          </div>
 
-            {/* Row 4 – qty controls */}
+          {/* Row 3: qty controls */}
+          <div className="mt-2 flex items-center justify-end">
             {isEditable ? (
               <div className="flex items-center gap-1">
                 <Button

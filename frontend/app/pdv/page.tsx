@@ -9,7 +9,7 @@ import {
   XCircle,
   User,
   Package,
-  BarChart2,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +23,8 @@ import { CancellationDialog } from "@/features/sales/components/cancellation-dia
 import { DiscountDialog } from "@/features/sales/components/discount-dialog";
 import { SaleStateBadge } from "@/features/sales/components/sale-state-badge";
 import { ProductLookupDialog } from "@/features/sales/components/product-lookup-dialog";
-import { CloseSessionDialog } from "@/features/cash-register/components/close-session-dialog";
+import { CloseSessionAuthorizedDialog } from "@/features/cash-register/components/close-session-authorized-dialog";
+import { FidelityPdvPanel } from "@/features/sales/components/fidelity-pdv-panel";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { useSale } from "@/features/sales/hooks/use-sale";
@@ -121,6 +122,8 @@ export default function PdvPage() {
     addPayment,
     completeSale,
     applyDiscount,
+    associateClient,
+    applyFidelityDiscount,
     clearError: clearSaleError,
     resetSale,
   } = useSale(sessionToken);
@@ -202,15 +205,6 @@ export default function PdvPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-muted-foreground"
-            onClick={() => router.push("/relatorios")}
-          >
-            <BarChart2 className="h-4 w-4" />
-            Relatórios
-          </Button>{" "}
-          <Button
-            variant="ghost"
-            size="sm"
             className="gap-1.5 text-xs text-muted-foreground"
             onClick={() => router.push("/produtos")}
             title="Consulta de Produtos (F4)"
@@ -221,7 +215,7 @@ export default function PdvPage() {
               F4
             </kbd>
           </Button>
-          <CloseSessionDialog
+          <CloseSessionAuthorizedDialog
             isLoading={sessionLoading}
             error={sessionError}
             onConfirm={handleCloseSession}
@@ -232,38 +226,39 @@ export default function PdvPage() {
       {/* Main grid */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left — cart */}
-        <section className="flex w-full flex-col gap-3 overflow-auto p-4 md:w-3/5">
-          {/* Add item */}
-          {(!sale || sale.state === "OPEN") && (
-            <ProductSearch isLoading={isLoading} onAddItem={addItem} />
-          )}
+        <section className="flex w-full flex-col overflow-hidden md:w-3/5">
+          {/* Scrollable top area */}
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+            {/* Add item */}
+            {(!sale || sale.state === "OPEN") && (
+              <ProductSearch isLoading={isLoading} onAddItem={addItem} />
+            )}
 
-          {saleError && (
-            <ErrorAlert error={saleError} title="Erro" className="text-sm" />
-          )}
+            {saleError && (
+              <ErrorAlert error={saleError} title="Erro" className="text-sm" />
+            )}
 
-          {/* Sale complete banner */}
-          {isSaleComplete && (
-            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
-              <p className="font-semibold">
-                {sale!.state === "COMPLETED"
-                  ? "✅ Venda concluída com sucesso!"
-                  : "❌ Venda cancelada."}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={handleNewSale}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Nova venda
-              </Button>
-            </div>
-          )}
+            {/* Sale complete banner */}
+            {isSaleComplete && (
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
+                <p className="font-semibold">
+                  {sale!.state === "COMPLETED"
+                    ? "✅ Venda concluída com sucesso!"
+                    : "❌ Venda cancelada."}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={handleNewSale}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Nova venda
+                </Button>
+              </div>
+            )}
 
-          {/* Items or empty */}
-          <div className="flex-1">
+            {/* Items list */}
             <SaleItemsList
               items={sale?.items ?? []}
               saleState={sale?.state ?? "OPEN"}
@@ -279,57 +274,81 @@ export default function PdvPage() {
             />
           </div>
 
-          {/* Totals footer */}
+          {/* Sticky totals footer */}
           {sale && !isSaleComplete && (
-            <div className="space-y-2 border-t pt-4 text-base">
-              <div className="flex justify-between text-muted-foreground">
+            <div className="shrink-0 space-y-2 border-t bg-card px-4 py-3">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
                 <span className="font-medium">
                   {formatCurrency(sale.subtotal)}
                 </span>
               </div>
-              <div className="flex justify-between text-lg font-bold">
+              {sale.fidelityDiscountApplied > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Gift className="h-3.5 w-3.5" />
+                    Desconto fidelidade
+                  </span>
+                  <span>- {formatCurrency(sale.fidelityDiscountApplied)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-bold">
                 <span>Total</span>
                 <span>{formatCurrency(sale.total)}</span>
               </div>
+              {/* Cancel sale button */}
+              {sale.state === "OPEN" && sale.items.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 w-full text-destructive hover:text-destructive"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar venda
+                </Button>
+              )}
             </div>
-          )}
-
-          {/* Cancel sale button */}
-          {sale && sale.state === "OPEN" && sale.items.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-destructive hover:text-destructive"
-              onClick={() => setCancelOpen(true)}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancelar venda
-            </Button>
           )}
         </section>
 
         <Separator orientation="vertical" />
 
-        {/* Right — payment */}
-        <section className="hidden w-2/5 overflow-auto p-4 md:flex md:flex-col">
-          {sale &&
-          !isSaleComplete &&
-          (sale.state === "OPEN" ||
-            sale.state === "PAYMENT_IN_PROGRESS" ||
-            sale.state === "PAID") ? (
-            <PaymentPanel
-              sale={sale}
-              isLoading={isLoading}
-              error={saleError}
-              onAddPayment={addPayment}
-              onCompleteSale={completeSale}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Adicione produtos para habilitar o pagamento.
+        {/* Right — fidelity + payment */}
+        <section className="hidden w-2/5 flex-col overflow-hidden md:flex">
+          {/* Fidelity panel */}
+          {sale && sale.state === "OPEN" && (
+            <div className="shrink-0 border-b px-4 pt-4 pb-3">
+              <FidelityPdvPanel
+                key={sale.id}
+                sale={sale}
+                onAssociateClient={associateClient}
+                onApplyFidelityDiscount={applyFidelityDiscount}
+                disabled={isLoading}
+              />
             </div>
           )}
+
+          {/* Payment panel */}
+          <div className="flex flex-1 flex-col overflow-y-auto p-4">
+            {sale &&
+            !isSaleComplete &&
+            (sale.state === "OPEN" ||
+              sale.state === "PAYMENT_IN_PROGRESS" ||
+              sale.state === "PAID") ? (
+              <PaymentPanel
+                sale={sale}
+                isLoading={isLoading}
+                error={saleError}
+                onAddPayment={addPayment}
+                onCompleteSale={completeSale}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Adicione produtos para habilitar o pagamento.
+              </div>
+            )}
+          </div>
         </section>
       </div>
 

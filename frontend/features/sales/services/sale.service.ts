@@ -88,4 +88,13 @@ export const saleService = {
     api.patch<SaleResponse>(
       `${BASE}/${sessionToken}/items/${encodeURIComponent(internalCode)}/decrement`,
     ),
+
+  associateClient: (
+    sessionToken: string,
+    clientId: string,
+  ): Promise<SaleResponse> =>
+    api.put<SaleResponse>(`${BASE}/${sessionToken}/client/${clientId}`),
+
+  applyFidelityDiscount: (sessionToken: string): Promise<SaleResponse> =>
+    api.post<SaleResponse>(`${BASE}/${sessionToken}/fidelity-discount`),
 };

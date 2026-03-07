@@ -22,6 +22,8 @@ interface UseSaleReturn {
   addPayment: (method: PaymentMethod, amount: number) => Promise<void>;
   completeSale: () => Promise<void>;
   applyDiscount: (itemId: string, discountAmount: number) => Promise<void>;
+  associateClient: (clientId: string) => Promise<void>;
+  applyFidelityDiscount: () => Promise<void>;
   clearError: () => void;
   resetSale: () => void;
 }
@@ -188,6 +190,34 @@ export function useSale(sessionToken: string): UseSaleReturn {
     [sessionToken],
   );
 
+  const associateClient = useCallback(
+    async (clientId: string) => {
+      await withLoading(async () => {
+        try {
+          const updated = await saleService.associateClient(
+            sessionToken,
+            clientId,
+          );
+          setSale(updated);
+        } catch (err) {
+          handleError(err, "Falha ao associar cliente.");
+        }
+      });
+    },
+    [sessionToken],
+  );
+
+  const applyFidelityDiscount = useCallback(async () => {
+    await withLoading(async () => {
+      try {
+        const updated = await saleService.applyFidelityDiscount(sessionToken);
+        setSale(updated);
+      } catch (err) {
+        handleError(err, "Falha ao aplicar desconto de fidelidade.");
+      }
+    });
+  }, [sessionToken]);
+
   const clearError = useCallback(() => setError(null), []);
 
   const resetSale = useCallback(() => {
@@ -207,6 +237,8 @@ export function useSale(sessionToken: string): UseSaleReturn {
     addPayment,
     completeSale,
     applyDiscount,
+    associateClient,
+    applyFidelityDiscount,
     clearError,
     resetSale,
   };

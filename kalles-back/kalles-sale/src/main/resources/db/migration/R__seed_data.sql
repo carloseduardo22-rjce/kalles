@@ -208,3 +208,156 @@ FROM (VALUES
 ) AS v(cpf, pts, disc, enrolled)
 JOIN client c ON c.cpf = v.cpf
 ON CONFLICT (client_id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 11. SESSÃO FECHADA (dia anterior)
+--     CAIXA-02, Pedro Costa (MANAGER), 06/03/2026.
+--     Permite visualizar sessão histórica na tela de caixas.
+-- ---------------------------------------------------------------
+INSERT INTO cash_register_sessions (id, cash_register_id, operator_id, initial_amount, opened_at, closed_at, status)
+SELECT
+  'b0000000-0000-0000-0000-000000000002'::uuid,
+  cr.id,
+  op.id,
+  200.00,
+  '2026-03-06 08:00:00',
+  '2026-03-06 17:30:00',
+  'CLOSED'
+FROM cash_registers cr, operators op
+WHERE cr.code = 'CAIXA-02'
+  AND op.code = 'OP-003'
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 12. VENDAS — SESSÃO FECHADA (b0000000-...002)
+--
+--   Venda A | Bruno Ferreira | COMPLETED | desconto fidelidade R$20,00
+--           | subtotal=24,00 | total=4,00 | pago em dinheiro
+--
+--   Venda B | Ana Paula Souza | COMPLETED | fidelidade sem desconto (70 pts)
+--           | subtotal=16,50 | total=16,50 | pago no débito
+--
+--   Venda C | sem cliente | COMPLETED | pagamento via PIX
+--           | subtotal=33,40 | total=33,40
+--
+--   Venda D | sem cliente | CANCELED
+-- ---------------------------------------------------------------
+INSERT INTO sale (id, version, session_token, state, client_id,
+                  subtotal, total, amount_due,
+                  fidelity_discount_applied, points_earned)
+SELECT
+  v.sale_id::uuid,
+  0,
+  'b0000000-0000-0000-0000-000000000002',
+  v.state,
+  c.id,
+  v.subtotal::numeric(19,2),
+  v.total::numeric(19,2),
+  v.amount_due::numeric(19,2),
+  v.fid_disc::numeric(19,2),
+  0
+FROM (VALUES
+  ('c1000000-0000-0000-0000-000000000001', 'COMPLETED', '153.509.460-56', 24.00, 4.00,  0.00, 20.00),
+  ('c1000000-0000-0000-0000-000000000002', 'COMPLETED', '529.982.247-25', 16.50, 16.50, 0.00,  0.00),
+  ('c1000000-0000-0000-0000-000000000003', 'COMPLETED', NULL,             33.40, 33.40, 0.00,  0.00),
+  ('c1000000-0000-0000-0000-000000000004', 'CANCELED',  NULL,              6.90,  6.90, 6.90,  0.00)
+) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
+LEFT JOIN client c ON c.cpf = v.cpf
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 13. VENDAS — SESSÃO ABERTA (b0000000-...001)
+--     Permite que a tela de Relatórios mostre dados do turno atual.
+--
+--   Venda E | Gabriela Martins | COMPLETED | desconto fidelidade R$20,00
+--           | subtotal=20,20 | total=0,20 | pago em dinheiro
+--
+--   Venda F | sem cliente | COMPLETED | cartão de crédito
+--           | subtotal=36,40 | total=36,40
+--
+--   Venda G | sem cliente | CANCELED
+-- ---------------------------------------------------------------
+INSERT INTO sale (id, version, session_token, state, client_id,
+                  subtotal, total, amount_due,
+                  fidelity_discount_applied, points_earned)
+SELECT
+  v.sale_id::uuid,
+  0,
+  'b0000000-0000-0000-0000-000000000001',
+  v.state,
+  c.id,
+  v.subtotal::numeric(19,2),
+  v.total::numeric(19,2),
+  v.amount_due::numeric(19,2),
+  v.fid_disc::numeric(19,2),
+  0
+FROM (VALUES
+  ('c1000000-0000-0000-0000-000000000005', 'COMPLETED', '871.504.977-73', 20.20, 0.20,  0.00, 20.00),
+  ('c1000000-0000-0000-0000-000000000006', 'COMPLETED', NULL,             36.40, 36.40, 0.00,  0.00),
+  ('c1000000-0000-0000-0000-000000000007', 'CANCELED',  NULL,              4.50,  4.50, 4.50,  0.00)
+) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
+LEFT JOIN client c ON c.cpf = v.cpf
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 14. ITENS DAS VENDAS
+--     Colunas: sale_id, product_id, quantity, unit_price, discount
+-- ---------------------------------------------------------------
+INSERT INTO sale_item (id, sale_id, product_id, quantity, unit_price, discount)
+SELECT
+  i.item_id::uuid,
+  i.sale_id::uuid,
+  p.id,
+  i.qty,
+  i.unit_price::numeric(19,2),
+  i.discount::numeric(19,2)
+FROM (VALUES
+  -- Venda A (Bruno + fidelidade)
+  ('d1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'PRD-001', 3, 5.50, 0.00),
+  ('d1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'PRD-003', 2, 3.75, 0.00),
+  -- Venda B (Ana Paula)
+  ('d1000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000002', 'PRD-011', 2, 4.50, 0.00),
+  ('d1000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002', 'PRD-014', 1, 7.50, 0.00),
+  -- Venda C (sem cliente, PIX)
+  ('d1000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000003', 'PRD-007', 1, 22.90, 0.00),
+  ('d1000000-0000-0000-0000-000000000006', 'c1000000-0000-0000-0000-000000000003', 'PRD-008', 1, 10.50, 0.00),
+  -- Venda D (cancelada)
+  ('d1000000-0000-0000-0000-000000000007', 'c1000000-0000-0000-0000-000000000004', 'PRD-004', 1, 6.90, 0.00),
+  -- Venda E (Gabriela + fidelidade)
+  ('d1000000-0000-0000-0000-000000000008', 'c1000000-0000-0000-0000-000000000005', 'PRD-004', 2, 6.90, 0.00),
+  ('d1000000-0000-0000-0000-000000000009', 'c1000000-0000-0000-0000-000000000005', 'PRD-013', 2, 3.20, 0.00),
+  -- Venda F (sem cliente, crédito)
+  ('d1000000-0000-0000-0000-000000000010', 'c1000000-0000-0000-0000-000000000006', 'PRD-007', 1, 22.90, 0.00),
+  ('d1000000-0000-0000-0000-000000000011', 'c1000000-0000-0000-0000-000000000006', 'PRD-011', 3, 4.50, 0.00),
+  -- Venda G (cancelada)
+  ('d1000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000007', 'PRD-005', 1, 4.50, 0.00)
+) AS i(item_id, sale_id, internal_code, qty, unit_price, discount)
+JOIN product p ON p.internal_code = i.internal_code
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 15. PAGAMENTOS DAS VENDAS CONCLUÍDAS
+-- ---------------------------------------------------------------
+INSERT INTO payment (id, sale_id, method, amount, change_amount, transaction_id, confirmed, created_at, updated_at)
+VALUES
+  -- Venda A — CASH R$5,00 troco R$1,00 (total R$4,00)
+  ('e1000000-0000-0000-0000-000000000001',
+   'c1000000-0000-0000-0000-000000000001'::uuid,
+   'CASH', 5.00, 1.00, NULL, true, '2026-03-06 09:15:00', '2026-03-06 09:15:00'),
+  -- Venda B — DEBIT_CARD R$16,50
+  ('e1000000-0000-0000-0000-000000000002',
+   'c1000000-0000-0000-0000-000000000002'::uuid,
+   'DEBIT_CARD', 16.50, 0.00, 'TXN-DB-001', true, '2026-03-06 10:30:00', '2026-03-06 10:30:00'),
+  -- Venda C — PIX R$33,40
+  ('e1000000-0000-0000-0000-000000000003',
+   'c1000000-0000-0000-0000-000000000003'::uuid,
+   'PIX', 33.40, 0.00, 'TXN-PIX-001', true, '2026-03-06 11:45:00', '2026-03-06 11:45:00'),
+  -- Venda E — CASH R$1,00 troco R$0,80 (total R$0,20)
+  ('e1000000-0000-0000-0000-000000000005',
+   'c1000000-0000-0000-0000-000000000005'::uuid,
+   'CASH', 1.00, 0.80, NULL, true, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '2 hours'),
+  -- Venda F — CREDIT_CARD R$36,40
+  ('e1000000-0000-0000-0000-000000000006',
+   'c1000000-0000-0000-0000-000000000006'::uuid,
+   'CREDIT_CARD', 36.40, 0.00, 'TXN-CC-001', true, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour')
+ON CONFLICT (id) DO NOTHING;
