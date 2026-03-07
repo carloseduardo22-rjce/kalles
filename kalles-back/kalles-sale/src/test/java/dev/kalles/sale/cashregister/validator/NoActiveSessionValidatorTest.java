@@ -7,6 +7,7 @@ import dev.kalles.sale.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.specification.ActiveSessionSpecification;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("NoActiveSessionValidator - Validador de Sessão Ativa")
 class NoActiveSessionValidatorTest {
 
     @Mock
@@ -35,6 +37,7 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
+    @DisplayName("Deve passar a validação quando não existe sessão ativa")
     void shouldPassWhenNoActiveSessionExists() {
         // Given
         String cashRegisterCode = "PDV-01";
@@ -59,6 +62,7 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando existe sessão ativa")
     void shouldThrowExceptionWhenActiveSessionExists() {
         // Given
         String cashRegisterCode = "PDV-01";
@@ -88,6 +92,7 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando caixa não encontrado")
     void shouldThrowExceptionWhenCashRegisterNotFound() {
         // Given
         String cashRegisterCode = "PDV-99";

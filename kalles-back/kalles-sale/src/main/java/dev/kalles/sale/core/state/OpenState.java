@@ -53,4 +53,9 @@ public class OpenState extends AbstractSaleState {
     public void cancel(Sale sale) {
         sale.setState(new CanceledState());
     }
+
+    @Override
+    public void applyFidelityDiscount(Sale sale, BigDecimal discount) {
+        sale.doApplyFidelityDiscount(discount);
+    }
 }

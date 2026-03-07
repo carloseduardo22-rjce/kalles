@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -204,5 +205,35 @@ public class SaleController {
 
         saleService.applyItemDiscount(sessionToken, request.itemId(), request.discountAmount());
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{sessionToken}/client/{clientId}")
+    @Operation(summary = "Associar cliente à venda",
+            description = "Vincula um cliente à venda ativa da sessão. Permite verificar e aplicar desconto de fidelidade.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Cliente associado com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Venda, sessão ou cliente não encontrado", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<SaleResponse> associateClient(
+            @PathVariable @NotBlank String sessionToken,
+            @PathVariable @NotNull UUID clientId) {
+
+        Sale sale = saleService.associateClientWithSale(sessionToken, clientId);
+        return ResponseEntity.ok(SaleResponse.from(sale));
+    }
+
+    @PostMapping("/{sessionToken}/fidelity-discount")
+    @Operation(summary = "Aplicar desconto de fidelidade na venda",
+            description = "Aplica o desconto de fidelidade disponível do cliente associado à venda. O desconto fracionado é preservado para próximas compras quando o saldo supera o total da venda.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Desconto de fidelidade aplicado com sucesso"),
+        @ApiResponse(responseCode = "409", description = "Nenhum cliente associado ou sem desconto disponível", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "404", description = "Venda ou sessão não encontrada", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<SaleResponse> applyFidelityDiscount(
+            @PathVariable @NotBlank String sessionToken) {
+
+        Sale sale = saleService.applyFidelityDiscountToSale(sessionToken);
+        return ResponseEntity.ok(SaleResponse.from(sale));
     }
 }

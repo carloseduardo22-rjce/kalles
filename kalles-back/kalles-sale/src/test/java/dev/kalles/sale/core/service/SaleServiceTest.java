@@ -26,12 +26,14 @@ import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.enums.payment.PaymentMethod;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.entity.SaleAuditEvent;
+import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.repository.StockRepository;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("SaleService - Serviço de Venda")
 class SaleServiceTest {
 
     @Mock
@@ -54,6 +56,12 @@ class SaleServiceTest {
 
     @Mock
     private StockRepository stockRepository;
+
+    @Mock
+    private FidelityService fidelityService;
+
+    @Mock
+    private ClientRepository clientRepository;
 
     @InjectMocks
     private SaleService saleService;

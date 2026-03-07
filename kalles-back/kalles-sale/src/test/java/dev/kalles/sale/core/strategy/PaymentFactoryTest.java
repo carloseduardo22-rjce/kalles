@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.kalles.sale.core.enums.payment.PaymentMethod;
 
+@DisplayName("PaymentFactory - Fábrica de Pagamentos")
 class PaymentFactoryTest {
 
     private PaymentFactory paymentFactory;

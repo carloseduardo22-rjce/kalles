@@ -1,13 +1,16 @@
 package dev.kalles.sale.cashregister.valueobject;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("InitialAmount - Valor Inicial do Caixa")
 class InitialAmountTest {
 
     @Test
+    @DisplayName("Deve criar valor inicial válido")
     void shouldCreateValidInitialAmount() {
         // Given
         BigDecimal value = new BigDecimal("100.00");
@@ -21,6 +24,7 @@ class InitialAmountTest {
     }
 
     @Test
+    @DisplayName("Deve criar valor inicial com zero")
     void shouldCreateInitialAmountWithZero() {
         // Given
         BigDecimal value = BigDecimal.ZERO;
@@ -34,6 +38,7 @@ class InitialAmountTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando valor é nulo")
     void shouldThrowExceptionWhenValueIsNull() {
         // Given
         BigDecimal value = null;
@@ -48,6 +53,7 @@ class InitialAmountTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando valor é negativo")
     void shouldThrowExceptionWhenValueIsNegative() {
         // Given
         BigDecimal value = new BigDecimal("-10.00");
@@ -62,6 +68,7 @@ class InitialAmountTest {
     }
 
     @Test
+    @DisplayName("Deve ser igual quando os valores são os mesmos")
     void shouldBeEqualWhenValuesAreTheSame() {
         // Given
         BigDecimal value = new BigDecimal("100.00");
@@ -74,6 +81,7 @@ class InitialAmountTest {
     }
 
     @Test
+    @DisplayName("Não deve ser igual quando os valores são diferentes")
     void shouldNotBeEqualWhenValuesAreDifferent() {
         // Given
         InitialAmount amount1 = new InitialAmount(new BigDecimal("100.00"));

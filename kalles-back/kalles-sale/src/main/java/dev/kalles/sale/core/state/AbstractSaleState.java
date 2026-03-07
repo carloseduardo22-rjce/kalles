@@ -61,4 +61,10 @@ public abstract class AbstractSaleState implements SaleState {
         throw new IllegalStateException(
                 "Não é possível finalizar a venda no estado: " + getDescription());
     }
+
+    @Override
+    public void applyFidelityDiscount(Sale sale, BigDecimal discount) {
+        throw new IllegalStateException(
+                "Não é possível aplicar desconto de fidelidade no estado: " + getDescription());
+    }
 }

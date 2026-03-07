@@ -14,12 +14,16 @@ public record SaleResponse(
     String state,
     List<SaleItemResponse> items,
     List<PaymentResponse> payments,
-    @Schema(description = "Subtotal sem descontos")
+    @Schema(description = "Subtotal sem descontos de fidelidade")
     BigDecimal subtotal,
     @Schema(description = "Total após descontos aplicados")
     BigDecimal total,
     @Schema(description = "Valor ainda a ser pago. Chega a zero quando o pagamento é completo.")
-    BigDecimal amountDue
+    BigDecimal amountDue,
+    @Schema(description = "ID do cliente associado à venda, se houver")
+    UUID clientId,
+    @Schema(description = "Desconto de fidelidade aplicado nesta venda")
+    BigDecimal fidelityDiscountApplied
 ) {
     public static SaleResponse from(Sale sale) {
         return new SaleResponse(
@@ -30,7 +34,9 @@ public record SaleResponse(
             sale.getPayments().stream().map(PaymentResponse::from).toList(),
             sale.getSubtotal(),
             sale.getTotal(),
-            sale.getAmountDue()
+            sale.getAmountDue(),
+            sale.getClient() != null ? sale.getClient().getId() : null,
+            sale.getFidelityDiscountApplied()
         );
     }
 }

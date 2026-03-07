@@ -29,4 +29,6 @@ public interface SaleState {
     void resume(Sale sale);
 
     void completeSale(Sale sale);
+
+    void applyFidelityDiscount(Sale sale, BigDecimal discount);
 }

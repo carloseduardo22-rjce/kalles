@@ -28,6 +28,8 @@ import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { useSale } from "@/features/sales/hooks/use-sale";
 import { useSession } from "@/features/cash-register/hooks/use-session";
+import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
+import { companySettingsService } from "@/shared/services/company-settings.service";
 import type { ActiveSession } from "@/features/cash-register/types";
 import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
@@ -38,6 +40,7 @@ export default function PdvPage() {
   const router = useRouter();
   const [sessionData, setSessionData] = useState<ActiveSession | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const [removalItem, setRemovalItem] = useState<SaleItemResponse | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -53,17 +56,56 @@ export default function PdvPage() {
   } = useSession();
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      router.replace("/open-session");
-      return;
+    async function initSession() {
+      let stored: ActiveSession | null = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        stored = raw ? (JSON.parse(raw) as ActiveSession) : null;
+      } catch {
+        // ignore parse error
+      }
+
+      // Validate against backend: find any open session
+      try {
+        const [registers, operators] = await Promise.all([
+          cashRegisterService.listCashRegisters(),
+          cashRegisterService.listOperators(),
+        ]);
+        const openRegister = registers.find(
+          (r) => r.hasActiveSession && r.activeSessionId != null,
+        );
+        if (openRegister && openRegister.activeSessionId) {
+          // Only sync if stored session is missing or stale (different ID)
+          if (!stored || stored.sessionId !== openRegister.activeSessionId) {
+            const operator = operators.find(
+              (o) => o.name === openRegister.activeOperatorName,
+            );
+            const synced: ActiveSession = {
+              sessionId: openRegister.activeSessionId,
+              operatorId: operator?.id ?? "",
+              cashRegisterCode: openRegister.code,
+              operatorName: openRegister.activeOperatorName ?? "",
+              initialAmount: openRegister.initialAmount ?? 0,
+              openedAt: openRegister.openedAt ?? new Date().toISOString(),
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+            stored = synced;
+          }
+        }
+      } catch {
+        // Backend unavailable — fall back to whatever is in localStorage
+      }
+
+      if (!stored) {
+        router.replace("/open-session");
+        return;
+      }
+      setSessionData(stored);
+      setLogoUrl(companySettingsService.getLogo());
+      setHydrated(true);
     }
-    try {
-      setSessionData(JSON.parse(raw) as ActiveSession);
-    } catch {
-      router.replace("/open-session");
-    }
-    setHydrated(true);
+
+    initSession();
   }, [router]);
 
   const sessionToken = sessionData?.sessionId ?? "";
@@ -136,7 +178,15 @@ export default function PdvPage() {
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-card px-4 py-2.5 shadow-sm">
         <div className="flex items-center gap-3">
-          <Store className="h-5 w-5 text-primary" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-8 max-w-16 object-contain"
+            />
+          ) : (
+            <Store className="h-5 w-5 text-primary" />
+          )}
           <div>
             <p className="text-sm font-semibold leading-none">
               {sessionData.cashRegisterCode}

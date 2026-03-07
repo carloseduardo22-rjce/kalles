@@ -94,6 +94,32 @@ export interface LocationResponse {
   description: string | null;
 }
 
+// ─── Fidelity ─────────────────────────────────────────────────────────────
+
+export interface FidelityPolicyRequest {
+  objectivePoints: number;
+  configuredDiscount: number;
+  valuePoint: number;
+}
+
+export interface FidelityPolicyResponse {
+  id: string;
+  objectivePoints: number;
+  configuredDiscount: number;
+  valuePoint: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface FidelityResponse {
+  id: string;
+  clientId: string;
+  points: number;
+  availableDiscount: number;
+  createdAt: string;
+  expired: boolean;
+}
+
 // ─── Stock ────────────────────────────────────────────────────────────────
 
 export interface StockRequest {

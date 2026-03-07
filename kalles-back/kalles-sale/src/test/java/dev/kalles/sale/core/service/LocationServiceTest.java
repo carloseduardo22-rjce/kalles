@@ -7,6 +7,7 @@ import dev.kalles.sale.core.entity.Warehouse;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.LocationRepository;
 import dev.kalles.sale.core.repository.WarehouseRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("LocationService - Serviço de Localizações")
 class LocationServiceTest {
 
     @Mock
@@ -42,6 +44,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve criar localização com sucesso")
     void shouldCreateLocationSuccessfully() {
         UUID warehouseId = UUID.randomUUID();
         Warehouse warehouse = buildWarehouse(warehouseId);
@@ -60,6 +63,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao criar localização em depósito inexistente")
     void shouldThrowNotFoundWhenCreatingLocationForNonExistentWarehouse() {
         UUID warehouseId = UUID.randomUUID();
         when(warehouseRepository.findById(warehouseId)).thenReturn(Optional.empty());
@@ -70,6 +74,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve listar localizações por depósito")
     void shouldListLocationsByWarehouse() {
         UUID warehouseId = UUID.randomUUID();
         Warehouse warehouse = buildWarehouse(warehouseId);
@@ -89,6 +94,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao listar localizações de depósito inexistente")
     void shouldThrowNotFoundWhenListingLocationsForNonExistentWarehouse() {
         UUID warehouseId = UUID.randomUUID();
         when(warehouseRepository.existsById(warehouseId)).thenReturn(false);
@@ -99,6 +105,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve encontrar localização pelo ID")
     void shouldFindLocationById() {
         UUID id = UUID.randomUUID();
         Warehouse warehouse = buildWarehouse(UUID.randomUUID());
@@ -112,6 +119,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando localização não existe pelo ID")
     void shouldThrowNotFoundWhenLocationDoesNotExistById() {
         UUID id = UUID.randomUUID();
         when(locationRepository.findById(id)).thenReturn(Optional.empty());
@@ -122,6 +130,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve atualizar código e descrição da localização")
     void shouldUpdateLocationCodeAndDescription() {
         UUID id = UUID.randomUUID();
         Warehouse warehouse = buildWarehouse(UUID.randomUUID());
@@ -138,6 +147,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao atualizar localização inexistente")
     void shouldThrowNotFoundWhenUpdatingNonExistentLocation() {
         UUID id = UUID.randomUUID();
         when(locationRepository.findById(id)).thenReturn(Optional.empty());
@@ -148,6 +158,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve excluir localização com sucesso")
     void shouldDeleteLocationSuccessfully() {
         UUID id = UUID.randomUUID();
         when(locationRepository.existsById(id)).thenReturn(true);
@@ -158,6 +169,7 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao excluir localização inexistente")
     void shouldThrowNotFoundWhenDeletingNonExistentLocation() {
         UUID id = UUID.randomUUID();
         when(locationRepository.existsById(id)).thenReturn(false);

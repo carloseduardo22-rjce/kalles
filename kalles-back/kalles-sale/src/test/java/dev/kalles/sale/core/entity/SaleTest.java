@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.core.enums.operator.PermissionLevel;
 
+@DisplayName("Sale - Entidade de Domínio da Venda")
 class SaleTest {
 
     private Sale sale;
@@ -360,5 +361,68 @@ class SaleTest {
             );
         }
 
+    }
+
+    @Nested
+    @DisplayName("Desconto de Fidelidade na Venda")
+    class DescontoFidelidade {
+
+        @Test
+        @DisplayName("Deve aplicar desconto de fidelidade quando venda está aberta")
+        void deveAplicarDescontoDeFelidadeQuandoAberta() {
+            sale.addItem(product);
+            sale.applyFidelityDiscount(new BigDecimal("10.00"));
+
+            assertEquals(new BigDecimal("15.50"), sale.getTotal());
+            assertEquals(new BigDecimal("25.50"), sale.getSubtotal());
+            assertEquals(new BigDecimal("10.00"), sale.getFidelityDiscountApplied());
+        }
+
+        @Test
+        @DisplayName("Deve bloquear desconto de fidelidade quando venda está cancelada")
+        void deveBloquearDescontoFidelidadeQuandoCancelada() {
+            sale.addItem(product);
+            sale.cancel();
+
+            assertThrows(IllegalStateException.class, () ->
+                sale.applyFidelityDiscount(new BigDecimal("10.00"))
+            );
+        }
+
+        @Test
+        @DisplayName("Deve bloquear desconto de fidelidade quando venda está em pagamento")
+        void deveBloquearDescontoFidelidadeQuandoEmPagamento() {
+            sale.addItem(product);
+            sale.startPayment();
+
+            assertThrows(IllegalStateException.class, () ->
+                sale.applyFidelityDiscount(new BigDecimal("10.00"))
+            );
+        }
+
+        @Test
+        @DisplayName("Deve bloquear desconto de fidelidade quando venda está paga")
+        void deveBloquearDescontoFidelidadeQuandoPaga() {
+            sale.addItem(product);
+            sale.startPayment();
+            sale.finishPayment();
+
+            assertThrows(IllegalStateException.class, () ->
+                sale.applyFidelityDiscount(new BigDecimal("10.00"))
+            );
+        }
+
+        @Test
+        @DisplayName("Deve bloquear desconto de fidelidade quando venda está concluída")
+        void deveBloquearDescontoFidelidadeQuandoConcluida() {
+            sale.addItem(product);
+            sale.startPayment();
+            sale.finishPayment();
+            sale.completeSale();
+
+            assertThrows(IllegalStateException.class, () ->
+                sale.applyFidelityDiscount(new BigDecimal("10.00"))
+            );
+        }
     }
 }

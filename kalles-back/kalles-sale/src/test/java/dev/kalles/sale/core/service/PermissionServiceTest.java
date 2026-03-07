@@ -2,10 +2,12 @@ package dev.kalles.sale.core.service;
 
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.core.enums.operator.PermissionLevel;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("PermissionService - Serviço de Permissões")
 class PermissionServiceTest {
 
     private final PermissionService permissionService = new PermissionService();
@@ -19,11 +21,13 @@ class PermissionServiceTest {
     // --- canRemoveItens ---
 
     @Test
+    @DisplayName("Deve permitir remoção de itens para supervisor")
     void shouldAllowItemRemovalForSupervisor() {
         assertTrue(permissionService.canRemoveItens(operatorWith(PermissionLevel.SUPERVISOR)));
     }
 
     @Test
+    @DisplayName("Deve negar remoção de itens para operador básico")
     void shouldDenyItemRemovalForBasicOperator() {
         assertFalse(permissionService.canRemoveItens(operatorWith(PermissionLevel.BASIC)));
     }
@@ -31,11 +35,13 @@ class PermissionServiceTest {
     // --- canCancelSale ---
 
     @Test
+    @DisplayName("Deve permitir cancelamento de venda para supervisor")
     void shouldAllowSaleCancellationForSupervisor() {
         assertTrue(permissionService.canCancelSale(operatorWith(PermissionLevel.SUPERVISOR)));
     }
 
     @Test
+    @DisplayName("Deve negar cancelamento de venda para operador básico")
     void shouldDenySaleCancellationForBasicOperator() {
         assertFalse(permissionService.canCancelSale(operatorWith(PermissionLevel.BASIC)));
     }
@@ -43,6 +49,7 @@ class PermissionServiceTest {
     // --- canAuthorizeRemoval ---
 
     @Test
+    @DisplayName("Deve permitir que supervisor autorize remoção para operador básico")
     void shouldAllowSupervisorToAuthorizeRemovalForBasic() {
         Operator supervisor = operatorWith(PermissionLevel.SUPERVISOR);
         Operator basic = operatorWith(PermissionLevel.BASIC);
@@ -50,6 +57,7 @@ class PermissionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve negar que operador básico autorize remoção para supervisor")
     void shouldDenyBasicFromAuthorizingRemovalForSupervisor() {
         Operator basic = operatorWith(PermissionLevel.BASIC);
         Operator supervisor = operatorWith(PermissionLevel.SUPERVISOR);
@@ -57,6 +65,7 @@ class PermissionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve negar que operador básico autorize remoção para outro básico")
     void shouldDenyBasicFromAuthorizingRemovalForAnotherBasic() {
         Operator basic1 = operatorWith(PermissionLevel.BASIC);
         Operator basic2 = operatorWith(PermissionLevel.BASIC);
@@ -66,6 +75,7 @@ class PermissionServiceTest {
     // --- canAuthorizeCancellation ---
 
     @Test
+    @DisplayName("Deve permitir que supervisor autorize cancelamento para operador básico")
     void shouldAllowSupervisorToAuthorizeCancellationForBasic() {
         Operator supervisor = operatorWith(PermissionLevel.SUPERVISOR);
         Operator basic = operatorWith(PermissionLevel.BASIC);
@@ -73,6 +83,7 @@ class PermissionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve negar que operador básico autorize cancelamento para supervisor")
     void shouldDenyBasicFromAuthorizingCancellationForSupervisor() {
         Operator basic = operatorWith(PermissionLevel.BASIC);
         Operator supervisor = operatorWith(PermissionLevel.SUPERVISOR);

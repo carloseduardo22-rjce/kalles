@@ -5,6 +5,7 @@ import dev.kalles.sale.core.dto.ClientResponse;
 import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ClientRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ClientService - Serviço de Clientes")
 class ClientServiceTest {
 
     @Mock
@@ -47,6 +49,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve criar cliente com sucesso")
     void shouldCreateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
@@ -64,6 +67,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao criar cliente com CPF duplicado")
     void shouldThrowWhenCreatingClientWithDuplicateCpf() {
         String cpf = "529.982.247-25";
         Client existing = buildClient(UUID.randomUUID(), cpf);
@@ -75,6 +79,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve criar cliente com CPF nulo sem consultar o repositório")
     void shouldCreateClientWithNullCpfWithoutCheckingRepository() {
         Client saved = buildClient(UUID.randomUUID(), null);
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
@@ -88,6 +93,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve criar cliente com CPF em branco sem consultar o repositório")
     void shouldCreateClientWithBlankCpfWithoutCheckingRepository() {
         Client saved = buildClient(UUID.randomUUID(), "");
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
@@ -100,6 +106,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve encontrar cliente pelo ID")
     void shouldFindClientById() {
         UUID id = UUID.randomUUID();
         Client client = buildClient(id, "529.982.247-25");
@@ -112,6 +119,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando cliente não encontrado pelo ID")
     void shouldThrowNotFoundWhenClientNotFoundById() {
         UUID id = UUID.randomUUID();
         when(clientRepository.findById(id)).thenReturn(Optional.empty());
@@ -121,6 +129,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve listar todos os clientes ordenados por nome")
     void shouldListAllClientsOrderedByName() {
         List<Client> clients = List.of(
                 buildClient(UUID.randomUUID(), "111"),
@@ -134,6 +143,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve atualizar cliente com sucesso")
     void shouldUpdateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
@@ -153,6 +163,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao atualizar com CPF pertencente a outro cliente")
     void shouldThrowWhenUpdatingClientWithCpfBelongingToAnotherClient() {
         UUID id = UUID.randomUUID();
         UUID otherId = UUID.randomUUID();
@@ -172,6 +183,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao atualizar cliente inexistente")
     void shouldThrowNotFoundWhenUpdatingNonExistentClient() {
         UUID id = UUID.randomUUID();
         when(clientRepository.findById(id)).thenReturn(Optional.empty());
@@ -181,6 +193,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve excluir cliente com sucesso")
     void shouldDeleteClientSuccessfully() {
         UUID id = UUID.randomUUID();
         when(clientRepository.existsById(id)).thenReturn(true);
@@ -191,6 +204,7 @@ class ClientServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao excluir cliente inexistente")
     void shouldThrowNotFoundWhenDeletingNonExistentClient() {
         UUID id = UUID.randomUUID();
         when(clientRepository.existsById(id)).thenReturn(false);

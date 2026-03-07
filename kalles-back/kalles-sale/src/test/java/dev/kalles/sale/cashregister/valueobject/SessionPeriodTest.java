@@ -1,13 +1,16 @@
 package dev.kalles.sale.cashregister.valueobject;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("SessionPeriod - Período de Sessão do Caixa")
 class SessionPeriodTest {
 
     @Test
+    @DisplayName("Deve criar período de sessão com data de abertura")
     void shouldCreateSessionPeriodWithOpenedAt() {
         // Given
         LocalDateTime openedAt = LocalDateTime.of(2026, 1, 28, 10, 0);
@@ -23,6 +26,7 @@ class SessionPeriodTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando data de abertura é nula")
     void shouldThrowExceptionWhenOpenedAtIsNull() {
         // When & Then
         NullPointerException exception = assertThrows(
@@ -34,6 +38,7 @@ class SessionPeriodTest {
     }
 
     @Test
+    @DisplayName("Deve fechar sessão com sucesso")
     void shouldCloseSessionSuccessfully() {
         // Given
         LocalDateTime openedAt = LocalDateTime.of(2026, 1, 28, 10, 0);
@@ -49,6 +54,7 @@ class SessionPeriodTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao fechar sessão já fechada")
     void shouldThrowExceptionWhenClosingAlreadyClosedSession() {
         // Given
         LocalDateTime openedAt = LocalDateTime.of(2026, 1, 28, 10, 0);
@@ -66,6 +72,7 @@ class SessionPeriodTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando data de fechamento é anterior à abertura")
     void shouldThrowExceptionWhenClosedAtIsBeforeOpenedAt() {
         // Given
         LocalDateTime openedAt = LocalDateTime.of(2026, 1, 28, 10, 0);

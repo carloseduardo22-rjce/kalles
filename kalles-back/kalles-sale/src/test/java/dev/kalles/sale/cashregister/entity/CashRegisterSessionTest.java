@@ -1,14 +1,17 @@
 package dev.kalles.sale.cashregister.entity;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("CashRegisterSession - Sessão de Caixa")
 class CashRegisterSessionTest {
 
     @Test
+    @DisplayName("Deve criar sessão usando o método de fábrica")
     void shouldCreateSessionUsingFactoryMethod() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         Operator operator = new Operator("João Silva", "OP001");
@@ -26,6 +29,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando caixa é nulo")
     void shouldThrowExceptionWhenCashRegisterIsNull() {
         Operator operator = new Operator("João Silva", "OP001");
         BigDecimal initialAmount = new BigDecimal("100.00");
@@ -39,6 +43,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando operador é nulo")
     void shouldThrowExceptionWhenOperatorIsNull() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         BigDecimal initialAmount = new BigDecimal("100.00");
@@ -52,6 +57,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando valor inicial é nulo")
     void shouldThrowExceptionWhenInitialAmountIsNull() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         Operator operator = new Operator("João Silva", "OP001");
@@ -63,6 +69,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando valor inicial é negativo")
     void shouldThrowExceptionWhenInitialAmountIsNegative() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         Operator operator = new Operator("João Silva", "OP001");
@@ -75,6 +82,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve fechar sessão com sucesso")
     void shouldCloseSessionSuccessfully() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         Operator operator = new Operator("João Silva", "OP001");
@@ -87,6 +95,7 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao fechar sessão já fechada")
     void shouldThrowExceptionWhenClosingAlreadyClosedSession() {
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
         Operator operator = new Operator("João Silva", "OP001");

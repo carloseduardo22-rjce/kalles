@@ -31,6 +31,7 @@ import dev.kalles.sale.core.strategy.PaymentStrategy;
 import dev.kalles.sale.core.strategy.PixPaymentStrategy;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("PaymentService - Serviço de Pagamento")
 class PaymentServiceTest {
 
     @Mock

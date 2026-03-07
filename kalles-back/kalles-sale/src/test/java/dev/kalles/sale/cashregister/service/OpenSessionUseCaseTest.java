@@ -13,6 +13,7 @@ import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.cashregister.validator.SessionValidator;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("OpenSessionUseCase - Caso de Uso de Abertura de Sessão")
 class OpenSessionUseCaseTest {
 
     @Mock
@@ -53,6 +55,7 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve abrir sessão com sucesso")
     void shouldOpenSessionSuccessfully() {
         // Given
         String cashRegisterCode = "PDV-01";
@@ -99,6 +102,7 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando caixa não encontrado")
     void shouldThrowExceptionWhenCashRegisterNotFound() {
         // Given
         String cashRegisterCode = "PDV-99";
@@ -126,6 +130,7 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando operador não encontrado")
     void shouldThrowExceptionWhenOperatorNotFound() {
         // Given
         String cashRegisterCode = "PDV-01";
@@ -158,6 +163,7 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve chamar a cadeia de validação antes de processar")
     void shouldCallValidatorChainBeforeProcessing() {
         // Given
         OpenSessionRequest request = new OpenSessionRequest(

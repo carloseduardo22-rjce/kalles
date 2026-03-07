@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
+import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
 import dev.kalles.sale.core.entity.SaleAuditEvent;
@@ -15,6 +16,7 @@ import dev.kalles.sale.core.entity.Stock;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
@@ -33,6 +35,9 @@ public class SaleService {
     private final PermissionService permissionService;
     private final SaleAuditEventRepository auditRepository;
     private final StockRepository stockRepository;
+    private final FidelityService fidelityService;
+    private final ClientRepository clientRepository;
+
     
     @Transactional
     public Sale addItemByInternalCode(String sessionToken, String internalCode) {
@@ -183,6 +188,31 @@ public class SaleService {
                 });
     }
 
+    @Transactional
+    public Sale associateClientWithSale(String sessionToken, UUID clientId) {
+        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        Sale sale = findActiveSale(sessionToken);
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
+        sale.setClient(client);
+        return saleRepository.save(sale);
+    }
+
+    @Transactional
+    public Sale applyFidelityDiscountToSale(String sessionToken) {
+        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        Sale sale = findActiveSale(sessionToken);
+        if (sale.getClient() == null) {
+            throw new IllegalStateException("Nenhum cliente associado à venda.");
+        }
+        BigDecimal applied = fidelityService.applyDiscount(sale.getClient().getId(), sale.getSubtotal());
+        if (applied.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            sale.applyFidelityDiscount(applied);
+            saleRepository.save(sale);
+        }
+        return sale;
+    }
+
     @Transactional(readOnly = true)
 	public List<Product> searchProducts(String description) {
 	    return productRepository.findByDescriptionContainingIgnoreCaseAndActiveTrue(description);
@@ -210,6 +240,12 @@ public class SaleService {
         Sale sale = findActiveSale(sessionToken);
         sale.cancel();
         restoreStock(sale);
+        if (sale.getClient() != null) {
+            fidelityService.rollbackSale(
+                    sale.getClient().getId(),
+                    sale.getFidelityDiscountApplied(),
+                    sale.getPointsEarned());
+        }
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, null));
     }
@@ -230,6 +266,12 @@ public class SaleService {
         Sale sale = findActiveSale(sessionToken);
         sale.cancel();
         restoreStock(sale);
+        if (sale.getClient() != null) {
+            fidelityService.rollbackSale(
+                    sale.getClient().getId(),
+                    sale.getFidelityDiscountApplied(),
+                    sale.getPointsEarned());
+        }
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, authorizer));
     }
@@ -264,6 +306,10 @@ public class SaleService {
 
         sale.completeSale();
         deductStock(sale);
+        if (sale.getClient() != null) {
+            int pointsEarned = fidelityService.processCompletedSale(sale.getClient().getId(), sale.getSubtotal());
+            sale.setPointsEarned(pointsEarned);
+        }
         saleRepository.save(sale);
 	}
 

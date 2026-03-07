@@ -6,6 +6,7 @@ import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.core.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("CashRegisterCheckoutSessionService - Serviço de Sessão do Caixa")
 class CashRegisterCheckoutSessionServiceTest {
 
     @Mock
@@ -40,6 +42,7 @@ class CashRegisterCheckoutSessionServiceTest {
     // --- findByToken ---
 
     @Test
+    @DisplayName("Deve retornar sessão quando token é válido e sessão está aberta")
     void shouldReturnSessionWhenTokenIsValidAndSessionIsOpen() {
         UUID id = UUID.randomUUID();
         CashRegisterSession session = buildOpenSession();
@@ -52,6 +55,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar vazio quando token é nulo")
     void shouldReturnEmptyWhenTokenIsNull() {
         Optional<Session> result = service.findByToken(null);
 
@@ -60,6 +64,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar vazio quando token não é um UUID válido")
     void shouldReturnEmptyWhenTokenIsNotValidUuid() {
         Optional<Session> result = service.findByToken("isto-nao-e-um-uuid");
 
@@ -68,6 +73,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar vazio quando sessão não encontrada no repositório")
     void shouldReturnEmptyWhenSessionNotFoundInRepository() {
         UUID id = UUID.randomUUID();
         when(sessionRepository.findById(id)).thenReturn(Optional.empty());
@@ -78,6 +84,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar vazio quando sessão está fechada")
     void shouldReturnEmptyWhenSessionFoundButIsClosed() {
         UUID id = UUID.randomUUID();
         CashRegisterSession session = buildOpenSession();
@@ -92,6 +99,7 @@ class CashRegisterCheckoutSessionServiceTest {
     // --- isSessionOpen ---
 
     @Test
+    @DisplayName("Deve retornar verdadeiro quando sessão está aberta")
     void shouldReturnTrueWhenSessionIsOpen() {
         UUID id = UUID.randomUUID();
         CashRegisterSession session = buildOpenSession();
@@ -101,6 +109,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar falso quando sessão não encontrada")
     void shouldReturnFalseWhenSessionNotFound() {
         UUID id = UUID.randomUUID();
         when(sessionRepository.findById(id)).thenReturn(Optional.empty());
@@ -111,6 +120,7 @@ class CashRegisterCheckoutSessionServiceTest {
     // --- getOpenSessionOrThrow ---
 
     @Test
+    @DisplayName("Deve lançar exceção quando token de sessão não encontrado")
     void shouldThrowNotFoundWhenSessionTokenNotFound() {
         UUID id = UUID.randomUUID();
         when(sessionRepository.findById(id)).thenReturn(Optional.empty());
@@ -120,6 +130,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando sessão está fechada ao buscar com validação")
     void shouldThrowNotFoundWhenSessionIsClosedOnGetOrThrow() {
         // findByToken filters out closed sessions (isOpen = false), so getOpenSessionOrThrow
         // receives an empty Optional and throws NotFoundException — not IllegalStateException
@@ -133,6 +144,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar sessão aberta ao buscar com validação")
     void shouldReturnSessionWhenOpenOnGetOrThrow() {
         UUID id = UUID.randomUUID();
         CashRegisterSession session = buildOpenSession();

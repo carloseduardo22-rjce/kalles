@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCog, Plus, Pencil, PowerOff, RefreshCw } from "lucide-react";
+import {
+  UserCog,
+  Plus,
+  Pencil,
+  PowerOff,
+  RefreshCw,
+  Camera,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -38,6 +45,7 @@ import {
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { operatorService } from "@/features/admin/services/operator.service";
+import { operatorPhotoService } from "@/shared/services/company-settings.service";
 import type {
   OperatorAdminResponse,
   OperatorRequest,
@@ -76,6 +84,37 @@ function PermissionBadge({ level }: { level: string | null }) {
   );
 }
 
+function OperatorAvatar({ id, name }: { id: string; name: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSrc(operatorPhotoService.getPhoto(id));
+  }, [id]);
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="h-7 w-7 rounded-full object-cover ring-1 ring-border"
+        onError={() => setSrc(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary ring-1 ring-border">
+      {name.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+/* ─── Form type ──────────────────────────────────────────────────────────── */
+
+interface OperatorFormValues extends OperatorRequest {
+  photoUrl?: string;
+}
+
 /* ─── Form ──────────────────────────────────────────────────────────────── */
 
 function OperatorForm({
@@ -84,8 +123,8 @@ function OperatorForm({
   isPending,
   onCancel,
 }: {
-  defaultValues?: Partial<OperatorRequest>;
-  onSubmit: (data: OperatorRequest) => void;
+  defaultValues?: Partial<OperatorFormValues>;
+  onSubmit: (data: OperatorFormValues) => void;
   isPending: boolean;
   onCancel: () => void;
 }) {
@@ -95,9 +134,10 @@ function OperatorForm({
     setValue,
     watch,
     formState: { errors },
-  } = useForm<OperatorRequest>({ defaultValues });
+  } = useForm<OperatorFormValues>({ defaultValues });
 
   const permLevel = watch("permissionLevel");
+  const photoUrl = watch("photoUrl");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -154,6 +194,30 @@ function OperatorForm({
         )}
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="photoUrl">
+          <Camera className="mr-1 inline h-3.5 w-3.5" />
+          URL da Foto (opcional)
+        </Label>
+        <div className="flex items-center gap-2">
+          {photoUrl && (
+            <img
+              src={photoUrl}
+              alt="Prévia"
+              className="h-8 w-8 rounded-full object-cover ring-1 ring-border"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+          <Input
+            id="photoUrl"
+            {...register("photoUrl")}
+            placeholder="https://exemplo.com/foto.jpg"
+          />
+        </div>
+      </div>
+
       <DialogFooter>
         <Button
           type="button"
@@ -194,8 +258,12 @@ export default function OperadoresPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: OperatorRequest) => operatorService.create(data),
-    onSuccess: () => {
+    mutationFn: ({ name, code, permissionLevel }: OperatorFormValues) =>
+      operatorService.create({ name, code, permissionLevel }),
+    onSuccess: (created, variables) => {
+      if (variables.photoUrl?.trim()) {
+        operatorPhotoService.setPhoto(created.id, variables.photoUrl.trim());
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-operadores"] });
       setCreateOpen(false);
       toast.success("Operador cadastrado com sucesso.");
@@ -208,9 +276,18 @@ export default function OperadoresPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: OperatorRequest }) =>
-      operatorService.update(id, data),
-    onSuccess: () => {
+    mutationFn: ({ id, data }: { id: string; data: OperatorFormValues }) =>
+      operatorService.update(id, {
+        name: data.name,
+        code: data.code,
+        permissionLevel: data.permissionLevel,
+      }),
+    onSuccess: (_, { id, data }) => {
+      if (data.photoUrl?.trim()) {
+        operatorPhotoService.setPhoto(id, data.photoUrl.trim());
+      } else if (data.photoUrl === "") {
+        operatorPhotoService.removePhoto(id);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-operadores"] });
       setEditTarget(null);
       toast.success("Operador atualizado com sucesso.");
@@ -288,6 +365,7 @@ export default function OperadoresPage() {
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
+                  <th className="w-10 px-4 py-3" />
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Nome
                   </th>
@@ -306,6 +384,9 @@ export default function OperadoresPage() {
                     key={op.id}
                     className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
                   >
+                    <td className="px-4 py-3">
+                      <OperatorAvatar id={op.id} name={op.name} />
+                    </td>
                     <td className="px-4 py-3 font-medium">{op.name}</td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {op.code}
@@ -378,6 +459,7 @@ export default function OperadoresPage() {
                 name: editTarget.name,
                 code: editTarget.code,
                 permissionLevel: editTarget.permissionLevel as PermissionLevel,
+                photoUrl: operatorPhotoService.getPhoto(editTarget.id) ?? "",
               }}
               onSubmit={(data) =>
                 updateMutation.mutate({ id: editTarget.id, data })

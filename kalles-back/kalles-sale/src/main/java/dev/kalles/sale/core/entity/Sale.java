@@ -18,6 +18,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -51,6 +53,10 @@ public class Sale {
     @Column(nullable = false)
     private SaleState state = new OpenState();
 
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<SaleItem> items = new LinkedHashSet<>();
 
@@ -66,6 +72,12 @@ public class Sale {
     @Column(name = "amount_due", nullable = false, precision = 19, scale = 2)
     private BigDecimal amountDue = BigDecimal.ZERO;
 
+    @Column(name = "fidelity_discount_applied", nullable = false, precision = 19, scale = 2)
+    private BigDecimal fidelityDiscountApplied = BigDecimal.ZERO;
+
+    @Column(name = "points_earned", nullable = false)
+    private Integer pointsEarned = 0;
+
     public void addItem(Product product) { state.addItem(this, product); }
     public void removeItem(Product product) { state.removeItem(this, product); }
     public void applyItemDiscount(UUID itemId, BigDecimal discountAmount) { state.applyItemDiscount(this, itemId, discountAmount); }
@@ -75,6 +87,15 @@ public class Sale {
     public void hold() { state.hold(this); }
     public void resume() { state.resume(this); }
     public void completeSale() { state.completeSale(this); }
+
+    public void applyFidelityDiscount(BigDecimal discount) {
+        state.applyFidelityDiscount(this, discount);
+    }
+
+    public void doApplyFidelityDiscount(BigDecimal discount) {
+        this.fidelityDiscountApplied = discount;
+        this.total = this.subtotal.subtract(discount).max(BigDecimal.ZERO);
+    }
 
     public void doStartPayment() { this.amountDue = this.total; }
 
@@ -151,6 +172,6 @@ public class Sale {
         this.subtotal = items.stream()
                 .map(SaleItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        this.total = this.subtotal;
+        this.total = this.subtotal.subtract(this.fidelityDiscountApplied).max(BigDecimal.ZERO);
     }
 }

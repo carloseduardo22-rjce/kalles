@@ -5,6 +5,7 @@ import dev.kalles.sale.core.dto.WarehouseResponse;
 import dev.kalles.sale.core.entity.Warehouse;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.WarehouseRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("WarehouseService - Serviço de Depósitos")
 class WarehouseServiceTest {
 
     @Mock
@@ -30,6 +32,7 @@ class WarehouseServiceTest {
     private WarehouseService warehouseService;
 
     @Test
+    @DisplayName("Deve criar depósito como ativo por padrão")
     void shouldCreateWarehouseWithActiveTrueByDefault() {
         WarehouseRequest request = new WarehouseRequest("Depósito Central", "Rua das Flores, 100");
         Warehouse saved = new Warehouse(UUID.randomUUID(), "Depósito Central", "Rua das Flores, 100", true);
@@ -47,6 +50,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve persistir nome e endereço ao criar o depósito")
     void shouldPersistNameAndAddressOnCreate() {
         WarehouseRequest request = new WarehouseRequest("Dep A", "Av. Brasil, 10");
         Warehouse saved = new Warehouse(UUID.randomUUID(), "Dep A", "Av. Brasil, 10", true);
@@ -59,6 +63,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar apenas os depósitos ativos")
     void shouldReturnOnlyActiveWarehouses() {
         Warehouse w1 = new Warehouse(UUID.randomUUID(), "Dep A", null, true);
         Warehouse w2 = new Warehouse(UUID.randomUUID(), "Dep B", null, true);
@@ -71,6 +76,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar lista vazia quando não há depósitos ativos")
     void shouldReturnEmptyListWhenNoActiveWarehouses() {
         when(warehouseRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of());
 
@@ -80,6 +86,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve encontrar depósito pelo ID")
     void shouldFindWarehouseById() {
         UUID id = UUID.randomUUID();
         Warehouse warehouse = new Warehouse(id, "Dep X", "Rua Y", true);
@@ -92,6 +99,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção quando depósito não existe")
     void shouldThrowNotFoundWhenWarehouseDoesNotExist() {
         UUID id = UUID.randomUUID();
         when(warehouseRepository.findById(id)).thenReturn(Optional.empty());
@@ -102,6 +110,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve atualizar nome e endereço do depósito")
     void shouldUpdateWarehouseNameAndAddress() {
         UUID id = UUID.randomUUID();
         Warehouse existing = new Warehouse(id, "Nome Antigo", "End. Antigo", true);
@@ -118,6 +127,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao atualizar depósito inexistente")
     void shouldThrowNotFoundWhenUpdatingNonExistentWarehouse() {
         UUID id = UUID.randomUUID();
         when(warehouseRepository.findById(id)).thenReturn(Optional.empty());
@@ -128,6 +138,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve marcar depósito como inativo ao desativá-lo")
     void shouldSetActiveToFalseOnDeactivate() {
         UUID id = UUID.randomUUID();
         Warehouse warehouse = new Warehouse(id, "Dep Z", null, true);
@@ -141,6 +152,7 @@ class WarehouseServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar exceção ao desativar depósito inexistente")
     void shouldThrowNotFoundWhenDeactivatingNonExistentWarehouse() {
         UUID id = UUID.randomUUID();
         when(warehouseRepository.findById(id)).thenReturn(Optional.empty());

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   ShoppingCart,
   Package,
@@ -18,10 +18,13 @@ import {
   Warehouse,
   Layers,
   UserCog,
+  Gift,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { companySettingsService } from "@/shared/services/company-settings.service";
 
 /* ─── Individual nav link ─── */
 interface NavLinkProps {
@@ -30,14 +33,16 @@ interface NavLinkProps {
   children: React.ReactNode;
   active: boolean;
   soon?: boolean;
+  sub?: boolean;
 }
 
-function NavLink({ href, icon, children, active, soon }: NavLinkProps) {
+function NavLink({ href, icon, children, active, soon, sub }: NavLinkProps) {
   return (
     <Link
       href={soon ? "#" : href}
       className={cn(
-        "flex items-center gap-2.5 px-4 py-2 text-sm transition-colors",
+        "flex items-center gap-2.5 py-2 text-sm transition-colors",
+        sub ? "pl-7 pr-4" : "px-4",
         active
           ? "border-primary bg-primary/10 font-medium text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -67,11 +72,25 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ─── Sub-section label (indented, smaller) ─── */
+function SubSectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="pl-4 pr-4 pb-0.5 pt-2 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+      {children}
+    </p>
+  );
+}
+
 /* ─── Inner sidebar (needs useSearchParams → must be inside Suspense) ─── */
 function SidebarInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "resumo";
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLogoUrl(companySettingsService.getLogo());
+  }, []);
 
   const isRelatorios = pathname === "/relatorios";
 
@@ -82,7 +101,15 @@ function SidebarInner() {
         href="/"
         className="flex items-center gap-2.5 border-b px-4 py-4 transition-colors hover:bg-muted/50"
       >
-        <Store className="h-5 w-5 text-primary" />
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className="h-6 w-6 rounded object-contain"
+          />
+        ) : (
+          <Store className="h-5 w-5 text-primary" />
+        )}
         <span className="text-sm font-semibold">Kalles ERP</span>
       </Link>
 
@@ -90,10 +117,13 @@ function SidebarInner() {
       <nav className="flex-1 overflow-y-auto py-2">
         {/* ── PDV ── */}
         <SectionLabel>PDV</SectionLabel>
+
+        <SubSectionLabel>Operações</SubSectionLabel>
         <NavLink
           href="/caixas"
           icon={<ShoppingCart className="h-4 w-4" />}
           active={pathname === "/caixas"}
+          sub
         >
           Vendas
         </NavLink>
@@ -101,6 +131,7 @@ function SidebarInner() {
           href="/pdv"
           icon={<Terminal className="h-4 w-4" />}
           active={pathname === "/pdv"}
+          sub
         >
           Terminal
         </NavLink>
@@ -108,17 +139,17 @@ function SidebarInner() {
           href="/produtos"
           icon={<Package className="h-4 w-4" />}
           active={pathname === "/produtos"}
+          sub
         >
           Catálogo
         </NavLink>
 
-        <Separator className="my-2" />
-
-        {/* ── Relatórios (under PDV) ── */}
+        <SubSectionLabel>Relatórios</SubSectionLabel>
         <NavLink
           href="/relatorios?tab=resumo"
           icon={<LayoutDashboard className="h-4 w-4" />}
           active={isRelatorios && tab === "resumo"}
+          sub
         >
           Resumo do Turno
         </NavLink>
@@ -126,6 +157,7 @@ function SidebarInner() {
           href="/relatorios?tab=pagamentos"
           icon={<CreditCard className="h-4 w-4" />}
           active={isRelatorios && tab === "pagamentos"}
+          sub
         >
           Meios de Pagamento
         </NavLink>
@@ -133,6 +165,7 @@ function SidebarInner() {
           href="/relatorios?tab=por-produto"
           icon={<ShoppingBag className="h-4 w-4" />}
           active={isRelatorios && tab === "por-produto"}
+          sub
           soon
         >
           Por Produto
@@ -141,18 +174,18 @@ function SidebarInner() {
           href="/relatorios?tab=historico"
           icon={<History className="h-4 w-4" />}
           active={isRelatorios && tab === "historico"}
+          sub
           soon
         >
           Histórico
         </NavLink>
 
-        <Separator className="my-2" />
-
-        {/* ── Financeiro (under PDV) ── */}
+        <SubSectionLabel>Financeiro</SubSectionLabel>
         <NavLink
           href="#"
           icon={<TrendingUp className="h-4 w-4" />}
           active={false}
+          sub
           soon
         >
           A Receber
@@ -161,6 +194,7 @@ function SidebarInner() {
           href="#"
           icon={<TrendingDown className="h-4 w-4" />}
           active={false}
+          sub
           soon
         >
           A Pagar
@@ -204,6 +238,20 @@ function SidebarInner() {
           active={pathname === "/admin/estoque"}
         >
           Estoque
+        </NavLink>
+        <NavLink
+          href="/admin/fidelidade"
+          icon={<Gift className="h-4 w-4" />}
+          active={pathname === "/admin/fidelidade"}
+        >
+          Fidelidade
+        </NavLink>
+        <NavLink
+          href="/admin/configuracoes"
+          icon={<Settings className="h-4 w-4" />}
+          active={pathname === "/admin/configuracoes"}
+        >
+          Configurações
         </NavLink>
       </nav>
 
