@@ -361,3 +361,155 @@ VALUES
    'c1000000-0000-0000-0000-000000000006'::uuid,
    'CREDIT_CARD', 36.40, 0.00, 'TXN-CC-001', true, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour')
 ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 16. SEGUNDA SESSÃO ABERTA — CAIXA-03
+--     Lucas Oliveira (OP-004), R$80 de fundo inicial.
+-- ---------------------------------------------------------------
+INSERT INTO cash_register_sessions (id, cash_register_id, operator_id, initial_amount, opened_at, closed_at, status)
+SELECT
+  'b0000000-0000-0000-0000-000000000003'::uuid,
+  cr.id,
+  op.id,
+  80.00,
+  NOW() - INTERVAL '3 hours',
+  NULL,
+  'OPEN'
+FROM cash_registers cr, operators op
+WHERE cr.code = 'CAIXA-03'
+  AND op.code = 'OP-004'
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 17. VENDAS EXTRAS — SESSÃO CAIXA-01 (b0000000-...001)
+--     Enriquece o Resumo do Turno com mais métodos de pagamento.
+--
+--   Venda H | Diego Lima  | COMPLETED | subtotal=22.90, PIX
+--   Venda I | sem cliente | COMPLETED | subtotal=14.00, CASH
+--   Venda J | Natália     | COMPLETED | subtotal=12.90, CREDIT_CARD
+--   Venda K | Carla Mendes| COMPLETED | subtotal=8.90,  DEBIT_CARD
+-- ---------------------------------------------------------------
+INSERT INTO sale (id, version, session_token, state, client_id,
+                  subtotal, total, amount_due,
+                  fidelity_discount_applied, points_earned)
+SELECT
+  v.sale_id::uuid,
+  0,
+  'b0000000-0000-0000-0000-000000000001',
+  'COMPLETED',
+  c.id,
+  v.subtotal::numeric(19,2),
+  v.total::numeric(19,2),
+  0.00,
+  0.00,
+  0
+FROM (VALUES
+  ('c1000000-0000-0000-0000-000000000008', '168.995.350-09', 22.90, 22.90),
+  ('c1000000-0000-0000-0000-000000000009', NULL,             14.00, 14.00),
+  ('c1000000-0000-0000-0000-000000000010', '674.594.981-49', 12.90, 12.90),
+  ('c1000000-0000-0000-0000-000000000011', '046.270.070-54',  8.90,  8.90)
+) AS v(sale_id, cpf, subtotal, total)
+LEFT JOIN client c ON c.cpf = v.cpf
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 18. VENDAS — SESSÃO CAIXA-03 (b0000000-...003)
+--
+--   Venda L | sem cliente    | COMPLETED | subtotal=33.40, PIX
+--   Venda M | Marcos Teixeira| COMPLETED | subtotal=15.00, DEBIT_CARD
+--   Venda N | sem cliente    | COMPLETED | subtotal=13.40, CASH
+--   Venda O | sem cliente    | CANCELED
+-- ---------------------------------------------------------------
+INSERT INTO sale (id, version, session_token, state, client_id,
+                  subtotal, total, amount_due,
+                  fidelity_discount_applied, points_earned)
+SELECT
+  v.sale_id::uuid,
+  0,
+  'b0000000-0000-0000-0000-000000000003',
+  v.state,
+  c.id,
+  v.subtotal::numeric(19,2),
+  v.total::numeric(19,2),
+  v.amount_due::numeric(19,2),
+  0.00,
+  0
+FROM (VALUES
+  ('c1000000-0000-0000-0000-000000000012', 'COMPLETED', NULL,             33.40, 33.40, 0.00),
+  ('c1000000-0000-0000-0000-000000000013', 'COMPLETED', '862.073.580-01', 15.00, 15.00, 0.00),
+  ('c1000000-0000-0000-0000-000000000014', 'COMPLETED', NULL,             13.40, 13.40, 0.00),
+  ('c1000000-0000-0000-0000-000000000015', 'CANCELED',  NULL,              7.00,  7.00, 7.00)
+) AS v(sale_id, state, cpf, subtotal, total, amount_due)
+LEFT JOIN client c ON c.cpf = v.cpf
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 19. ITENS DAS VENDAS EXTRAS (seções 17 e 18)
+-- ---------------------------------------------------------------
+INSERT INTO sale_item (id, sale_id, product_id, quantity, unit_price, discount)
+SELECT
+  i.item_id::uuid,
+  i.sale_id::uuid,
+  p.id,
+  i.qty,
+  i.unit_price::numeric(19,2),
+  0.00
+FROM (VALUES
+  -- Venda H: 1× Arroz 5kg
+  ('d1000000-0000-0000-0000-000000000013', 'c1000000-0000-0000-0000-000000000008', 'PRD-007', 1, 22.90),
+  -- Venda I: 2× Suco de Laranja
+  ('d1000000-0000-0000-0000-000000000014', 'c1000000-0000-0000-0000-000000000009', 'PRD-006', 2, 7.00),
+  -- Venda J: 1× Shampoo
+  ('d1000000-0000-0000-0000-000000000015', 'c1000000-0000-0000-0000-000000000010', 'PRD-018', 1, 12.90),
+  -- Venda K: 1× Manteiga
+  ('d1000000-0000-0000-0000-000000000016', 'c1000000-0000-0000-0000-000000000011', 'PRD-012', 1, 8.90),
+  -- Venda L: 1× Arroz + 1× Feijão
+  ('d1000000-0000-0000-0000-000000000017', 'c1000000-0000-0000-0000-000000000012', 'PRD-007', 1, 22.90),
+  ('d1000000-0000-0000-0000-000000000018', 'c1000000-0000-0000-0000-000000000012', 'PRD-008', 1, 10.50),
+  -- Venda M: 1× Pão de Forma + 1× Café Solúvel
+  ('d1000000-0000-0000-0000-000000000019', 'c1000000-0000-0000-0000-000000000013', 'PRD-014', 1, 7.50),
+  ('d1000000-0000-0000-0000-000000000020', 'c1000000-0000-0000-0000-000000000013', 'PRD-015', 1, 6.80),
+  -- Venda N: 1× Leite + 1× Açúcar + 1× Detergente
+  ('d1000000-0000-0000-0000-000000000021', 'c1000000-0000-0000-0000-000000000014', 'PRD-011', 1, 4.50),
+  ('d1000000-0000-0000-0000-000000000022', 'c1000000-0000-0000-0000-000000000014', 'PRD-016', 1, 4.00),
+  ('d1000000-0000-0000-0000-000000000023', 'c1000000-0000-0000-0000-000000000014', 'PRD-019', 1, 2.50),
+  -- Venda O: 1× Suco de Uva (cancelada)
+  ('d1000000-0000-0000-0000-000000000024', 'c1000000-0000-0000-0000-000000000015', 'PRD-024', 1, 7.00)
+) AS i(item_id, sale_id, internal_code, qty, unit_price)
+JOIN product p ON p.internal_code = i.internal_code
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 20. PAGAMENTOS DAS VENDAS EXTRAS
+-- ---------------------------------------------------------------
+INSERT INTO payment (id, sale_id, method, amount, change_amount, transaction_id, confirmed, created_at, updated_at)
+VALUES
+  -- Venda H — PIX R$22,90
+  ('e1000000-0000-0000-0000-000000000008',
+   'c1000000-0000-0000-0000-000000000008'::uuid,
+   'PIX', 22.90, 0.00, 'TXN-PIX-002', true, NOW() - INTERVAL '90 minutes', NOW() - INTERVAL '90 minutes'),
+  -- Venda I — CASH R$15,00, troco R$1,00
+  ('e1000000-0000-0000-0000-000000000009',
+   'c1000000-0000-0000-0000-000000000009'::uuid,
+   'CASH', 15.00, 1.00, NULL, true, NOW() - INTERVAL '75 minutes', NOW() - INTERVAL '75 minutes'),
+  -- Venda J — CREDIT_CARD R$12,90
+  ('e1000000-0000-0000-0000-000000000010',
+   'c1000000-0000-0000-0000-000000000010'::uuid,
+   'CREDIT_CARD', 12.90, 0.00, 'TXN-CC-002', true, NOW() - INTERVAL '60 minutes', NOW() - INTERVAL '60 minutes'),
+  -- Venda K — DEBIT_CARD R$8,90
+  ('e1000000-0000-0000-0000-000000000011',
+   'c1000000-0000-0000-0000-000000000011'::uuid,
+   'DEBIT_CARD', 8.90, 0.00, 'TXN-DB-002', true, NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '45 minutes'),
+  -- Venda L — PIX R$33,40
+  ('e1000000-0000-0000-0000-000000000012',
+   'c1000000-0000-0000-0000-000000000012'::uuid,
+   'PIX', 33.40, 0.00, 'TXN-PIX-003', true, NOW() - INTERVAL '2 hours 30 minutes', NOW() - INTERVAL '2 hours 30 minutes'),
+  -- Venda M — DEBIT_CARD R$15,00
+  ('e1000000-0000-0000-0000-000000000013',
+   'c1000000-0000-0000-0000-000000000013'::uuid,
+   'DEBIT_CARD', 15.00, 0.00, 'TXN-DB-003', true, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '2 hours'),
+  -- Venda N — CASH R$15,00, troco R$1,60
+  ('e1000000-0000-0000-0000-000000000014',
+   'c1000000-0000-0000-0000-000000000014'::uuid,
+   'CASH', 15.00, 1.60, NULL, true, NOW() - INTERVAL '90 minutes', NOW() - INTERVAL '90 minutes')
+ON CONFLICT (id) DO NOTHING;

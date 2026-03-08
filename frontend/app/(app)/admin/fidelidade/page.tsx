@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useQueries,
+} from "@tanstack/react-query";
 import {
   Gift,
   Plus,
@@ -27,6 +32,15 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
+import { PieChart, Pie } from "recharts";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { EmptyState } from "@/shared/components/empty-state";
@@ -38,7 +52,13 @@ import type {
   FidelityResponse,
   ClientResponse,
 } from "@/features/admin/types";
-
+const enrollmentChartConfig = {
+  enrolled: { label: "Inscritos", color: "#10b981" },
+  notEnrolled: {
+    label: "Não inscritos",
+    color: "#e5e7eb",
+  },
+} satisfies ChartConfig;
 /* ─── Policy Form ─────────────────────────────────────────────────────────── */
 
 function PolicyForm({
@@ -261,6 +281,36 @@ export default function FidelidadePage() {
     queryKey: ["admin-clients-fidelity"],
     queryFn: () => clientService.listAll(),
   });
+
+  // ── Fidelity overview (enrollment stats for chart) ──
+  const fidelityOverviewQueries = useQueries({
+    queries: clients.map((c) => ({
+      queryKey: ["fidelity-client", c.id],
+      queryFn: () =>
+        fidelityService.getByClientId(c.id).catch((err) => {
+          if (err?.status === 404) return null;
+          throw err;
+        }),
+      staleTime: 60_000,
+    })),
+  });
+
+  const fidelityOverviewLoaded =
+    clients.length === 0 || fidelityOverviewQueries.every((q) => !q.isLoading);
+  const enrolledCount = fidelityOverviewLoaded
+    ? fidelityOverviewQueries.filter((q) => q.data != null).length
+    : 0;
+  const notEnrolledCount = fidelityOverviewLoaded
+    ? fidelityOverviewQueries.filter((q) => q.data === null).length
+    : 0;
+  const enrollmentDonutData = [
+    { name: "enrolled", value: enrolledCount, fill: "var(--color-enrolled)" },
+    {
+      name: "notEnrolled",
+      value: notEnrolledCount,
+      fill: "#e5e7eb",
+    },
+  ].filter((d) => d.value > 0);
 
   // ── Mutations ──
   const createPolicyMutation = useMutation({
@@ -488,6 +538,91 @@ export default function FidelidadePage() {
 
           {/* ── Clientes tab ── */}
           <TabsContent value="clientes" className="space-y-4">
+            {/* Enrollment overview */}
+            {!clientsLoading && clients.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                    <p className="text-2xl font-bold">{clients.length}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Total de Clientes
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                    <p className="text-2xl font-bold text-primary">
+                      {enrolledCount}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Inscritos
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                    <p className="text-2xl font-bold text-muted-foreground">
+                      {notEnrolledCount}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Não inscritos
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex items-center justify-center p-2">
+                    <ChartContainer
+                      config={enrollmentChartConfig}
+                      className="mx-auto aspect-square max-h-28"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const item = payload[0];
+                            const cfg = enrollmentChartConfig[
+                              item.payload
+                                .name as keyof typeof enrollmentChartConfig
+                            ] as { label?: string } | undefined;
+                            return (
+                              <div className="rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="h-2 w-2 shrink-0 rounded-[2px]"
+                                    style={{
+                                      backgroundColor: item.payload.fill,
+                                    }}
+                                  />
+                                  <span className="text-muted-foreground">
+                                    {cfg?.label ?? item.payload.name}
+                                  </span>
+                                  <span className="ml-auto font-bold">
+                                    {item.value as number}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Pie
+                          data={enrollmentDonutData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={28}
+                          strokeWidth={3}
+                          stroke="transparent"
+                        />
+                        <ChartLegend
+                          content={<ChartLegendContent nameKey="name" />}
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

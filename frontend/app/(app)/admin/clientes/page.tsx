@@ -2,11 +2,20 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Pencil, Trash2, RefreshCw, Search } from "lucide-react";
+import {
+  Users,
+  Plus,
+  Pencil,
+  Trash2,
+  RefreshCw,
+  Search,
+  Gift,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +40,12 @@ import {
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { clientService } from "@/features/admin/services/client.service";
-import type { ClientRequest, ClientResponse } from "@/features/admin/types";
+import { fidelityService } from "@/features/admin/services/fidelity.service";
+import type {
+  ClientRequest,
+  ClientResponse,
+  FidelityResponse,
+} from "@/features/admin/types";
 
 /* ─── Form ─────────────────────────────────────────────────────────────── */
 function ClientForm({
@@ -166,6 +180,26 @@ export default function ClientesPage() {
     queryFn: () => clientService.listAll(),
   });
 
+  const clientIds = clients.map((c) => c.id);
+
+  const { data: fidelityMap = new Map<string, FidelityResponse | null>() } =
+    useQuery({
+      queryKey: ["clients-fidelity", clientIds.join(",")],
+      queryFn: async () => {
+        const results = await Promise.allSettled(
+          clientIds.map((id) => fidelityService.getByClientId(id)),
+        );
+        const map = new Map<string, FidelityResponse | null>();
+        clientIds.forEach((id, i) => {
+          const r = results[i];
+          map.set(id, r.status === "fulfilled" ? r.value : null);
+        });
+        return map;
+      },
+      enabled: clientIds.length > 0,
+      staleTime: 60_000,
+    });
+
   const createMutation = useMutation({
     mutationFn: (data: ClientRequest) => clientService.create(data),
     onSuccess: () => {
@@ -296,6 +330,9 @@ export default function ClientesPage() {
                   <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Celular
                   </th>
+                  <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Fidelidade
+                  </th>
                   <th className="w-24 px-4 py-3" />
                 </tr>
               </thead>
@@ -313,6 +350,45 @@ export default function ClientesPage() {
                       {client.cellphone ?? (
                         <span className="opacity-40">—</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        if (!fidelityMap.has(client.id)) {
+                          return (
+                            <span className="text-xs text-muted-foreground opacity-40">
+                              —
+                            </span>
+                          );
+                        }
+                        const f = fidelityMap.get(client.id) ?? null;
+                        if (f === null) {
+                          return (
+                            <Badge
+                              variant="outline"
+                              className="text-xs font-normal"
+                            >
+                              Não inscrito
+                            </Badge>
+                          );
+                        }
+                        if (f.availableDiscount > 0) {
+                          return (
+                            <Badge className="border border-green-200 bg-green-100 text-xs font-normal text-green-700 hover:bg-green-100">
+                              <Gift className="mr-1 h-3 w-3" />
+                              R$ {f.availableDiscount.toFixed(2)} disponível
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-normal"
+                          >
+                            <Gift className="mr-1 h-3 w-3 opacity-60" />
+                            {f.points} pts
+                          </Badge>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
