@@ -21,6 +21,8 @@ import {
   Gift,
   Settings,
   ChevronRight,
+  LifeBuoy,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +82,12 @@ interface NavGroupProps {
   children: React.ReactNode;
 }
 
-function NavGroup({ icon, label, defaultOpen = false, children }: NavGroupProps) {
+function NavGroup({
+  icon,
+  label,
+  defaultOpen = false,
+  children,
+}: NavGroupProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -99,11 +106,7 @@ function NavGroup({ icon, label, defaultOpen = false, children }: NavGroupProps)
         />
       </button>
 
-      {open && (
-        <div className="pb-1">
-          {children}
-        </div>
-      )}
+      {open && <div className="pb-1">{children}</div>}
     </div>
   );
 }
@@ -126,6 +129,8 @@ function SidebarInner() {
 
   const isAdminSection = pathname.startsWith("/admin");
 
+  const isSupportSection = pathname.startsWith("/suporte");
+
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-card">
       {/* Brand */}
@@ -147,7 +152,6 @@ function SidebarInner() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
-
         {/* ── PDV ── */}
         <NavGroup
           icon={<Terminal className="h-4 w-4" />}
@@ -303,6 +307,23 @@ function SidebarInner() {
           </NavLink>
         </NavGroup>
 
+        <div className="mx-4 my-1 border-t" />
+
+        {/* ── Suporte ── */}
+        <NavGroup
+          icon={<LifeBuoy className="h-4 w-4" />}
+          label="Suporte"
+          defaultOpen={isSupportSection}
+        >
+          <NavLink
+            href="/suporte"
+            icon={<Ticket className="h-4 w-4" />}
+            active={pathname.startsWith("/suporte")}
+            sub
+          >
+            Chamados
+          </NavLink>
+        </NavGroup>
       </nav>
 
       {/* Footer */}
