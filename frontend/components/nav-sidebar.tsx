@@ -23,6 +23,7 @@ import {
   ChevronRight,
   LifeBuoy,
   Ticket,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -156,7 +157,7 @@ function SidebarInner() {
         <NavGroup
           icon={<Terminal className="h-4 w-4" />}
           label="PDV"
-          defaultOpen={isPdvSection}
+          defaultOpen={true}
         >
           <SubSectionLabel>Operações</SubSectionLabel>
           <NavLink
@@ -215,7 +216,6 @@ function SidebarInner() {
             icon={<History className="h-4 w-4" />}
             active={isRelatorios && tab === "historico"}
             sub
-            soon
           >
             Histórico
           </NavLink>
@@ -241,13 +241,11 @@ function SidebarInner() {
           </NavLink>
         </NavGroup>
 
-        <div className="mx-4 my-1 border-t" />
-
         {/* ── Admin ── */}
         <NavGroup
           icon={<UserCog className="h-4 w-4" />}
           label="Admin"
-          defaultOpen={isAdminSection}
+          defaultOpen={true}
         >
           <NavLink
             href="/admin/operadores"
@@ -298,6 +296,14 @@ function SidebarInner() {
             Fidelidade
           </NavLink>
           <NavLink
+            href="/admin/metas"
+            icon={<Target className="h-4 w-4" />}
+            active={pathname === "/admin/metas"}
+            sub
+          >
+            Metas
+          </NavLink>
+          <NavLink
             href="/admin/configuracoes"
             icon={<Settings className="h-4 w-4" />}
             active={pathname === "/admin/configuracoes"}
@@ -307,13 +313,11 @@ function SidebarInner() {
           </NavLink>
         </NavGroup>
 
-        <div className="mx-4 my-1 border-t" />
-
         {/* ── Suporte ── */}
         <NavGroup
           icon={<LifeBuoy className="h-4 w-4" />}
           label="Suporte"
-          defaultOpen={isSupportSection}
+          defaultOpen={true}
         >
           <NavLink
             href="/suporte"

@@ -120,6 +120,32 @@ export interface FidelityResponse {
   expired: boolean;
 }
 
+// ─── Goals ───────────────────────────────────────────────────────────────────
+
+export type GoalStatus = "DRAFT" | "ACTIVE" | "CLOSED";
+export type Periodicity = "WEEKLY" | "MONTHLY";
+
+export interface GoalRequest {
+  targetValue: number;
+  periodicity: Periodicity;
+  startDate: string;
+  endDate: string;
+}
+
+export interface GoalResponse {
+  id: string;
+  targetValue: number;
+  periodicity: Periodicity;
+  startDate: string;
+  endDate: string;
+  status: GoalStatus;
+}
+
+export interface GoalAssessmentResult {
+  achievedValue: number;
+  gap: number;
+}
+
 // ─── Stock ────────────────────────────────────────────────────────────────
 
 export interface StockRequest {

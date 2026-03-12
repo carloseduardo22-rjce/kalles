@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import {
@@ -21,9 +22,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Paperclip, X } from "lucide-react";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { categoryService } from "@/features/support/services/category.service";
 import type { OpenTicketRequest } from "@/features/support/types";
+
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  System: "Sistema",
+  Billing: "Financeiro",
+  Account: "Conta",
+  General: "Geral",
+  Bug: "Bug",
+  Performance: "Desempenho",
+  "Feature Request": "Nova Funcionalidade",
+  "Charge Dispute": "Contestação de Cobrança",
+  Invoice: "Fatura",
+  Access: "Acesso",
+  "Password Reset": "Redefinição de Senha",
+  Question: "Dúvida",
+  Feedback: "Feedback",
+};
+
+function translateCategory(s: string): string {
+  return CATEGORY_TRANSLATIONS[s] ?? s;
+}
 
 interface OpenTicketDialogProps {
   open: boolean;
@@ -38,6 +60,10 @@ export function OpenTicketDialog({
   onSubmit,
   isPending,
 }: OpenTicketDialogProps) {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
@@ -55,8 +81,29 @@ export function OpenTicketDialog({
 
   const selectedCategoryId = watch("categoryId");
 
+  function handleRemoveImage() {
+    setImageFile(null);
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImageFile(file);
+    setImagePreviewUrl(file ? URL.createObjectURL(file) : null);
+  }
+
+  function handleFormSubmit(data: OpenTicketRequest) {
+    onSubmit({ ...data, attachment: imageFile ?? undefined });
+  }
+
   function handleClose(value: boolean) {
-    if (!value) reset();
+    if (!value) {
+      reset();
+      handleRemoveImage();
+    }
     onOpenChange(value);
   }
 
@@ -71,45 +118,7 @@ export function OpenTicketDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Personal info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="userName">Seu nome *</Label>
-              <Input
-                id="userName"
-                {...register("userName", { required: "Nome é obrigatório" })}
-                placeholder="Nome completo"
-              />
-              {errors.userName && (
-                <p className="text-xs text-destructive">
-                  {errors.userName.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="userEmail">E-mail *</Label>
-              <Input
-                id="userEmail"
-                type="email"
-                {...register("userEmail", {
-                  required: "E-mail é obrigatório",
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "E-mail inválido",
-                  },
-                })}
-                placeholder="seu@email.com"
-              />
-              {errors.userEmail && (
-                <p className="text-xs text-destructive">
-                  {errors.userEmail.message}
-                </p>
-              )}
-            </div>
-          </div>
-
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Ticket info */}
           <div className="space-y-1.5">
             <Label htmlFor="title">Título *</Label>
@@ -165,8 +174,10 @@ export function OpenTicketDialog({
               <SelectContent>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                    {cat.subcategory ? ` — ${cat.subcategory}` : ""}
+                    {translateCategory(cat.name)}
+                    {cat.subcategory
+                      ? ` — ${translateCategory(cat.subcategory)}`
+                      : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -175,6 +186,49 @@ export function OpenTicketDialog({
               <p className="text-xs text-destructive">
                 Categoria é obrigatória
               </p>
+            )}
+          </div>
+
+          {/* Image attachment */}
+          <div className="space-y-1.5">
+            <Label>Anexar imagem (opcional)</Label>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            {imagePreviewUrl ? (
+              <div className="relative rounded-md border overflow-hidden">
+                <img
+                  src={imagePreviewUrl}
+                  alt="Pré-visualização"
+                  className="w-full max-h-40 object-contain bg-muted"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-1.5 right-1.5 h-6 w-6 p-0"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+                <p className="px-2 py-1 text-xs text-muted-foreground truncate bg-muted/50">
+                  {imageFile?.name}
+                </p>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4 mr-2" />
+                Selecionar imagem
+              </Button>
             )}
           </div>
 

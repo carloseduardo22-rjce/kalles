@@ -1,21 +1,29 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueries } from "@tanstack/react-query";
+import type { DateRange } from "react-day-picker";
 import {
   ShoppingBag,
-  History,
   AlertCircle,
   CheckCircle2,
   XCircle,
   Banknote,
   Loader2,
   Store,
+  CalendarIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   ChartContainer,
   ChartTooltip,
@@ -33,18 +41,51 @@ import {
   CartesianGrid,
 } from "recharts";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
+import type { SessionSummaryResponse } from "@/features/cash-register/types";
 import {
   formatCurrency,
   formatDate,
   formatPaymentMethod,
 } from "@/shared/utils/formatters";
+import { cn } from "@/lib/utils";
 
-/* Hex colors for payment methods – used in both charts and mini-bars */
+/* ─── Types ─── */
+type FilterMode = "active" | "date" | "range";
+
+interface SessionItem {
+  sessionId: string;
+  code: string;
+  operatorName: string;
+  openedAt: string;
+  closedAt: string | null;
+  status: "OPEN" | "CLOSED";
+  initialAmount: number;
+  report: SessionSummaryResponse;
+}
+
+/* ─── Helpers ─── */
+function toIsoDate(d: Date): string {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function shortDate(d: Date): string {
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/* ─── Colors ─── */
 const PAYMENT_HEX: Record<string, string> = {
-  CASH: "#10b981", // emerald-500
-  PIX: "#0ea5e9", // sky-500
-  CREDIT_CARD: "#8b5cf6", // violet-500
-  DEBIT_CARD: "#f97316", // orange-500
+  CASH: "#10b981",
+  PIX: "#0ea5e9",
+  CREDIT_CARD: "#8b5cf6",
+  DEBIT_CARD: "#f97316",
 };
 
 const PAYMENT_COLORS: Record<string, string> = {
@@ -54,6 +95,7 @@ const PAYMENT_COLORS: Record<string, string> = {
   DEBIT_CARD: "bg-orange-500",
 };
 
+/* ─── Chart configs ─── */
 const paymentChartConfig = {
   value: { label: "Valor" },
   CASH: { label: "Dinheiro", color: PAYMENT_HEX.CASH },
@@ -166,7 +208,7 @@ function StatCard({
   );
 }
 
-/* ─── Coming soon placeholder ─── */
+/* ─── Coming soon ─── */
 function ComingSoon({
   icon,
   title,
@@ -190,50 +232,289 @@ function ComingSoon({
   );
 }
 
-/* ─── Main content (inner — needs useSearchParams) ─── */
+/* ─── Session card ─── */
+function SessionCard({ item }: { item: SessionItem }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Store className="h-4 w-4 text-primary" />
+          <CardTitle className="text-sm">{item.code}</CardTitle>
+          <Badge
+            variant={item.status === "OPEN" ? "secondary" : "outline"}
+            className="ml-auto text-xs"
+          >
+            {item.status === "OPEN" ? "Aberto" : "Fechado"}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {item.operatorName}
+          {item.openedAt ? ` · abertura ${formatDate(item.openedAt)}` : ""}
+        </p>
+        {item.closedAt && (
+          <p className="text-xs text-muted-foreground">
+            Fechamento: {formatDate(item.closedAt)}
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="rounded bg-muted p-2">
+            <p className="text-base font-bold text-primary">
+              {formatCurrency(item.report.totalVendido)}
+            </p>
+            <p className="text-muted-foreground">Total</p>
+          </div>
+          <div className="rounded bg-muted p-2">
+            <p className="text-base font-bold text-primary">
+              {item.report.vendasConcluidas}
+            </p>
+            <p className="text-muted-foreground">Concluídas</p>
+          </div>
+          <div className="rounded bg-muted p-2">
+            <p className="text-base font-bold text-destructive">
+              {item.report.vendasCanceladas}
+            </p>
+            <p className="text-muted-foreground">Canceladas</p>
+          </div>
+        </div>
+
+        {Object.keys(item.report.totalPorMetodoPagamento).length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Pagamentos
+            </p>
+            {Object.entries(item.report.totalPorMetodoPagamento).map(
+              ([method, amount]) => {
+                const pct =
+                  item.report.totalVendido > 0
+                    ? (amount / item.report.totalVendido) * 100
+                    : 0;
+                const color = PAYMENT_HEX[method] ?? "#6366f1";
+                return (
+                  <div key={method} className="space-y-0.5">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">
+                        {formatPaymentMethod(method)}
+                      </span>
+                      <span className="tabular-nums font-medium">
+                        {formatCurrency(amount)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        )}
+
+        <p className="text-[10px] text-muted-foreground/50">
+          Fundo inicial: {formatCurrency(item.initialAmount)}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Filter bar ─── */
+const FILTER_MODES: { value: FilterMode; label: string }[] = [
+  { value: "active", label: "Sessões ativas" },
+  { value: "date", label: "Data específica" },
+  { value: "range", label: "Intervalo" },
+];
+
+function FilterBar({
+  mode,
+  onModeChange,
+  selectedDate,
+  onSelectDate,
+  dateRange,
+  onSelectDateRange,
+}: {
+  mode: FilterMode;
+  onModeChange: (m: FilterMode) => void;
+  selectedDate: Date;
+  onSelectDate: (d: Date) => void;
+  dateRange: DateRange | undefined;
+  onSelectDateRange: (r: DateRange | undefined) => void;
+}) {
+  const rangeLabel =
+    dateRange?.from && dateRange.to
+      ? `${shortDate(dateRange.from)} → ${shortDate(dateRange.to)}`
+      : dateRange?.from
+        ? shortDate(dateRange.from)
+        : "Selecionar período";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex rounded-lg border bg-muted/50 p-0.5">
+        {FILTER_MODES.map((m) => (
+          <button
+            key={m.value}
+            onClick={() => onModeChange(m.value)}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              mode === m.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "date" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {shortDate(selectedDate)}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && onSelectDate(d)}
+              disabled={{ after: new Date() }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {mode === "range" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {rangeLabel}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={onSelectDateRange}
+              disabled={{ after: new Date() }}
+              initialFocus
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main content (needs useSearchParams → inside Suspense) ─── */
 function RelatoriosContent() {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "resumo";
 
-  /* Fetch all cash registers + find those with active sessions */
+  const [filterMode, setFilterMode] = useState<FilterMode>("active");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+  });
+
+  /* ── Active mode ── */
   const { data: cashRegisters = [], isLoading: loadingRegisters } = useQuery({
     queryKey: ["all-cash-registers"],
     queryFn: () => cashRegisterService.listCashRegisters(),
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval: filterMode === "active" ? 60_000 : false,
+    enabled: filterMode === "active",
   });
 
   const activeSessions = cashRegisters.filter(
     (cr) => cr.hasActiveSession && cr.activeSessionId,
   );
 
-  /* Fetch report for every active session in parallel */
   const reportQueries = useQueries({
     queries: activeSessions.map((cr) => ({
       queryKey: ["session-report", cr.activeSessionId],
       queryFn: () => cashRegisterService.getReport(cr.activeSessionId!),
       staleTime: 30_000,
+      enabled: filterMode === "active",
     })),
   });
 
-  const loadingReports = reportQueries.some((q) => q.isLoading);
-  const isLoading = loadingRegisters || loadingReports;
+  /* ── Date / Range mode ── */
+  const rangeStart =
+    filterMode === "date"
+      ? toIsoDate(selectedDate)
+      : filterMode === "range" && dateRange?.from
+        ? toIsoDate(dateRange.from)
+        : null;
 
-  /* Pair each active cash register with its report */
-  const sessionData = activeSessions.map((cr, i) => ({
-    register: cr,
-    report: reportQueries[i]?.data ?? null,
-  }));
+  const rangeEnd =
+    filterMode === "date"
+      ? toIsoDate(selectedDate)
+      : filterMode === "range" && dateRange?.to
+        ? toIsoDate(dateRange.to)
+        : filterMode === "range" && dateRange?.from
+          ? toIsoDate(dateRange.from)
+          : null;
 
-  /* Aggregate totals across all sessions */
-  const aggregate = sessionData.reduce(
-    (acc, { report }) => {
-      if (!report) return acc;
-      acc.vendasConcluidas += report.vendasConcluidas;
-      acc.vendasCanceladas += report.vendasCanceladas;
-      acc.totalVendido += report.totalVendido;
+  const { data: historicSessions = [], isLoading: loadingHistoric } = useQuery({
+    queryKey: ["sessions-by-range", rangeStart, rangeEnd],
+    queryFn: () =>
+      cashRegisterService.listSessionsByDateRange(rangeStart!, rangeEnd!),
+    enabled: filterMode !== "active" && !!rangeStart && !!rangeEnd,
+    staleTime: 60_000,
+  });
+
+  /* ── Loading ── */
+  const isLoading =
+    filterMode === "active"
+      ? loadingRegisters || reportQueries.some((q) => q.isLoading)
+      : loadingHistoric;
+
+  /* ── Unified session items ── */
+  const sessionItems: SessionItem[] =
+    filterMode === "active"
+      ? activeSessions.flatMap((cr, i) => {
+          const report = reportQueries[i]?.data;
+          if (!report) return [];
+          const item: SessionItem = {
+            sessionId: cr.activeSessionId!,
+            code: cr.code,
+            operatorName: cr.activeOperatorName ?? "—",
+            openedAt: cr.openedAt!,
+            closedAt: null,
+            status: "OPEN",
+            initialAmount: cr.initialAmount ?? 0,
+            report,
+          };
+          return [item];
+        })
+      : historicSessions.map((s) => ({
+          sessionId: s.sessionId,
+          code: s.codigoCaixa,
+          operatorName: s.nomeOperador,
+          openedAt: s.abertura,
+          closedAt: s.fechamento,
+          status: s.status,
+          initialAmount: s.valorInicial,
+          report: s.resumo,
+        }));
+
+  /* ── Aggregate ── */
+  const aggregate = sessionItems.reduce(
+    (acc, item) => {
+      acc.vendasConcluidas += item.report.vendasConcluidas;
+      acc.vendasCanceladas += item.report.vendasCanceladas;
+      acc.totalVendido += item.report.totalVendido;
       for (const [method, amount] of Object.entries(
-        report.totalPorMetodoPagamento,
+        item.report.totalPorMetodoPagamento,
       )) {
         acc.totalPorMetodo[method] = (acc.totalPorMetodo[method] ?? 0) + amount;
       }
@@ -247,7 +528,6 @@ function RelatoriosContent() {
     },
   );
 
-  /* Chart data */
   const paymentDonutData = Object.entries(aggregate.totalPorMetodo).map(
     ([method, amount]) => ({
       method,
@@ -256,35 +536,71 @@ function RelatoriosContent() {
     }),
   );
 
-  const sessionBarData = sessionData.map(({ register, report }) => ({
-    caixa: register.code,
-    totalVendido: report?.totalVendido ?? 0,
+  const sessionBarData = sessionItems.map((item) => ({
+    caixa: item.code,
+    totalVendido: item.report.totalVendido,
   }));
 
-  /* ── Tab: Resumo do Turno ── */
+  /* ── Descriptions ── */
+  const periodDesc =
+    filterMode === "active"
+      ? "Sessões de caixa abertas agora."
+      : filterMode === "date"
+        ? selectedDate.toLocaleDateString("pt-BR", { dateStyle: "long" })
+        : dateRange?.from && dateRange.to
+          ? `${shortDate(dateRange.from)} → ${shortDate(dateRange.to)}`
+          : dateRange?.from
+            ? shortDate(dateRange.from)
+            : "Selecione um período";
+
+  const emptyMsg =
+    filterMode === "active"
+      ? "Nenhuma sessão de caixa ativa no momento."
+      : "Nenhuma sessão encontrada para o período selecionado.";
+
+  const filterBar = (
+    <FilterBar
+      mode={filterMode}
+      onModeChange={setFilterMode}
+      selectedDate={selectedDate}
+      onSelectDate={setSelectedDate}
+      dateRange={dateRange}
+      onSelectDateRange={setDateRange}
+    />
+  );
+
+  const loadingNode = (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Carregando dados…
+    </div>
+  );
+
+  const emptyNode = (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+      <AlertCircle className="h-4 w-4 shrink-0" />
+      {emptyMsg}
+    </div>
+  );
+
+  /* ══ Tab: Resumo ══ */
   if (tab === "resumo") {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold">Resumo do Turno</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Desempenho de todas as sessões de caixa abertas.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Resumo do Turno</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">{periodDesc}</p>
+          </div>
+          {filterBar}
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando dados…
-          </div>
-        ) : activeSessions.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            Nenhuma sessão de caixa ativa no momento.
-          </div>
+          loadingNode
+        ) : sessionItems.length === 0 ? (
+          emptyNode
         ) : (
           <>
-            {/* KPI aggregate cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatCard
                 label="Total vendido"
@@ -306,12 +622,10 @@ function RelatoriosContent() {
               />
             </div>
 
-            {/* Payment distribution + session comparison charts */}
             {paymentDonutData.length > 0 && (
               <div
-                className={`grid gap-4 ${activeSessions.length > 1 ? "sm:grid-cols-2" : ""}`}
+                className={`grid gap-4 ${sessionItems.length > 1 ? "sm:grid-cols-2" : ""}`}
               >
-                {/* Donut – payment method distribution */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -344,8 +658,7 @@ function RelatoriosContent() {
                   </CardContent>
                 </Card>
 
-                {/* Bar – session total comparison (only with multiple sessions) */}
-                {activeSessions.length > 1 && (
+                {sessionItems.length > 1 && (
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -399,105 +712,13 @@ function RelatoriosContent() {
               </div>
             )}
 
-            {/* Per-session cards */}
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Sessões ativas ({activeSessions.length})
+                Sessões ({sessionItems.length})
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
-                {sessionData.map(({ register, report }) => (
-                  <Card key={register.cashRegisterId}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm">
-                          {register.code}
-                        </CardTitle>
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          Aberto
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {register.activeOperatorName}
-                        {register.openedAt
-                          ? ` · desde ${formatDate(register.openedAt)}`
-                          : ""}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-0">
-                      {report ? (
-                        <>
-                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                            <div className="rounded bg-muted p-2">
-                              <p className="text-base font-bold text-primary">
-                                {formatCurrency(report.totalVendido)}
-                              </p>
-                              <p className="text-muted-foreground">Total</p>
-                            </div>
-                            <div className="rounded bg-muted p-2">
-                              <p className="text-base font-bold text-primary">
-                                {report.vendasConcluidas}
-                              </p>
-                              <p className="text-muted-foreground">
-                                Concluídas
-                              </p>
-                            </div>
-                            <div className="rounded bg-muted p-2">
-                              <p className="text-base font-bold text-destructive">
-                                {report.vendasCanceladas}
-                              </p>
-                              <p className="text-muted-foreground">
-                                Canceladas
-                              </p>
-                            </div>
-                          </div>
-                          {Object.keys(report.totalPorMetodoPagamento).length >
-                            0 && (
-                            <div className="space-y-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                                Pagamentos
-                              </p>
-                              {Object.entries(
-                                report.totalPorMetodoPagamento,
-                              ).map(([method, amount]) => {
-                                const pct =
-                                  report.totalVendido > 0
-                                    ? (amount / report.totalVendido) * 100
-                                    : 0;
-                                const color = PAYMENT_HEX[method] ?? "#6366f1";
-                                return (
-                                  <div key={method} className="space-y-0.5">
-                                    <div className="flex justify-between text-[11px]">
-                                      <span className="text-muted-foreground">
-                                        {formatPaymentMethod(method)}
-                                      </span>
-                                      <span className="tabular-nums font-medium">
-                                        {formatCurrency(amount)}
-                                      </span>
-                                    </div>
-                                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                                      <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{
-                                          width: `${pct}%`,
-                                          backgroundColor: color,
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Carregando…
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                {sessionItems.map((item) => (
+                  <SessionCard key={item.sessionId} item={item} />
                 ))}
               </div>
             </div>
@@ -507,34 +728,28 @@ function RelatoriosContent() {
     );
   }
 
-  /* ── Tab: Meios de Pagamento ── */
+  /* ══ Tab: Meios de Pagamento ══ */
   if (tab === "pagamentos") {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold">Meios de Pagamento</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Distribuição dos pagamentos recebidos nas sessões de caixa ativas.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Meios de Pagamento</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">{periodDesc}</p>
+          </div>
+          {filterBar}
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando…
-          </div>
-        ) : activeSessions.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            Nenhuma sessão de caixa ativa no momento.
-          </div>
+          loadingNode
+        ) : sessionItems.length === 0 ? (
+          emptyNode
         ) : Object.keys(aggregate.totalPorMetodo).length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nenhum pagamento registrado nas sessões ativas.
+            Nenhum pagamento registrado nas sessões do período.
           </p>
         ) : (
           <>
-            {/* Donut – aggregate payment distribution */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -567,57 +782,56 @@ function RelatoriosContent() {
               </CardContent>
             </Card>
 
-            {/* Per-session breakdown (when more than one session) */}
-            {activeSessions.length > 1 && (
+            {sessionItems.length > 1 && (
               <div>
                 <Separator className="mb-4" />
                 <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
                   Por sessão
                 </p>
                 <div className="space-y-4">
-                  {sessionData.map(({ register, report }) => {
+                  {sessionItems.map((item) => {
                     if (
-                      !report ||
-                      Object.keys(report.totalPorMetodoPagamento).length === 0
+                      Object.keys(item.report.totalPorMetodoPagamento)
+                        .length === 0
                     )
                       return null;
                     return (
-                      <Card key={register.cashRegisterId}>
+                      <Card key={item.sessionId}>
                         <CardHeader className="pb-2">
                           <CardTitle className="flex items-center gap-2 text-sm">
                             <Store className="h-4 w-4 text-primary" />
-                            {register.code}
+                            {item.code}
                             <span className="text-xs font-normal text-muted-foreground">
-                              — {register.activeOperatorName}
+                              — {item.operatorName}
                             </span>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 pt-0">
-                          {Object.entries(report.totalPorMetodoPagamento).map(
-                            ([method, amount]) => {
-                              const pct =
-                                report.totalVendido > 0
-                                  ? (amount / report.totalVendido) * 100
-                                  : 0;
-                              return (
-                                <div key={method} className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span>{formatPaymentMethod(method)}</span>
-                                    <span className="text-muted-foreground">
-                                      {formatCurrency(amount)} ({pct.toFixed(1)}
-                                      %)
-                                    </span>
-                                  </div>
-                                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                                    <div
-                                      className={`h-full rounded-full ${PAYMENT_COLORS[method] ?? "bg-primary"}`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
+                          {Object.entries(
+                            item.report.totalPorMetodoPagamento,
+                          ).map(([method, amount]) => {
+                            const pct =
+                              item.report.totalVendido > 0
+                                ? (amount / item.report.totalVendido) * 100
+                                : 0;
+                            return (
+                              <div key={method} className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span>{formatPaymentMethod(method)}</span>
+                                  <span className="text-muted-foreground">
+                                    {formatCurrency(amount)} ({pct.toFixed(1)}
+                                    %)
+                                  </span>
                                 </div>
-                              );
-                            },
-                          )}
+                                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                  <div
+                                    className={`h-full rounded-full ${PAYMENT_COLORS[method] ?? "bg-primary"}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </CardContent>
                       </Card>
                     );
@@ -631,7 +845,7 @@ function RelatoriosContent() {
     );
   }
 
-  /* ── Tab: Por Produto ── */
+  /* ══ Tab: Por Produto ══ */
   if (tab === "por-produto") {
     return (
       <ComingSoon
@@ -642,14 +856,30 @@ function RelatoriosContent() {
     );
   }
 
-  /* ── Tab: Histórico ── */
+  /* ══ Tab: Histórico ══ */
   if (tab === "historico") {
     return (
-      <ComingSoon
-        icon={<History className="h-16 w-16" />}
-        title="Histórico de Sessões"
-        description="Exibirá todas as sessões de caixa anteriores com totais, operadores e comparativos de período."
-      />
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Histórico de Sessões</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">{periodDesc}</p>
+          </div>
+          {filterBar}
+        </div>
+
+        {isLoading ? (
+          loadingNode
+        ) : sessionItems.length === 0 ? (
+          emptyNode
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sessionItems.map((item) => (
+              <SessionCard key={item.sessionId} item={item} />
+            ))}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -660,15 +890,14 @@ function RelatoriosContent() {
 export default function RelatoriosPage() {
   return (
     <div className="flex h-full flex-col">
-      {/* Page header */}
       <div className="border-b bg-card px-6 py-4">
         <h1 className="text-base font-semibold">Relatórios</h1>
         <p className="text-xs text-muted-foreground">
-          Acompanhe o desempenho do seu caixa em tempo real.
+          Visualize o desempenho por sessão — ativas agora, por data ou por
+          período.
         </p>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         <Suspense
           fallback={

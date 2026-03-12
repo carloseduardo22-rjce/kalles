@@ -1,5 +1,7 @@
 package dev.kalles.sale.core.repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,4 +53,16 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 		return findBySessionTokenAndStateIn(sessionToken,
 			List.of(new PaidState()));
 	}
+
+	@Query(value = """
+			SELECT COALESCE(SUM(s.total), 0)
+			FROM sale s
+			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			WHERE s.state = 'COMPLETED'
+			  AND crs.opened_at >= :start
+			  AND crs.opened_at < :end
+			""", nativeQuery = true)
+	BigDecimal sumCompletedTotalsBetween(
+			@Param("start") LocalDateTime start,
+			@Param("end") LocalDateTime end);
 }

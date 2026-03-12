@@ -70,7 +70,9 @@ public class TicketService {
     public Ticket openTicket(String title, String description,
                              String userEmail, String userName,
                              UUID categoryId) {
-        UserEntity userEntity = userService.findOrCreate(userEmail, userName);
+        String resolvedEmail = (userEmail != null && !userEmail.isBlank()) ? userEmail : "admin@sistema.local";
+        String resolvedName  = (userName  != null && !userName.isBlank())  ? userName  : "Administrador";
+        UserEntity userEntity = userService.findOrCreate(resolvedEmail, resolvedName);
         CategoryEntity categoryEntity = categoryService.findById(categoryId);
 
         Category category = mapper.toDomainCategory(categoryEntity);

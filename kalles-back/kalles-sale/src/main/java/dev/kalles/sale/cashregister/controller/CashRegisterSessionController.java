@@ -14,10 +14,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:3000")
@@ -66,5 +69,17 @@ public class CashRegisterSessionController {
     public ResponseEntity<SessionSummaryResponse> getReport(@PathVariable UUID sessionId) {
         SessionSummaryResponse response = closeSessionUseCase.getReport(sessionId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar sessões por intervalo de datas",
+            description = "Retorna todas as sessões de caixa (abertas ou fechadas) cujas aberturas ocorreram entre startDate e endDate (inclusive). Usado para o histórico de sessões.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sessões retornadas com sucesso")
+    })
+    public ResponseEntity<List<CloseSessionResponse>> listSessionsByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(closeSessionUseCase.listSessionsByDateRange(startDate, endDate));
     }
 }

@@ -28,4 +28,13 @@ export const cashRegisterService = {
   /** Lista operadores disponíveis para vinculação. */
   listOperators: (): Promise<OperatorResponse[]> =>
     api.get<OperatorResponse[]>(`${REGISTERS_BASE}/operators`),
+
+  /** Lista sessões (abertas ou fechadas) cujas aberturas ocorreram entre startDate e endDate (YYYY-MM-DD, inclusivo). */
+  listSessionsByDateRange: (
+    startDate: string,
+    endDate: string,
+  ): Promise<CloseSessionResponse[]> =>
+    api.get<CloseSessionResponse[]>(
+      `${BASE}?startDate=${startDate}&endDate=${endDate}`,
+    ),
 };

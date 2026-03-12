@@ -142,11 +142,17 @@ export default function PdvPage() {
       } else if (e.key === "F4") {
         e.preventDefault();
         router.push("/produtos");
+      } else if (e.key === "F8") {
+        e.preventDefault();
+        if (sale && sale.state === "OPEN" && sale.items.length > 0) {
+          const last = sale.items[sale.items.length - 1];
+          addItem("INTERNAL_CODE", last.productInternalCode);
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router]);
+  }, [router, sale, addItem, completeSale]);
 
   if (!hydrated || !sessionData) {
     return (
@@ -199,22 +205,28 @@ export default function PdvPage() {
               {sessionData.operatorName}
             </p>
           </div>
+          {sale && <SaleStateBadge state={sale.state} />}
         </div>
+
         <div className="flex items-center gap-2">
-          {sale && <SaleStateBadge state={sale.state} />}{" "}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs text-muted-foreground"
-            onClick={() => router.push("/produtos")}
-            title="Consulta de Produtos (F4)"
-          >
-            <Package className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Produtos</span>
-            <kbd className="hidden rounded border bg-muted px-1 py-0.5 font-mono text-[10px] sm:inline">
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+              F2
+            </kbd>
+            Consulta de produtos
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+              F8
+            </kbd>
+            Incrementar último item
+          </span>
+          <span className="flex items-center gap-1 mr-2">
+            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
               F4
             </kbd>
-          </Button>
+            Produtos
+          </span>
           <CloseSessionAuthorizedDialog
             isLoading={sessionLoading}
             error={sessionError}

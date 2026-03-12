@@ -104,7 +104,7 @@ export function ProductLookupDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[90vh] max-w-5xl flex-col gap-0 overflow-hidden p-0"
+        className="flex max-h-[90vh] sm:max-w-3xl flex-col gap-0 overflow-hidden p-0"
       >
         {/* ─── Header ─── */}
         <DialogHeader className="flex-row items-center gap-3 border-b px-4 py-3">
@@ -158,7 +158,7 @@ export function ProductLookupDialog({
               className="border-0 bg-transparent pl-9 pr-9 text-sm shadow-none focus-visible:ring-0"
             />
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground bg-muted">
             {isFetching
               ? "Buscando…"
               : `${products.length} produto(s)${isFiltering ? ` para "${debouncedQuery}"` : " cadastrado(s)"}`}
@@ -184,11 +184,11 @@ export function ProductLookupDialog({
           ) : (
             <table className="w-full table-fixed text-sm">
               <colgroup>
-                <col className="w-[13%]" />
-                <col className="w-[20%]" />
-                <col className="w-[38%]" />
-                <col className="w-[16%]" />
-                <col className="w-[13%]" />
+                <col className="w-[11%]" />
+                <col className="w-[18%]" />
+                <col className="w-[45%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
               </colgroup>
               <thead className="sticky top-0 border-b bg-muted">
                 <tr>

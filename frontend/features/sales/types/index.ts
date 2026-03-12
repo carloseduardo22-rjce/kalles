@@ -13,6 +13,7 @@ export type ProductCodeType = "INTERNAL_CODE" | "BAR_CODE";
 export interface ProductResponse {
   id: string;
   name: string;
+  stockQuantity: number;
   internalCode: string;
   barcode: string | null;
   price: number;

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +46,20 @@ public class CloseSessionUseCase {
     public SessionSummaryResponse getReport(UUID sessionId) {
         findSessionOrThrow(sessionId);
         return computeSummary(sessionId.toString());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CloseSessionResponse> listSessionsByDateRange(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+        return sessionRepository
+                .findBySessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(start, end)
+                .stream()
+                .map(session -> {
+                    SessionSummaryResponse summary = computeSummary(session.getId().toString());
+                    return CloseSessionResponse.fromEntity(session, summary);
+                })
+                .toList();
     }
 
     private CashRegisterSession findSessionOrThrow(UUID sessionId) {

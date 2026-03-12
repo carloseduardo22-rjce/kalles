@@ -100,3 +100,42 @@ INSERT INTO client (name, birth_date, gender, cpf, code_country, cellphone, rg, 
   ('Diego Lima',         '1990-01-30', 'M', '168.995.350-09', '+55', '41994440004', '45678901',  'Paulo Lima',    'Clara Lima',   NULL),
   ('Fernanda Castro',    '2000-08-18', 'F', '942.836.530-06', '+55', '51995550005', NULL,        NULL,            NULL,           NULL)
 ON CONFLICT (cpf) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 8. METAS DE FATURAMENTO
+--    CLOSED  → encerrada (pode apurar para ver o histórico)
+--    ACTIVE  → ativa no mês corrente (pode apurar e encerrar)
+--    DRAFT   → rascunho (pode editar, ativar ou excluir)
+-- ---------------------------------------------------------------
+INSERT INTO goals (id, version, target_value, periodicity, start_date, end_date, status) VALUES
+  (
+    gen_random_uuid(), 0,
+    85000.00, 'MONTHLY',
+    '2026-02-01', '2026-02-28',
+    'CLOSED'
+  ),
+  (
+    gen_random_uuid(), 0,
+    95000.00, 'MONTHLY',
+    '2026-03-01', '2026-03-31',
+    'ACTIVE'
+  ),
+  (
+    gen_random_uuid(), 0,
+    22000.00, 'WEEKLY',
+    '2026-03-09', '2026-03-15',
+    'ACTIVE'
+  ),
+  (
+    gen_random_uuid(), 0,
+    105000.00, 'MONTHLY',
+    '2026-04-01', '2026-04-30',
+    'DRAFT'
+  ),
+  (
+    gen_random_uuid(), 0,
+    25000.00, 'WEEKLY',
+    '2026-03-16', '2026-03-22',
+    'DRAFT'
+  )
+ON CONFLICT DO NOTHING;

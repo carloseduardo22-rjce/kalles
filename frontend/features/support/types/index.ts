@@ -19,9 +19,8 @@ export type InteractionType =
 export interface OpenTicketRequest {
   title: string;
   description: string;
-  userEmail: string;
-  userName: string;
   categoryId: string;
+  attachment?: File;
 }
 
 export interface UserRequest {
