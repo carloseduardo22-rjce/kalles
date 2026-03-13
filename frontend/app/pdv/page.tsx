@@ -344,10 +344,10 @@ export default function PdvPage() {
           {/* Payment panel */}
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
             {sale &&
-            !isSaleComplete &&
-            (sale.state === "OPEN" ||
-              sale.state === "PAYMENT_IN_PROGRESS" ||
-              sale.state === "PAID") ? (
+              !isSaleComplete &&
+              (sale.state === "OPEN" ||
+                sale.state === "PAYMENT_IN_PROGRESS" ||
+                sale.state === "PAID") ? (
               <PaymentPanel
                 sale={sale}
                 isLoading={isLoading}

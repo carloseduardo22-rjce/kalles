@@ -282,7 +282,7 @@ function CelebrationOverlay({
 
   return (
     <div
-      className="pointer-events-auto fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="pointer-events-auto fixed inset-0 z-60 flex items-center justify-center bg-black/50"
       onClick={onDismiss}
       role="dialog"
       aria-label="Meta atingida"

@@ -99,7 +99,7 @@ public class SaleController {
             @Parameter(name = "X-Operator-Id", description = "ID do operador que solicita a remoção", required = true)
             @NotNull @RequestHeader("X-Operator-Id") UUID operatorId,
             @Parameter(name = "X-Authorizer-Id", description = "ID do supervisor autorizador (necessário se o operador não tiver permissão própria)", required = false)
-            @NotNull @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
+            @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
             switch (type) {
@@ -133,7 +133,7 @@ public class SaleController {
             @Parameter(name = "X-Operator-Id", description = "ID do operador que solicita o cancelamento", required = true)
             @NotNull @RequestHeader("X-Operator-Id") UUID operatorId,
             @Parameter(name = "X-Authorizer-Id", description = "ID do supervisor autorizador (necessário se o operador não tiver permissão própria)", required = false)
-            @NotNull @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
+            @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
             saleService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);

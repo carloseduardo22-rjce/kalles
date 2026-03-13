@@ -19,7 +19,7 @@ export function ProductSearch({ isLoading, onAddItem }: ProductSearchProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = code.trim();
+    const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
     await onAddItem(type, trimmed);
     setCode("");
