@@ -187,28 +187,26 @@ export default function PaymentSettingsPage() {
 
   return (
     <div className="flex-1 min-h-screen bg-[#009EE3] p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-xl shadow-sm">
-            <Image
-              src="/mercado-pago-logo.png"
-              alt="Mercado Pago"
-              width={160}
-              height={40}
-              className="object-contain"
-              priority
-            />
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
-            Integração de Pagamentos
-          </h2>
+      <div className="flex items-center gap-4 mb-2">
+        <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
+          Integração de Pagamentos
+        </h2>
+        <div className="bg-white p-3 rounded-xl shadow-sm">
+          <Image
+            src="/mercado-pago-logo.png"
+            alt="Mercado Pago"
+            width={160}
+            height={40}
+            className="object-contain"
+            priority
+          />
         </div>
       </div>
 
-      <p className="text-white/90 w-full max-w-3xl mb-8 font-medium">
+      <p className="text-white/90 w-full mb-8 font-medium">
         Configure sua integração com o Mercado Pago para aceitar pagamentos via
-        QR Code e Pix. Primeiro crie seu estabelecimento e depois associe os
-        caixas reais físicos a ele.
+        Pix (QrCode Dinâmico). Primeiro crie seu estabelecimento e depois
+        associe os caixas reais físicos a ele.
       </p>
 
       {/* Tabs / Stepper Header */}
@@ -249,7 +247,7 @@ export default function PaymentSettingsPage() {
           </span>
         </div>
       ) : (
-        <div className="max-w-2xl mt-6 pb-20">
+        <div className="w-full mt-6 pb-20">
           {activeTab === "store" && (
             <Card>
               <CardHeader>
@@ -268,13 +266,20 @@ export default function PaymentSettingsPage() {
                       </Label>
                       <Input
                         id="companyId"
-                        value={storeForm.companyId}
+                        value="LOJ001"
                         onChange={(e) =>
                           handleUpdateStoreField("companyId", e.target.value)
                         }
-                        readOnly
-                        className="bg-muted/50"
                       />
+                      <p
+                        id="companyId-description"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Identificador externo da loja para o sistema integrador.
+                        Pode conter qualquer valor alfanumérico de até 60
+                        caracteres e deve ser único para cada loja. Por exemplo,
+                        LOJ001.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="name">

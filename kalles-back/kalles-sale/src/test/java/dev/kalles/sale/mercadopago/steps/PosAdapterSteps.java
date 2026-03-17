@@ -9,7 +9,6 @@ import com.mercadopago.net.MPResponse;
 import dev.kalles.sale.mercadopago.adapter.MercadoPagoPosAdapter;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.domain.Company;
-import dev.kalles.sale.mercadopago.port.CaixaMpRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

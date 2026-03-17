@@ -279,7 +279,7 @@ export default function AdminProdutosPage() {
       </div>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando produtos…" />
@@ -296,108 +296,106 @@ export default function AdminProdutosPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="w-28 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Cód. Interno
-                  </th>
-                  <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Cód. Barras
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nome
-                  </th>
-                  <th className="w-24 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Qtd
-                  </th>
-                  <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Estoque / Local
-                  </th>
-                  <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Preço
-                  </th>
-                  <th className="w-20 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="w-20 px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((product, i) => (
-                  <tr
-                    key={product.id}
-                    className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {product.internalCode}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {product.barcode ?? <span className="opacity-40">—</span>}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{product.name}</td>
-                    <td className="px-4 py-3 text-center font-medium">
-                      {product.stockQuantity ?? (
-                        <span className="opacity-40">0</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {product.warehouse ? (
-                        <span className="inline-flex flex-col">
-                          <span className="font-semibold text-foreground">
-                            {product.warehouse}
-                          </span>
-                          <span>{product.location}</span>
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="w-28 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Cód. Interno
+                </th>
+                <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Cód. Barras
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nome
+                </th>
+                <th className="w-24 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Qtd
+                </th>
+                <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Estoque / Local
+                </th>
+                <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Preço
+                </th>
+                <th className="w-20 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Status
+                </th>
+                <th className="w-20 px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((product, i) => (
+                <tr
+                  key={product.id}
+                  className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
+                >
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {product.internalCode}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {product.barcode ?? <span className="opacity-40">—</span>}
+                  </td>
+                  <td className="px-4 py-3 font-medium">{product.name}</td>
+                  <td className="px-4 py-3 text-center font-medium">
+                    {product.stockQuantity ?? (
+                      <span className="opacity-40">0</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {product.warehouse ? (
+                      <span className="inline-flex flex-col">
+                        <span className="font-semibold text-foreground">
+                          {product.warehouse}
                         </span>
-                      ) : (
-                        <span className="opacity-40">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-semibold">
-                      {formatCurrency(product.price)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge
-                        variant={product.active ? "outline" : "secondary"}
-                        className={
-                          product.active
-                            ? "border-green-300 text-green-700 dark:border-green-800 dark:text-green-400"
-                            : ""
-                        }
+                        <span>{product.location}</span>
+                      </span>
+                    ) : (
+                      <span className="opacity-40">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                    {formatCurrency(product.price)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <Badge
+                      variant={product.active ? "outline" : "secondary"}
+                      className={
+                        product.active
+                          ? "border-green-300 text-green-700 dark:border-green-800 dark:text-green-400"
+                          : ""
+                      }
+                    >
+                      {product.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditTarget(product)}
+                        title="Editar"
                       >
-                        {product.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {product.active && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setEditTarget(product)}
-                          title="Editar"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeactivateTarget(product)}
+                          title="Desativar"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <PowerOff className="h-3.5 w-3.5" />
                         </Button>
-                        {product.active && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeactivateTarget(product)}
-                            title="Desativar"
-                          >
-                            <PowerOff className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

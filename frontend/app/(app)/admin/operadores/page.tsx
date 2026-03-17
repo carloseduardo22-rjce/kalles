@@ -346,7 +346,7 @@ export default function OperadoresPage() {
       </header>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando operadores…" />
@@ -361,66 +361,64 @@ export default function OperadoresPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="w-10 px-4 py-3" />
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nome
-                  </th>
-                  <th className="w-40 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Código
-                  </th>
-                  <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nível
-                  </th>
-                  <th className="w-20 px-4 py-3" />
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="w-10 px-4 py-3" />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nome
+                </th>
+                <th className="w-40 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Código
+                </th>
+                <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nível
+                </th>
+                <th className="w-20 px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {operators.map((op, i) => (
+                <tr
+                  key={op.id}
+                  className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
+                >
+                  <td className="px-4 py-3">
+                    <OperatorAvatar id={op.id} name={op.name} />
+                  </td>
+                  <td className="px-4 py-3 font-medium">{op.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {op.code}
+                  </td>
+                  <td className="px-4 py-3">
+                    <PermissionBadge level={op.permissionLevel} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditTarget(op)}
+                        title="Editar"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeactivateTarget(op)}
+                        title="Desativar"
+                      >
+                        <PowerOff className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {operators.map((op, i) => (
-                  <tr
-                    key={op.id}
-                    className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
-                  >
-                    <td className="px-4 py-3">
-                      <OperatorAvatar id={op.id} name={op.name} />
-                    </td>
-                    <td className="px-4 py-3 font-medium">{op.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {op.code}
-                    </td>
-                    <td className="px-4 py-3">
-                      <PermissionBadge level={op.permissionLevel} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setEditTarget(op)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeactivateTarget(op)}
-                          title="Desativar"
-                        >
-                          <PowerOff className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

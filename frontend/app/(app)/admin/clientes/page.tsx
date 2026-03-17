@@ -300,7 +300,7 @@ export default function ClientesPage() {
       </div>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando clientes…" />
@@ -317,106 +317,102 @@ export default function ClientesPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nome
-                  </th>
-                  <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    CPF
-                  </th>
-                  <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Celular
-                  </th>
-                  <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Fidelidade
-                  </th>
-                  <th className="w-24 px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((client, i) => (
-                  <tr
-                    key={client.id}
-                    className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-medium">{client.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {client.cpf}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {client.cellphone ?? (
-                        <span className="opacity-40">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        if (!fidelityMap.has(client.id)) {
-                          return (
-                            <span className="text-xs text-muted-foreground opacity-40">
-                              —
-                            </span>
-                          );
-                        }
-                        const f = fidelityMap.get(client.id) ?? null;
-                        if (f === null) {
-                          return (
-                            <Badge
-                              variant="outline"
-                              className="text-xs font-normal"
-                            >
-                              Não inscrito
-                            </Badge>
-                          );
-                        }
-                        if (f.availableDiscount > 0) {
-                          return (
-                            <Badge className="border border-green-200 bg-green-100 text-xs font-normal text-green-700 hover:bg-green-100">
-                              <Gift className="mr-1 h-3 w-3" />
-                              R$ {f.availableDiscount.toFixed(2)} disponível
-                            </Badge>
-                          );
-                        }
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nome
+                </th>
+                <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  CPF
+                </th>
+                <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Celular
+                </th>
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Fidelidade
+                </th>
+                <th className="w-24 px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((client, i) => (
+                <tr
+                  key={client.id}
+                  className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
+                >
+                  <td className="px-4 py-3 font-medium">{client.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {client.cpf}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {client.cellphone ?? <span className="opacity-40">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      if (!fidelityMap.has(client.id)) {
+                        return (
+                          <span className="text-xs text-muted-foreground opacity-40">
+                            —
+                          </span>
+                        );
+                      }
+                      const f = fidelityMap.get(client.id) ?? null;
+                      if (f === null) {
                         return (
                           <Badge
-                            variant="secondary"
+                            variant="outline"
                             className="text-xs font-normal"
                           >
-                            <Gift className="mr-1 h-3 w-3 opacity-60" />
-                            {f.points} pts
+                            Não inscrito
                           </Badge>
                         );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setEditTarget(client)}
-                          title="Editar"
+                      }
+                      if (f.availableDiscount > 0) {
+                        return (
+                          <Badge className="border border-green-200 bg-green-100 text-xs font-normal text-green-700 hover:bg-green-100">
+                            <Gift className="mr-1 h-3 w-3" />
+                            R$ {f.availableDiscount.toFixed(2)} disponível
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-normal"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(client)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          <Gift className="mr-1 h-3 w-3 opacity-60" />
+                          {f.points} pts
+                        </Badge>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditTarget(client)}
+                        title="Editar"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(client)}
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

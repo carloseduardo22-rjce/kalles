@@ -407,7 +407,7 @@ export default function DepositosPage() {
       </header>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando depósitos…" />
@@ -420,95 +420,91 @@ export default function DepositosPage() {
             <p className="text-sm font-medium">Nenhum depósito cadastrado</p>
           </div>
         ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="w-8 px-3 py-3" />
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nome
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Endereço
-                  </th>
-                  <th className="w-28 px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {warehouses.map((wh, i) => (
-                  <>
-                    <tr
-                      key={wh.id}
-                      className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
-                    >
-                      <td className="px-3 py-3">
-                        <button
-                          onClick={() =>
-                            setExpandedId(expandedId === wh.id ? null : wh.id)
-                          }
-                          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-                          title={
-                            expandedId === wh.id
-                              ? "Recolher"
-                              : "Ver localizações"
-                          }
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="w-8 px-3 py-3" />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nome
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Endereço
+                </th>
+                <th className="w-28 px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {warehouses.map((wh, i) => (
+                <>
+                  <tr
+                    key={wh.id}
+                    className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
+                  >
+                    <td className="px-3 py-3">
+                      <button
+                        onClick={() =>
+                          setExpandedId(expandedId === wh.id ? null : wh.id)
+                        }
+                        className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                        title={
+                          expandedId === wh.id ? "Recolher" : "Ver localizações"
+                        }
+                      >
+                        {expandedId === wh.id ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {wh.name}
+                      <Badge
+                        variant="outline"
+                        className="ml-2 border-green-300 text-[10px] text-green-700 dark:border-green-800 dark:text-green-400"
+                      >
+                        Ativo
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {wh.address ?? <span className="opacity-40">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setEditWh(wh)}
+                          title="Editar"
                         >
-                          {expandedId === wh.id ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        {wh.name}
-                        <Badge
-                          variant="outline"
-                          className="ml-2 border-green-300 text-[10px] text-green-700 dark:border-green-800 dark:text-green-400"
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeactivateWh(wh)}
+                          title="Desativar"
                         >
-                          Ativo
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {wh.address ?? <span className="opacity-40">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setEditWh(wh)}
-                            title="Editar"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeactivateWh(wh)}
-                            title="Desativar"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedId === wh.id && (
-                      <LocationsPanel
-                        key={`loc-${wh.id}`}
-                        warehouse={wh}
-                        onAdd={() => setAddLocFor(wh)}
-                        onEdit={(loc) => setEditLoc(loc)}
-                        onDelete={(loc) => setDeleteLoc(loc)}
-                      />
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedId === wh.id && (
+                    <LocationsPanel
+                      key={`loc-${wh.id}`}
+                      warehouse={wh}
+                      onAdd={() => setAddLocFor(wh)}
+                      onEdit={(loc) => setEditLoc(loc)}
+                      onDelete={(loc) => setDeleteLoc(loc)}
+                    />
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
