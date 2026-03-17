@@ -44,7 +44,13 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          forcedTheme="light"
+          themes={[
+            "light",
+            "theme-emerald",
+            "theme-amber",
+            "theme-rose",
+            "theme-slate",
+          ]}
         >
           <QueryProvider>{children}</QueryProvider>
           <Toaster richColors position="top-right" />

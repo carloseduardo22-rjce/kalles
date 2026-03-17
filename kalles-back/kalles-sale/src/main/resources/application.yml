@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local # Ativa o application-local.yml
   application:
     name: kalles-sale
 

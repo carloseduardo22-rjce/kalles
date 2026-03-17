@@ -14,7 +14,7 @@ Funcionalidade: ACL - Adapter traduz Company ERP → Store no Mercado Pago
     Dado uma Company com id "COMP-001", nome "Kalles Matriz", logradouro "Rua das Flores", numero "123", cidade "São Paulo", estado "SP", latitude "-23.550520" e longitude "-46.633308"
     E que o SDK do Mercado Pago retornará o store_id "1234567" para essa requisição
     Quando o adapter solicitar a criação da Store no Mercado Pago
-    Então o SDK deve ter sido invocado com name "Kalles Matriz"
+    Então o SDK deve ter sido invocado com name da Store "Kalles Matriz"
     E o SDK deve ter sido invocado com external_id "COMP-001"
     E o SDK deve ter sido invocado com street_name "Rua das Flores"
     E o SDK deve ter sido invocado com street_number "123"
@@ -32,7 +32,7 @@ Funcionalidade: ACL - Adapter traduz Company ERP → Store no Mercado Pago
   Cenário: Adapter não invoca o SDK se a Company já possui store_id cadastrado
     Dado uma Company com id "COMP-001" que já possui store_id "1234567" registrado
     Quando o adapter solicitar a criação da Store no Mercado Pago
-    Então o SDK NÃO deve ter sido invocado
+    Então o SDK NÃO deve ter sido invocado para criação da Store
     E o store_id "1234567" deve ser retornado diretamente ao domínio
 
   #===========================================================================
@@ -41,7 +41,7 @@ Funcionalidade: ACL - Adapter traduz Company ERP → Store no Mercado Pago
 
   Cenário: Adapter converte exceção do SDK em MercadoPagoIntegrationException
     Dado uma Company com id "COMP-ERR" e nome "Empresa Inválida" sem store_id cadastrado
-    E que o SDK do Mercado Pago lançará uma exceção de comunicação
+    E que o SDK lançará uma exceção de comunicação ao criar Store
     Quando o adapter solicitar a criação da Store no Mercado Pago
-    Então o adapter deve lançar uma MercadoPagoIntegrationException
+    Então o adapter Store deve lançar uma MercadoPagoIntegrationException quando falhar
     E nenhum store_id deve ter sido persistido para a Company "COMP-ERR"

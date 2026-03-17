@@ -14,6 +14,8 @@ export interface ProductResponse {
   id: string;
   name: string;
   stockQuantity: number;
+  location?: string;
+  warehouse?: string;
   internalCode: string;
   barcode: string | null;
   price: number;

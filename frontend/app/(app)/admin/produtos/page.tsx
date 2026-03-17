@@ -309,6 +309,12 @@ export default function AdminProdutosPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Nome
                   </th>
+                  <th className="w-24 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Qtd
+                  </th>
+                  <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Estoque / Local
+                  </th>
                   <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Preço
                   </th>
@@ -331,6 +337,23 @@ export default function AdminProdutosPage() {
                       {product.barcode ?? <span className="opacity-40">—</span>}
                     </td>
                     <td className="px-4 py-3 font-medium">{product.name}</td>
+                    <td className="px-4 py-3 text-center font-medium">
+                      {product.stockQuantity ?? (
+                        <span className="opacity-40">0</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {product.warehouse ? (
+                        <span className="inline-flex flex-col">
+                          <span className="font-semibold text-foreground">
+                            {product.warehouse}
+                          </span>
+                          <span>{product.location}</span>
+                        </span>
+                      ) : (
+                        <span className="opacity-40">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right tabular-nums font-semibold">
                       {formatCurrency(product.price)}
                     </td>

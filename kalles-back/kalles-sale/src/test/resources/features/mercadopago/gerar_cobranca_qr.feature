@@ -8,7 +8,7 @@ Funcionalidade: ACL - Adapter gera cobrança via QR Code Dinâmico no Mercado Pa
   Garantindo idempotência através da X-Idempotency-Key enviada pelo ERP
 
   Contexto:
-    Dado uma Company "COMP-001" que já possui store_id "1234567" registrado no MP
+    Dado uma Company "COMP-001" que possui store_id "1234567" gerado no MP
     E um Caixa com external_id "CAIXA-ERP-001" que já possui pos_id "2711382" registrado no MP
 
   #===========================================================================
@@ -66,6 +66,6 @@ Funcionalidade: ACL - Adapter gera cobrança via QR Code Dinâmico no Mercado Pa
 
   Cenário: Adapter converte exceção do SDK em MercadoPagoIntegrationException ao criar Order
     Dado uma intenção de cobrança com pedidoId "PEDIDO-ERP-3333", valor "75.50", caixa "CAIXA-ERP-001" e idempotencyKey "d4e5f6a7-b8c9-0123-def0-234567890123"
-    E que o SDK do Mercado Pago lançará uma exceção de comunicação
+    E que o SDK lançará uma exceção de comunicação ao criar Order
     Quando o adapter solicitar a criação da Order no Mercado Pago
-    Então o adapter deve lançar uma MercadoPagoIntegrationException
+    Então o adapter Order deve lançar uma MercadoPagoIntegrationException quando falhar

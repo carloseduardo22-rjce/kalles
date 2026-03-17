@@ -304,6 +304,14 @@ function SidebarInner() {
             Metas
           </NavLink>
           <NavLink
+            href="/admin/pagamentos"
+            icon={<CreditCard className="h-4 w-4" />}
+            active={pathname === "/admin/configurar-pagamentos"}
+            sub
+          >
+            Configurar pagamentos
+          </NavLink>
+          <NavLink
             href="/admin/configuracoes"
             icon={<Settings className="h-4 w-4" />}
             active={pathname === "/admin/configuracoes"}

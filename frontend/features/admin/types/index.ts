@@ -46,6 +46,8 @@ export interface ProductAdminResponse {
   description: string | null;
   price: number;
   active: boolean;
+  stockQuantity?: number;
+  location?: string;
 }
 
 // ─── Operators ─────────────────────────────────────────────────────────────
