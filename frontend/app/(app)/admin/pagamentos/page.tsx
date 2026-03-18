@@ -31,8 +31,8 @@ interface StoreFormData {
   streetNumber: string;
   cityName: string;
   stateName: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | "";
+  longitude: number | "";
 }
 
 interface PosFormData {
@@ -76,45 +76,22 @@ export default function PaymentSettingsPage() {
     "store",
   );
   const [loading, setLoading] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState(true);
   const [storeConfigured, setStoreConfigured] = useState(false);
 
-  // MOCK UUIDs for demo. In a real app we'd fetch the company's UUID from the auth/context
-  const mockCompanyId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
-
-  useEffect(() => {
-    async function checkStoreStatus() {
-      try {
-        const res = await fetch(
-          `http://localhost:8080/api/mercadopago/stores/${mockCompanyId}/status`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setStoreConfigured(data.hasStoreRegistered);
-        }
-      } catch (error) {
-        console.error("Falha ao verificar status da loja:");
-      } finally {
-        setLoadingStatus(false);
-      }
-    }
-    checkStoreStatus();
-  }, [mockCompanyId]);
-
   const [storeForm, setStoreForm] = useState<StoreFormData>({
-    companyId: mockCompanyId,
-    name: "Kalles Matriz",
-    streetName: "Rua Exemplo",
-    streetNumber: "123",
-    cityName: "São Paulo",
-    stateName: "São Paulo",
-    latitude: -23.55052,
-    longitude: -46.633308,
+    companyId: "",
+    name: "",
+    streetName: "",
+    streetNumber: "",
+    cityName: "",
+    stateName: "",
+    latitude: "",
+    longitude: "",
   });
 
   const [posForm, setPosForm] = useState<PosFormData>({
-    caixaId: "CAIXA-001",
-    name: "Caixa Frontal",
+    caixaId: "",
+    name: "",
   });
 
   const handleUpdateStoreField = (
@@ -238,398 +215,383 @@ export default function PaymentSettingsPage() {
         criar novas integrações.
       </p>
 
-      {loadingStatus ? (
-        <div className="flex items-center gap-3 mt-12 text-white">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="font-medium text-lg">
-            Verificando status da integração...
-          </span>
-        </div>
-      ) : (
-        <Tabs
-          value={activeTab}
-          onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
-          className="w-full mt-6"
-        >
-          <TabsList className="bg-white/20 text-white border border-white/30 backdrop-blur-sm mb-6 h-12 p-1">
-            <TabsTrigger
-              value="listar"
-              className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
-            >
-              <List className="h-4 w-4" />
-              Lojas e Terminais Configurados
-            </TabsTrigger>
-            <TabsTrigger
-              value="criar"
-              className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Nova Integração (Loja/POS)
-            </TabsTrigger>
-          </TabsList>
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
+        className="w-full mt-6"
+      >
+        <TabsList className="bg-white/20 text-white border border-white/30 backdrop-blur-sm mb-6 h-12 p-1">
+          <TabsTrigger
+            value="listar"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
+          >
+            <List className="h-4 w-4" />
+            Lojas e Terminais Configurados
+          </TabsTrigger>
+          <TabsTrigger
+            value="criar"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Nova Integração (Loja/POS)
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="listar" className="pb-20">
-            <div className="grid gap-6">
-              {mockIntegrations.map((store) => (
-                <Card
-                  key={store.id}
-                  className="border-0 p-0 gap-0 shadow-md overflow-hidden"
-                >
-                  <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col gap-1">
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Store className="h-5 w-5 text-zinc-600" />
-                          {store.name}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-4">
-                          <span>
-                            <strong>ID Interno:</strong> {store.externalId}
-                          </span>
-                          <span>
-                            <strong>ID Mercado Pago:</strong> {store.mpStoreId}
-                          </span>
-                        </CardDescription>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setActiveTab("criar");
-                          setStoreConfigured(true);
-                          setNewIntegrationStep("pos");
-                          setStoreForm((prev) => ({
-                            ...prev,
-                            companyId: store.externalId,
-                          }));
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Adicionar Terminal
-                      </Button>
+        <TabsContent value="listar" className="pb-20">
+          <div className="grid gap-6">
+            {mockIntegrations.map((store) => (
+              <Card
+                key={store.id}
+                className="border-0 p-0 gap-0 shadow-md overflow-hidden"
+              >
+                <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-1">
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        <Store className="h-5 w-5 text-zinc-600" />
+                        {store.name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-4">
+                        <span>
+                          <strong>ID Interno:</strong> {store.externalId}
+                        </span>
+                        <span>
+                          <strong>ID Mercado Pago:</strong> {store.mpStoreId}
+                        </span>
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-4">
-                    <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
-                      <Terminal className="h-4 w-4" />
-                      Terminais (Caixas) Vinculados
-                    </h4>
-                    {store.terminals.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {store.terminals.map((terminal) => (
-                          <div
-                            key={terminal.id}
-                            className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
-                          >
-                            <span className="font-medium">{terminal.name}</span>
-                            <span className="text-xs text-muted-foreground mt-1">
-                              ID: {terminal.id}
-                            </span>
-                          </div>
-                        ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setActiveTab("criar");
+                        setStoreConfigured(true);
+                        setNewIntegrationStep("pos");
+                        setStoreForm((prev) => ({
+                          ...prev,
+                          companyId: store.externalId,
+                        }));
+                      }}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Adicionar Terminal
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 pt-4">
+                  <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
+                    <Terminal className="h-4 w-4" />
+                    Terminais (Caixas) Vinculados
+                  </h4>
+                  {store.terminals.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {store.terminals.map((terminal) => (
+                        <div
+                          key={terminal.id}
+                          className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
+                        >
+                          <span className="font-medium">{terminal.name}</span>
+                          <span className="text-xs text-muted-foreground mt-1">
+                            ID: {terminal.id}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum terminal vinculado a esta loja.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="criar">
+          {/* Tabs / Stepper Header for Creation */}
+          <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
+            <button
+              onClick={() => setNewIntegrationStep("store")}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                newIntegrationStep === "store"
+                  ? "border-white text-white drop-shadow-md"
+                  : "border-transparent text-white/70 hover:text-white"
+              }`}
+            >
+              <Store className="h-4 w-4" />
+              <span>1. Estabelecimento</span>
+            </button>
+            <button
+              onClick={() => {
+                if (storeConfigured) setNewIntegrationStep("pos");
+              }}
+              disabled={!storeConfigured}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                newIntegrationStep === "pos"
+                  ? "border-white text-white drop-shadow-md"
+                  : "border-transparent text-white/50"
+              } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
+            >
+              <Terminal className="h-4 w-4" />
+              <span>2. Terminais (Caixas)</span>
+              {!storeConfigured && <Lock className="h-3 w-3 ml-1" />}
+            </button>
+          </div>
+
+          <div className="w-full pb-20">
+            {newIntegrationStep === "store" && (
+              <Card className="border-0 shadow-md">
+                <CardHeader>
+                  <CardTitle>Dados da Loja Física</CardTitle>
+                  <CardDescription>
+                    Seus dados serão enviados ao Mercado Pago para registro da
+                    filial pagadora.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateStore} className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyId">
+                          ID Interno da Empresa (Kalles)
+                        </Label>
+                        <Input
+                          id="companyId"
+                          value={storeForm.companyId}
+                          onChange={(e) =>
+                            handleUpdateStoreField("companyId", e.target.value)
+                          }
+                        />
+                        <p
+                          id="companyId-description"
+                          className="text-sm text-muted-foreground"
+                        >
+                          Identificador externo da loja para o sistema
+                          integrador. Pode conter qualquer valor alfanumérico de
+                          até 60 caracteres e deve ser único para cada loja. Por
+                          exemplo, LOJ001.
+                        </p>
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Nenhum terminal vinculado a esta loja.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                      <div className="space-y-2">
+                        <Label htmlFor="name">
+                          Nome da Loja (Visível no Recibo)
+                        </Label>
+                        <Input
+                          id="name"
+                          placeholder="Ex: Kalles Matriz Centro"
+                          value={storeForm.name}
+                          onChange={(e) =>
+                            handleUpdateStoreField("name", e.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
 
-          <TabsContent value="criar">
-            {/* Tabs / Stepper Header for Creation */}
-            <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
-              <button
-                onClick={() => setNewIntegrationStep("store")}
-                className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                  newIntegrationStep === "store"
-                    ? "border-white text-white drop-shadow-md"
-                    : "border-transparent text-white/70 hover:text-white"
-                }`}
-              >
-                <Store className="h-4 w-4" />
-                <span>1. Estabelecimento</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (storeConfigured) setNewIntegrationStep("pos");
-                }}
-                disabled={!storeConfigured}
-                className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                  newIntegrationStep === "pos"
-                    ? "border-white text-white drop-shadow-md"
-                    : "border-transparent text-white/50"
-                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
-              >
-                <Terminal className="h-4 w-4" />
-                <span>2. Terminais (Caixas)</span>
-                {!storeConfigured && <Lock className="h-3 w-3 ml-1" />}
-              </button>
-            </div>
-
-            <div className="w-full pb-20">
-              {newIntegrationStep === "store" && (
-                <Card className="border-0 shadow-md">
-                  <CardHeader>
-                    <CardTitle>Dados da Loja Física</CardTitle>
-                    <CardDescription>
-                      Seus dados serão enviados ao Mercado Pago para registro da
-                      filial pagadora.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleCreateStore} className="space-y-6">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="companyId">
-                            ID Interno da Empresa (Kalles)
-                          </Label>
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium">Localização</h4>
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <div className="space-y-2 md:col-span-3">
+                          <Label htmlFor="streetName">Logradouro</Label>
                           <Input
-                            id="companyId"
-                            value={storeForm.companyId}
+                            id="streetName"
+                            value={storeForm.streetName}
                             onChange={(e) =>
                               handleUpdateStoreField(
-                                "companyId",
+                                "streetName",
                                 e.target.value,
                               )
                             }
+                            required
                           />
-                          <p
-                            id="companyId-description"
-                            className="text-sm text-muted-foreground"
-                          >
-                            Identificador externo da loja para o sistema
-                            integrador. Pode conter qualquer valor alfanumérico
-                            de até 60 caracteres e deve ser único para cada
-                            loja. Por exemplo, LOJ001.
-                          </p>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="name">
-                            Nome da Loja (Visível no Recibo)
-                          </Label>
+                          <Label htmlFor="streetNumber">Número</Label>
                           <Input
-                            id="name"
-                            placeholder="Ex: Kalles Matriz Centro"
-                            value={storeForm.name}
+                            id="streetNumber"
+                            value={storeForm.streetNumber}
                             onChange={(e) =>
-                              handleUpdateStoreField("name", e.target.value)
+                              handleUpdateStoreField(
+                                "streetNumber",
+                                e.target.value,
+                              )
                             }
                             required
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-4 pt-4 border-t">
-                        <h4 className="text-sm font-medium">Localização</h4>
-                        <div className="grid gap-4 md:grid-cols-4">
-                          <div className="space-y-2 md:col-span-3">
-                            <Label htmlFor="streetName">Logradouro</Label>
-                            <Input
-                              id="streetName"
-                              value={storeForm.streetName}
-                              onChange={(e) =>
-                                handleUpdateStoreField(
-                                  "streetName",
-                                  e.target.value,
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="streetNumber">Número</Label>
-                            <Input
-                              id="streetNumber"
-                              value={storeForm.streetNumber}
-                              onChange={(e) =>
-                                handleUpdateStoreField(
-                                  "streetNumber",
-                                  e.target.value,
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="cityName">Cidade</Label>
-                            <Input
-                              id="cityName"
-                              value={storeForm.cityName}
-                              onChange={(e) =>
-                                handleUpdateStoreField(
-                                  "cityName",
-                                  e.target.value,
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="stateName">Estado (Extenso)</Label>
-                            <Select
-                              value={storeForm.stateName}
-                              onValueChange={(val) =>
-                                handleUpdateStoreField("stateName", val)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o estado..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {BRAZILIAN_STATES.map((st) => (
-                                  <SelectItem key={st} value={st}>
-                                    {st}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="latitude">Latitude</Label>
-                            <Input
-                              id="latitude"
-                              type="number"
-                              step="any"
-                              value={storeForm.latitude}
-                              onChange={(e) =>
-                                handleUpdateStoreField(
-                                  "latitude",
-                                  parseFloat(e.target.value),
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="longitude">Longitude</Label>
-                            <Input
-                              id="longitude"
-                              type="number"
-                              step="any"
-                              value={storeForm.longitude}
-                              onChange={(e) =>
-                                handleUpdateStoreField(
-                                  "longitude",
-                                  parseFloat(e.target.value),
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={loading}>
-                          {loading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Store className="mr-2 h-4 w-4" />
-                          )}
-                          Criar/Vincular Loja
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
-
-              {newIntegrationStep === "pos" && (
-                <Card className="border-0 shadow-md">
-                  <CardHeader>
-                    <CardTitle>Terminais de Caixa (POS)</CardTitle>
-                    <CardDescription>
-                      Vincule caixas físicos já cadastrados na sua loja ao
-                      Mercado Pago para gerar QR Codes dinâmicos.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {!storeConfigured && (
-                      <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-600">
-                        <AlertTitle className="font-semibold">
-                          Atenção
-                        </AlertTitle>
-                        <AlertDescription>
-                          Certifique-se de que configurou a Loja Física (Etapa
-                          1) antes de criar caixas/POS.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    <form onSubmit={handleCreatePos} className="space-y-6">
-                      <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="posCompanyId">
-                            ID da Sua Loja Kalles
-                          </Label>
+                          <Label htmlFor="cityName">Cidade</Label>
                           <Input
-                            id="posCompanyId"
-                            value={storeForm.companyId}
-                            readOnly
-                            className="bg-muted/50"
+                            id="cityName"
+                            value={storeForm.cityName}
+                            onChange={(e) =>
+                              handleUpdateStoreField("cityName", e.target.value)
+                            }
+                            required
                           />
                         </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="caixaId">
-                              ID do Caixa (Kalles)
-                            </Label>
-                            <Input
-                              id="caixaId"
-                              placeholder="Ex: CAIXA-001"
-                              value={posForm.caixaId}
-                              onChange={(e) =>
-                                handleUpdatePosField("caixaId", e.target.value)
-                              }
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="posName">
-                              Nome do Caixa (Visível para Cliente)
-                            </Label>
-                            <Input
-                              id="posName"
-                              placeholder="Ex: Caixa Frontal 01"
-                              value={posForm.name}
-                              onChange={(e) =>
-                                handleUpdatePosField("name", e.target.value)
-                              }
-                              required
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="stateName">Estado (Extenso)</Label>
+                          <Select
+                            value={storeForm.stateName}
+                            onValueChange={(val) =>
+                              handleUpdateStoreField("stateName", val)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o estado..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BRAZILIAN_STATES.map((st) => (
+                                <SelectItem key={st} value={st}>
+                                  {st}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
-                      <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={loading}>
-                          {loading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Terminal className="mr-2 h-4 w-4" />
-                          )}
-                          Registrar Terminal
-                        </Button>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="latitude">Latitude</Label>
+                          <Input
+                            id="latitude"
+                            type="number"
+                            step="any"
+                            value={storeForm.latitude}
+                            onChange={(e) =>
+                              handleUpdateStoreField(
+                                "latitude",
+                                e.target.value === ""
+                                  ? ""
+                                  : parseFloat(e.target.value),
+                              )
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="longitude">Longitude</Label>
+                          <Input
+                            id="longitude"
+                            type="number"
+                            step="any"
+                            value={storeForm.longitude}
+                            onChange={(e) =>
+                              handleUpdateStoreField(
+                                "longitude",
+                                e.target.value === ""
+                                  ? ""
+                                  : parseFloat(e.target.value),
+                              )
+                            }
+                            required
+                          />
+                        </div>
                       </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      )}
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Store className="mr-2 h-4 w-4" />
+                        )}
+                        Criar/Vincular Loja
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {newIntegrationStep === "pos" && (
+              <Card className="border-0 shadow-md">
+                <CardHeader>
+                  <CardTitle>Terminais de Caixa (POS)</CardTitle>
+                  <CardDescription>
+                    Vincule caixas físicos já cadastrados na sua loja ao Mercado
+                    Pago para gerar QR Codes dinâmicos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!storeConfigured && (
+                    <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-600">
+                      <AlertTitle className="font-semibold">Atenção</AlertTitle>
+                      <AlertDescription>
+                        Certifique-se de que configurou a Loja Física (Etapa 1)
+                        antes de criar caixas/POS.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <form onSubmit={handleCreatePos} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="posCompanyId">
+                          ID da Sua Loja Kalles
+                        </Label>
+                        <Input
+                          id="posCompanyId"
+                          value={storeForm.companyId}
+                          readOnly
+                          className="bg-muted/50"
+                        />
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="caixaId">ID do Caixa (Kalles)</Label>
+                          <Input
+                            id="caixaId"
+                            placeholder="Ex: CAIXA-001"
+                            value={posForm.caixaId}
+                            onChange={(e) =>
+                              handleUpdatePosField("caixaId", e.target.value)
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="posName">
+                            Nome do Caixa (Visível para Cliente)
+                          </Label>
+                          <Input
+                            id="posName"
+                            placeholder="Ex: Caixa Frontal 01"
+                            value={posForm.name}
+                            onChange={(e) =>
+                              handleUpdatePosField("name", e.target.value)
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Terminal className="mr-2 h-4 w-4" />
+                        )}
+                        Registrar Terminal
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
