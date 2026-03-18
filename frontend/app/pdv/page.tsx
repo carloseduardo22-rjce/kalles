@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Store,
@@ -36,9 +36,96 @@ import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
 
 const STORAGE_KEY = "kalles:active-session";
+const LAYOUT_STORAGE_KEY = "kalles:pdv-layout";
+
+type LayoutState = { leftWidth: number; bottomHeight: number };
+const DEFAULT_LAYOUT: LayoutState = { leftWidth: 60, bottomHeight: 25 };
+const MIN_LEFT_WIDTH = 40;
+const MAX_LEFT_WIDTH = 80;
+const MIN_BOTTOM_HEIGHT = 15;
+const MAX_BOTTOM_HEIGHT = 50;
 
 export default function PdvPage() {
   const router = useRouter();
+
+  // Layout Management State
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [savedLayout, setSavedLayout] = useState<LayoutState>(DEFAULT_LAYOUT);
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
+
+  // Load saved layout from local storage
+  useEffect(() => {
+    try {
+      const storedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
+      if (storedLayout) {
+        setSavedLayout(JSON.parse(storedLayout));
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleMouseDownVertical = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!isEditingLayout || !containerRef.current) return;
+      const container = containerRef.current;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const containerRect = container.getBoundingClientRect();
+        let newWidth =
+          ((moveEvent.clientX - containerRect.left) / containerRect.width) *
+          100;
+        newWidth = Math.max(MIN_LEFT_WIDTH, Math.min(newWidth, MAX_LEFT_WIDTH));
+        container.style.setProperty("--left-width", `${newWidth}%`);
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [isEditingLayout],
+  );
+
+  const handleSaveLayout = () => {
+    if (containerRef.current) {
+      const newLeft = parseFloat(
+        containerRef.current.style.getPropertyValue("--left-width"),
+      );
+      const layoutToSave = {
+        leftWidth: newLeft || savedLayout.leftWidth,
+        bottomHeight: savedLayout.bottomHeight,
+      };
+      setSavedLayout(layoutToSave);
+      localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layoutToSave));
+    }
+    setIsEditingLayout(false);
+  };
+
+  const handleCancelLayout = () => {
+    if (containerRef.current) {
+      containerRef.current.style.setProperty(
+        "--left-width",
+        `${savedLayout.leftWidth}%`,
+      );
+    }
+    setIsEditingLayout(false);
+  };
+
+  const handleRestoreLayout = () => {
+    if (containerRef.current) {
+      containerRef.current.style.setProperty(
+        "--left-width",
+        `${DEFAULT_LAYOUT.leftWidth}%`,
+      );
+    }
+    setSavedLayout(DEFAULT_LAYOUT);
+    localStorage.removeItem(LAYOUT_STORAGE_KEY);
+    setIsEditingLayout(false);
+  };
+
   const [sessionData, setSessionData] = useState<ActiveSession | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -209,37 +296,92 @@ export default function PdvPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-              F2
-            </kbd>
-            Consulta de produtos
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-              F8
-            </kbd>
-            Incrementar último item
-          </span>
-          <span className="flex items-center gap-1 mr-2">
-            <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-              F4
-            </kbd>
-            Produtos
-          </span>
-          <CloseSessionAuthorizedDialog
-            isLoading={sessionLoading}
-            error={sessionError}
-            onConfirm={handleCloseSession}
-          />
+          {!isEditingLayout ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditingLayout(true)}
+                className="mr-2"
+              >
+                Editar Layout
+              </Button>
+              <span className="flex items-center gap-1">
+                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                  F2
+                </kbd>
+                Consulta de produtos
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                  F8
+                </kbd>
+                Incrementar último item
+              </span>
+              <span className="flex items-center gap-1 mr-2">
+                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                  F4
+                </kbd>
+                Produtos
+              </span>
+              <CloseSessionAuthorizedDialog
+                isLoading={sessionLoading}
+                error={sessionError}
+                onConfirm={handleCloseSession}
+              />
+            </>
+          ) : (
+            <div className="flex items-center gap-1 mr-2">
+              <Button variant="ghost" size="sm" onClick={handleRestoreLayout}>
+                Restaurar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleCancelLayout}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSaveLayout}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Salvar
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main grid */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left — cart */}
-        <section className="flex w-full flex-col overflow-hidden md:w-3/5">
-          {/* Scrollable top area */}
+      <div
+        ref={containerRef}
+        className="flex-1 w-full relative overflow-hidden bg-background"
+        style={
+          {
+            display: "grid",
+            gridTemplateColumns: `var(--left-width, 60%) minmax(0, 1fr)`,
+            gridTemplateRows: `minmax(0, 1fr) auto`,
+            gridTemplateAreas: `
+            "products payment"
+            "totals payment"
+          `,
+            "--left-width": `${savedLayout.leftWidth}%`,
+          } as React.CSSProperties
+        }
+      >
+        {/* Camada de Overlay visual para indicar o Modo de Edição */}
+        {isEditingLayout && (
+          <div className="absolute inset-0 pointer-events-none ring-4 ring-blue-500 ring-inset z-50 transition-all bg-blue-50/5" />
+        )}
+
+        {/* SECTION: Products */}
+        <section
+          className={`flex flex-col relative overflow-hidden bg-background ${isEditingLayout ? "border-2 border-dashed border-blue-400 opacity-90" : "border-b border-r"}`}
+          style={{ gridArea: "products" }}
+        >
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
             {/* Add item */}
             {(!sale || sale.state === "OPEN") && (
@@ -285,26 +427,31 @@ export default function PdvPage() {
               onDecrementItem={(code) => decrementItem(code)}
             />
           </div>
+        </section>
 
-          {/* Sticky totals footer */}
-          {sale && !isSaleComplete && (
-            <div className="shrink-0 space-y-2 border-t bg-card px-4 py-3">
-              <div className="flex justify-between text-sm text-muted-foreground">
+        {/* SECTION: Totals */}
+        <section
+          className={`flex flex-col overflow-hidden bg-card ${isEditingLayout ? "border-2 border-dashed border-green-400 opacity-90" : "border-r"}`}
+          style={{ gridArea: "totals" }}
+        >
+          {sale && !isSaleComplete ? (
+            <div className="flex-1 flex flex-col justify-end space-y-2 p-5 w-full">
+              <div className="flex justify-between text-base text-muted-foreground">
                 <span>Subtotal</span>
                 <span className="font-medium">
                   {formatCurrency(sale.subtotal)}
                 </span>
               </div>
               {sale.fidelityDiscountApplied > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span className="flex items-center gap-1">
-                    <Gift className="h-3.5 w-3.5" />
+                <div className="flex justify-between text-base text-green-600">
+                  <span className="flex items-center gap-2">
+                    <Gift className="h-4 w-4" />
                     Desconto fidelidade
                   </span>
                   <span>- {formatCurrency(sale.fidelityDiscountApplied)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-bold">
+              <div className="flex justify-between text-2xl font-bold pt-2 border-t">
                 <span>Total</span>
                 <span>{formatCurrency(sale.total)}</span>
               </div>
@@ -313,7 +460,7 @@ export default function PdvPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-1 w-full text-destructive hover:text-destructive"
+                  className="mt-1 w-full text-base font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setCancelOpen(true)}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
@@ -321,13 +468,31 @@ export default function PdvPage() {
                 </Button>
               )}
             </div>
+          ) : (
+            <div className="flex-1 bg-card/50"></div>
           )}
         </section>
 
-        <Separator orientation="vertical" />
+        {/* Resizer Vertical */}
+        {isEditingLayout && (
+          <div
+            onMouseDown={handleMouseDownVertical}
+            className="w-4 bg-blue-500 hover:bg-blue-600 cursor-col-resize flex flex-col items-center justify-center opacity-80 z-40"
+            style={{
+              gridColumn: "2 / 2",
+              gridRow: "1 / 3",
+              marginLeft: "-6px",
+            }}
+          >
+            <div className="w-1 h-8 bg-white rounded-full"></div>
+          </div>
+        )}
 
-        {/* Right — fidelity + payment */}
-        <section className="hidden w-2/5 flex-col overflow-hidden md:flex">
+        {/* SECTION: Payment */}
+        <section
+          className={`flex flex-col overflow-hidden bg-background relative ${isEditingLayout ? "border-2 border-dashed border-orange-400 opacity-90" : ""}`}
+          style={{ gridArea: "payment" }}
+        >
           {/* Fidelity panel */}
           {sale && sale.state === "OPEN" && (
             <div className="shrink-0 border-b px-4 pt-4 pb-3">
@@ -342,12 +507,12 @@ export default function PdvPage() {
           )}
 
           {/* Payment panel */}
-          <div className="flex flex-1 flex-col overflow-y-auto p-4">
+          <div className="flex flex-1 flex-col overflow-y-auto p-4 relative z-0">
             {sale &&
-              !isSaleComplete &&
-              (sale.state === "OPEN" ||
-                sale.state === "PAYMENT_IN_PROGRESS" ||
-                sale.state === "PAID") ? (
+            !isSaleComplete &&
+            (sale.state === "OPEN" ||
+              sale.state === "PAYMENT_IN_PROGRESS" ||
+              sale.state === "PAID") ? (
               <PaymentPanel
                 sale={sale}
                 isLoading={isLoading}

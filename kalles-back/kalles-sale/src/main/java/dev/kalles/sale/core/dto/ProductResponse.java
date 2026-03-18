@@ -12,8 +12,15 @@ public record ProductResponse(
     String barcode,
     BigDecimal price,
     String description,
-    boolean active
+    boolean active,
+    Integer stockQuantity,
+    String warehouse,
+    String location
 ) {
+    public ProductResponse(UUID id, String name, String internalCode, String barcode, BigDecimal price, String description, boolean active, Long stockQuantity, String warehouse, String location) {
+        this(id, name, internalCode, barcode, price, description, active, stockQuantity != null ? stockQuantity.intValue() : 0, warehouse, location);
+    }
+
     public static ProductResponse from(Product p) {
         return new ProductResponse(
             p.getId(),
@@ -22,7 +29,10 @@ public record ProductResponse(
             p.getBarcode(),
             p.getPrice(),
             p.getDescription(),
-            p.isActive()
+            p.isActive(),
+            0,
+            null,
+            null
         );
     }
 }

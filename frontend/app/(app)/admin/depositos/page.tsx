@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Warehouse,
@@ -435,9 +435,8 @@ export default function DepositosPage() {
             </thead>
             <tbody>
               {warehouses.map((wh, i) => (
-                <>
+                <Fragment key={wh.id}>
                   <tr
-                    key={wh.id}
                     className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
                   >
                     <td className="px-3 py-3">
@@ -501,7 +500,7 @@ export default function DepositosPage() {
                       onDelete={(loc) => setDeleteLoc(loc)}
                     />
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

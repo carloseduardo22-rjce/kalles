@@ -47,6 +47,7 @@ export interface ProductAdminResponse {
   price: number;
   active: boolean;
   stockQuantity?: number;
+  warehouse?: string;
   location?: string;
 }
 

@@ -20,33 +20,23 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> listAllActive() {
-        return productRepository.findAllByActiveTrueOrderByNameAsc()
-                .stream()
-                .map(ProductResponse::from)
-                .toList();
+        return productRepository.findAllActiveWithStock();
     }
 
     @Transactional(readOnly = true)
     public List<ProductResponse> listAll() {
-        return productRepository.findAllByOrderByNameAsc()
-                .stream()
-                .map(ProductResponse::from)
-                .toList();
+        return productRepository.findAllWithStock();
     }
 
     @Transactional(readOnly = true)
     public ProductResponse findById(UUID id) {
-        return productRepository.findById(id)
-                .map(ProductResponse::from)
+        return productRepository.findProductWithStockById(id)
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<ProductResponse> searchActive(String q) {
-        return productRepository.searchActiveProducts(q)
-                .stream()
-                .map(ProductResponse::from)
-                .toList();
+        return productRepository.searchActiveProductsWithStock(q);
     }
 
     @Transactional
@@ -66,7 +56,8 @@ public class ProductService {
         product.setDescription(request.description());
         product.setPrice(request.price());
         product.setActive(true);
-        return ProductResponse.from(productRepository.save(product));
+        productRepository.save(product);
+        return findById(product.getId());
     }
 
     @Transactional
@@ -92,7 +83,8 @@ public class ProductService {
         product.setBarcode(request.barcode());
         product.setDescription(request.description());
         product.setPrice(request.price());
-        return ProductResponse.from(productRepository.save(product));
+        productRepository.save(product);
+        return findById(id);
     }
 
     @Transactional
