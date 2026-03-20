@@ -36,7 +36,7 @@ public class StoreAdapterSteps {
     public void companyWithData(String id, String nome, String logradouro, String numero, String cidade, String estado, String lat, String lon) {
         java.util.UUID uuid = id.equals("COMP-001") || id.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(id);
         companyContext = new Company(
-                uuid, nome, logradouro, numero, cidade, estado,
+                uuid, id, nome, logradouro, numero, cidade, estado,
                 Double.parseDouble(lat), Double.parseDouble(lon), null
         );
     }
@@ -44,13 +44,13 @@ public class StoreAdapterSteps {
     @Given("uma Company com id {string} que já possui store_id {string} registrado")
     public void companyAlreadyHasStoreId(String companyId, String storeId) {
         java.util.UUID uuid = companyId.equals("COMP-001") || companyId.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(companyId);
-        companyContext = new Company(uuid, "Name", "Street", "1", "City", "ST", 0.0, 0.0, Long.parseLong(storeId));
+        companyContext = new Company(uuid, companyId, "Name", "Street", "1", "City", "ST", 0.0, 0.0, Long.parseLong(storeId));
     }
 
     @Given("uma Company com id {string} e nome {string} sem store_id cadastrado")
     public void companyWithoutStoreId(String companyId, String companyName) {
         java.util.UUID uuid = companyId.equals("COMP-002") || companyId.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(companyId);
-        companyContext = new Company(uuid, companyName, "Street", "1", "City", "ST", 0.0, 0.0, null);
+        companyContext = new Company(uuid, companyId, companyName, "Street", "1", "City", "ST", 0.0, 0.0, null);
     }
 
     @And("que o SDK do Mercado Pago retornará o store_id {string} para essa requisição")

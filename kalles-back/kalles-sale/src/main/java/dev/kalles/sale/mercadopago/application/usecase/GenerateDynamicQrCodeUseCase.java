@@ -22,7 +22,7 @@ public class GenerateDynamicQrCodeUseCase {
     }
 
     public ResultadoQr execute(String pedidoIdErp, BigDecimal amount, String caixaId, String idempotencyKey) {
-        Caixa caixa = caixaMpRepository.findById(caixaId)
+        Caixa caixa = caixaMpRepository.findByExternalId(caixaId)
                 .orElseThrow(() -> new IllegalArgumentException("Caixa not found: " + caixaId));
 
         if (!caixa.hasPosRegistered()) {

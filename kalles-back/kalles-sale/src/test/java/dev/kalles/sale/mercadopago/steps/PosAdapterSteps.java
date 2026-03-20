@@ -34,25 +34,25 @@ public class PosAdapterSteps {
     @Given("uma Company {string} que possui store_id {string} gerado no MP")
     public void companyWithStoreId(String companyId, String storeId) {
         companyContext = new Company(
-                java.util.UUID.randomUUID(), "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, Long.parseLong(storeId)
+                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, Long.parseLong(storeId)
         );
     }
 
     @Given("uma Company {string} que AINDA NÃO possui store_id no MP")
     public void companyWithoutStoreId(String companyId) {
         companyContext = new Company(
-                java.util.UUID.randomUUID(), "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, null
+                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, null
         );
     }
 
     @And("um Caixa com id {string}, nome {string}, pertencente à Company {string}")
     public void caixaBelongsToCompany(String caixaId, String nome, String companyId) {
-        caixaContext = new Caixa(caixaId, nome, companyContext.id().toString(), null);
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, nome, companyContext.id().toString(), null);
     }
 
     @Given("um Caixa com id {string} que já possui pos_id {string} registrado")
     public void umCaixaComPosId(String caixaId, String posId) {
-        caixaContext = new Caixa(caixaId, "Caixa", java.util.UUID.randomUUID().toString(), Long.parseLong(posId));
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, "Caixa", java.util.UUID.randomUUID().toString(), Long.parseLong(posId));
     }
 
     @And("que o Caixa já possui o pos_id {string} gerado anteriormente")

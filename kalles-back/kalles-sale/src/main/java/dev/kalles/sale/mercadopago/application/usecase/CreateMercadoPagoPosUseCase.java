@@ -25,7 +25,7 @@ public class CreateMercadoPagoPosUseCase {
     }
 
     public Long execute(Caixa caixaInfo) {
-        Caixa caixa = caixaMpRepository.findById(caixaInfo.id())
+        Caixa caixa = caixaMpRepository.findByExternalId(caixaInfo.externalId())
                 .orElseGet(() -> {
                     caixaMpRepository.save(caixaInfo);
                     return caixaInfo;
@@ -35,15 +35,15 @@ public class CreateMercadoPagoPosUseCase {
             return caixa.mpPosId(); // Idempotency
         }
 
-        Company company = companyMpRepository.findById(UUID.fromString(caixa.companyId()))
-                .orElseThrow(() -> new IllegalArgumentException("Company not found for Caixa: " + caixa.id()));
+        Company company = companyMpRepository.findByExternalId(caixa.companyId())
+                .orElseThrow(() -> new IllegalArgumentException("Company not found for Caixa: " + caixa.externalId()));
 
         if (!company.hasStoreRegistered()) {
             throw new IllegalStateException("Company does not have a Mercado Pago Store configured.");
         }
 
         Long posId = mercadoPagoPosPort.createPos(caixa, company);
-        caixaMpRepository.savePosId(caixa.id(), posId);
+        caixaMpRepository.savePosId(caixa.externalId(), posId);
 
         return posId;
     }

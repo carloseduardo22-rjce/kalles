@@ -56,11 +56,11 @@ class MercadoPagoStoreAdapterTest {
         adapter = new MercadoPagoStoreAdapter(httpClient, MP_USER_ID, "mock-token");
 
         companyWithoutStore = new Company(
-                COMPANY_ID, COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
+                COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
                 LATITUDE, LONGITUDE, null
         );
         companyWithStore = new Company(
-                COMPANY_ID, COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
+                COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
                 LATITUDE, LONGITUDE, STORE_ID_MP
         );
     }
@@ -82,7 +82,7 @@ class MercadoPagoStoreAdapterTest {
         }
 
         @Test
-        @DisplayName("Should invoke SDK with external_id equal to Company ID")
+        @DisplayName("Should invoke SDK with external_id equal to Company externalId")
         void shouldInvokeSdkWithCorrectExternalId() throws MPException, MPApiException {
             when(httpClient.send(any(MPRequest.class))).thenReturn(mockResponseWithId(STORE_ID_MP));
 
@@ -90,7 +90,7 @@ class MercadoPagoStoreAdapterTest {
 
             ArgumentCaptor<MPRequest> captor = ArgumentCaptor.forClass(MPRequest.class);
             verify(httpClient).send(captor.capture());
-            assertEquals(COMPANY_ID.toString(), captor.getValue().getPayload().get("external_id").getAsString());
+            assertEquals("EXT-LOJ001", captor.getValue().getPayload().get("external_id").getAsString());
         }
 
         @Test

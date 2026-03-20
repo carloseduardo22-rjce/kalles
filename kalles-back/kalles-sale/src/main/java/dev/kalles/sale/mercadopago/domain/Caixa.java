@@ -1,7 +1,10 @@
 package dev.kalles.sale.mercadopago.domain;
 
+import java.util.UUID;
+
 public record Caixa(
-        String id,
+        UUID id,
+        String externalId,
         String name,
         String companyId,
         Long mpPosId
@@ -11,6 +14,6 @@ public record Caixa(
     }
 
     public Caixa withPosId(Long posId) {
-        return new Caixa(id, name, companyId, posId);
+        return new Caixa(id, externalId, name, companyId, posId);
     }
 }

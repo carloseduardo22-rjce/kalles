@@ -166,7 +166,7 @@ function SidebarInner() {
             active={pathname === "/caixas"}
             sub
           >
-            Vendas
+            Caixas
           </NavLink>
           <NavLink
             href="/pdv"

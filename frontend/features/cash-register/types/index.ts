@@ -55,6 +55,7 @@ export interface CashRegisterStatusResponse {
   activeOperatorName: string | null;
   initialAmount: number | null;
   openedAt: string | null;
+  paymentIntegrationConfigured: boolean;
 }
 
 /** Operador disponível para vinculação a uma sessão */

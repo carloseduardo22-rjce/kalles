@@ -38,14 +38,14 @@ public class OrderAdapterSteps {
 
     @Given("um Caixa com external_id {string} que já possui pos_id {string} registrado no MP")
     public void caixaWithPosId(String externalId, String posId) {
-        caixaContext = new Caixa(externalId, "Caixa", "COMP-001", Long.parseLong(posId));
-        when(caixaMpRepository.findById(externalId)).thenReturn(Optional.of(caixaContext));
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), externalId, "Caixa", "COMP-001", Long.parseLong(posId));
+        when(caixaMpRepository.findByExternalId(externalId)).thenReturn(Optional.of(caixaContext));
     }
 
     @Given("que o Caixa {string} não possui pos_id registrado no MP")
     public void caixaWithoutPosId(String externalId) {
-        caixaContext = new Caixa(externalId, "No POS", "COMP-001", null);
-        when(caixaMpRepository.findById(externalId)).thenReturn(Optional.of(caixaContext));
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), externalId, "No POS", "COMP-001", null);
+        when(caixaMpRepository.findByExternalId(externalId)).thenReturn(Optional.of(caixaContext));
     }
 
     @Given("uma intenção de cobrança com pedidoId {string}, valor {string}, caixa {string} e idempotencyKey {string}")

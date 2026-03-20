@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record Company(
         UUID id,
+        String externalId,
         String name,
         String streetName,
         String streetNumber,
@@ -17,6 +18,6 @@ public record Company(
     }
 
     public Company withStoreId(Long storeId) {
-        return new Company(id, name, streetName, streetNumber, cityName, stateName, latitude, longitude, storeId);
+        return new Company(id, externalId, name, streetName, streetNumber, cityName, stateName, latitude, longitude, storeId);
     }
 }

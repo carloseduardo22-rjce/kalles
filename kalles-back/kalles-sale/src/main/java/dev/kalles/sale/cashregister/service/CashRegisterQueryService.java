@@ -11,6 +11,7 @@ import dev.kalles.sale.cashregister.valueobject.SessionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,13 +27,22 @@ public class CashRegisterQueryService {
     private final CashRegisterRepository cashRegisterRepository;
     private final CashRegisterSessionRepository sessionRepository;
     private final OperatorRepository operatorRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
         List<CashRegister> registers = cashRegisterRepository.findAllByActiveTrueOrderByCodeAsc();
 
+        List<String> registeredExternalIds = jdbcTemplate.queryForList(
+            "SELECT external_id FROM mercadopago_caixa WHERE mp_pos_id IS NOT NULL", 
+            String.class
+        );
+
         return registers.stream()
-            .map(this::toStatusResponse)
+            .map(cr -> {
+                boolean hasPayment = registeredExternalIds.contains(cr.getCode().replace("-", ""));
+                return toStatusResponse(cr, hasPayment);
+            })
             .toList();
     }
 
@@ -45,7 +55,7 @@ public class CashRegisterQueryService {
             .toList();
     }
 
-    private CashRegisterStatusResponse toStatusResponse(CashRegister cashRegister) {
+    private CashRegisterStatusResponse toStatusResponse(CashRegister cashRegister, boolean paymentConfigured) {
         Optional<CashRegisterSession> activeSession = sessionRepository
             .findByCashRegisterAndStatus(cashRegister, SessionStatus.OPEN);
 
@@ -58,7 +68,8 @@ public class CashRegisterQueryService {
             activeSession.map(CashRegisterSession::getId).orElse(null),
             activeSession.map(s -> s.getOperator().getName()).orElse(null),
             activeSession.map(CashRegisterSession::getInitialAmountValue).orElse(null),
-            activeSession.map(CashRegisterSession::getOpenedAt).orElse(null)
+            activeSession.map(CashRegisterSession::getOpenedAt).orElse(null),
+            paymentConfigured
         );
     }
 }

@@ -17,5 +17,6 @@ public record CashRegisterStatusResponse(
     UUID activeSessionId,
     String activeOperatorName,
     BigDecimal initialAmount,
-    LocalDateTime openedAt
+    LocalDateTime openedAt,
+    boolean paymentIntegrationConfigured
 ) {}

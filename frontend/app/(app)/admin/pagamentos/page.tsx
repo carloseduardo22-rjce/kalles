@@ -77,6 +77,23 @@ export default function PaymentSettingsPage() {
   );
   const [loading, setLoading] = useState(false);
   const [storeConfigured, setStoreConfigured] = useState(false);
+  const [cashRegisters, setCashRegisters] = useState<
+    { id: string; code: string; description: string }[]
+  >([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8080/api/cash-registers")
+      .then((res) => res.json())
+      .then((data) => {
+        const registers = data.map((cr: any) => ({
+          id: cr.cashRegisterId,
+          code: cr.code,
+          description: cr.description,
+        }));
+        setCashRegisters(registers);
+      })
+      .catch((err) => console.error("Error fetching cash registers", err));
+  }, []);
 
   const [storeForm, setStoreForm] = useState<StoreFormData>({
     companyId: "",
@@ -110,10 +127,21 @@ export default function PaymentSettingsPage() {
     setLoading(true);
 
     try {
+      const payload = {
+        externalId: storeForm.companyId,
+        name: storeForm.name,
+        streetName: storeForm.streetName,
+        streetNumber: storeForm.streetNumber,
+        cityName: storeForm.cityName,
+        stateName: storeForm.stateName,
+        latitude: storeForm.latitude,
+        longitude: storeForm.longitude,
+      };
+
       const res = await fetch("http://localhost:8080/api/mercadopago/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(storeForm),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -151,9 +179,11 @@ export default function PaymentSettingsPage() {
     try {
       const payload = {
         companyId: storeForm.companyId,
-        caixaId: posForm.caixaId,
+        caixaId: posForm.caixaId.replace("-", ""),
         name: posForm.name,
       };
+
+      console.log(payload);
 
       const res = await fetch("http://localhost:8080/api/mercadopago/pos", {
         method: "POST",
@@ -169,7 +199,7 @@ export default function PaymentSettingsPage() {
       }
 
       toast.success("Caixa/POS vinculado com sucesso!");
-      setPosForm((prev) => ({ ...prev, caixaId: crypto.randomUUID() })); // Reset to new UUID
+      setPosForm({ caixaId: "", name: "" }); // Reset
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -547,20 +577,37 @@ export default function PaymentSettingsPage() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="caixaId">ID do Caixa (Kalles)</Label>
-                          <Input
-                            id="caixaId"
-                            placeholder="Ex: CAIXA-001"
+                          <Label htmlFor="caixaId">
+                            Selecionar Caixa (Físico)
+                          </Label>
+                          <Select
                             value={posForm.caixaId}
-                            onChange={(e) =>
-                              handleUpdatePosField("caixaId", e.target.value)
-                            }
-                            required
-                          />
+                            onValueChange={(val) => {
+                              const cr = cashRegisters.find(
+                                (c) => c.code === val,
+                              );
+                              setPosForm((prev) => ({
+                                ...prev,
+                                caixaId: val,
+                                name: cr ? cr.description : prev.name,
+                              }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um caixa registrado..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cashRegisters.map((cr) => (
+                                <SelectItem key={cr.code} value={cr.code}>
+                                  {cr.code} - {cr.description}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="posName">
-                            Nome do Caixa (Visível para Cliente)
+                            Nome do Caixa no Mercado Pago
                           </Label>
                           <Input
                             id="posName"

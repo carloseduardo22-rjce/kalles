@@ -18,10 +18,11 @@ public class CreateMercadoPagoStoreUseCase {
     }
 
     public Long execute(Company companyInfo) {
-        Company company = companyMpRepository.findById(companyInfo.id())
+        Company company = companyMpRepository.findByExternalId(companyInfo.externalId())
                 .orElseGet(() -> {
                     companyMpRepository.save(companyInfo);
-                    return companyInfo;
+                    // fetch it again after save to get the generated ID
+                    return companyMpRepository.findByExternalId(companyInfo.externalId()).orElseThrow();
                 });
 
         if (company.hasStoreRegistered()) {

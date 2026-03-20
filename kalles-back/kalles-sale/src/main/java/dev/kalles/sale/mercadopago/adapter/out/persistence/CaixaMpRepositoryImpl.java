@@ -1,11 +1,13 @@
 package dev.kalles.sale.mercadopago.adapter.out.persistence;
 
+import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoCaixaEntity;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataMercadoPagoCaixaRepository;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.port.CaixaMpRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class CaixaMpRepositoryImpl implements CaixaMpRepository {
@@ -17,10 +19,22 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
     }
 
     @Override
-    public Optional<Caixa> findById(String caixaId) {
-        return repository.findById(caixaId)
+    public Optional<Caixa> findById(UUID id) {
+        return repository.findById(id)
                 .map(entity -> new Caixa(
                         entity.getId(),
+                        entity.getExternalId(),
+                        entity.getName(),
+                        entity.getCompanyId(),
+                        entity.getMpPosId()));
+    }
+
+    @Override
+    public Optional<Caixa> findByExternalId(String externalId) {
+        return repository.findByExternalId(externalId)
+                .map(entity -> new Caixa(
+                        entity.getId(),
+                        entity.getExternalId(),
                         entity.getName(),
                         entity.getCompanyId(),
                         entity.getMpPosId()));
@@ -28,10 +42,17 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
 
     @Override
     public void save(Caixa caixa) {
-        dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoCaixaEntity entity = repository.findById(caixa.id())
-                .orElse(new dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoCaixaEntity());
+        MercadoPagoCaixaEntity entity = null;
+        if (caixa.id() != null) {
+            entity = repository.findById(caixa.id()).orElse(new MercadoPagoCaixaEntity());
+        } else if (caixa.externalId() != null) {
+            entity = repository.findByExternalId(caixa.externalId()).orElse(new MercadoPagoCaixaEntity());
+        } else {
+            entity = new MercadoPagoCaixaEntity();
+        }
         
         entity.setId(caixa.id());
+        entity.setExternalId(caixa.externalId());
         entity.setName(caixa.name());
         entity.setCompanyId(caixa.companyId());
         entity.setMpPosId(caixa.mpPosId());
@@ -40,8 +61,8 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
     }
 
     @Override
-    public void savePosId(String caixaId, Long posId) {
-        repository.findById(caixaId).ifPresent(entity -> {
+    public void savePosId(String externalId, Long posId) {
+        repository.findByExternalId(externalId).ifPresent(entity -> {
             entity.setMpPosId(posId);
             repository.save(entity);
         });

@@ -20,8 +20,18 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
 
     @Override
     public Optional<Company> findById(UUID companyId) {
-        return repository.findById(companyId).map(entity -> new Company(
+        return repository.findById(companyId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Company> findByExternalId(String externalId) {
+        return repository.findByExternalId(externalId).map(this::toDomain);
+    }
+
+    private Company toDomain(MercadoPagoCompanyEntity entity) {
+        return new Company(
                 entity.getId(),
+                entity.getExternalId(),
                 entity.getName(),
                 entity.getStreetName(),
                 entity.getStreetNumber(),
@@ -29,17 +39,17 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
                 entity.getStateName(),
                 entity.getLatitude(),
                 entity.getLongitude(),
-                entity.getMpStoreId()));
+                entity.getMpStoreId());
     }
 
     @Override
     public void save(Company company) {
-        MercadoPagoCompanyEntity entity = repository.findById(company.id())
-                .orElse(new MercadoPagoCompanyEntity(company.id(), company.name(), company.streetName(),
-                        company.streetNumber(), company.cityName(), company.stateName(), company.latitude(),
-                        company.longitude(), company.mpStoreId()));
+        MercadoPagoCompanyEntity entity = company.id() != null ? 
+                repository.findById(company.id()).orElse(new MercadoPagoCompanyEntity()) : 
+                new MercadoPagoCompanyEntity();
 
         entity.setId(company.id());
+        entity.setExternalId(company.externalId());
         entity.setName(company.name());
         entity.setStreetName(company.streetName());
         entity.setStreetNumber(company.streetNumber());
@@ -48,7 +58,7 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
         entity.setLatitude(company.latitude());
         entity.setLongitude(company.longitude());
         entity.setMpStoreId(company.mpStoreId());
-
+        
         repository.save(entity);
     }
 

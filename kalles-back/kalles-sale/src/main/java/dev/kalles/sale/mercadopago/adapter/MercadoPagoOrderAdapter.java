@@ -32,15 +32,15 @@ public class MercadoPagoOrderAdapter implements MercadoPagoOrderPort {
 
     @Override
     public ResultadoQr createOrder(CobrancaQr cobranca) {
-        Caixa caixa = caixaMpRepository.findById(cobranca.caixaExternalId())
+        Caixa caixa = caixaMpRepository.findByExternalId(cobranca.caixaExternalId())
                 .orElseThrow(() -> new IllegalStateException("Caixa not found: " + cobranca.caixaExternalId()));
 
         if (!caixa.hasPosRegistered()) {
-            throw new IllegalStateException("Caixa " + caixa.id() + " does not have a registered MP POS");
+            throw new IllegalStateException("Caixa " + caixa.externalId() + " does not have a registered MP POS");
         }
 
         JsonObject qrConfig = new JsonObject();
-        qrConfig.addProperty("external_pos_id", caixa.id());
+        qrConfig.addProperty("external_pos_id", caixa.externalId());
         qrConfig.addProperty("mode", "dynamic"); // Business invariant for QR Code type
 
         JsonObject config = new JsonObject();

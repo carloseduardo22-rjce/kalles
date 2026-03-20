@@ -56,7 +56,7 @@ class MercadoPagoOrderAdapterTest {
     @BeforeEach
     void setUp() {
         validCobranca = new CobrancaQr(ORDER_ID_ERP, AMOUNT, CAIXA_EXT_ID, IDEMPOTENCY_KEY);
-        caixaWithPos = new Caixa(CAIXA_EXT_ID, "Caixa 01", "COMP-001", POS_ID_MP);
+        caixaWithPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_EXT_ID, "Caixa 01", "COMP-001", POS_ID_MP);
     }
 
     @Nested
@@ -65,7 +65,7 @@ class MercadoPagoOrderAdapterTest {
 
         @BeforeEach
         void setupMocks() throws MPException, MPApiException {
-            when(caixaMpRepository.findById(CAIXA_EXT_ID))
+            when(caixaMpRepository.findByExternalId(CAIXA_EXT_ID))
                     .thenReturn(Optional.of(caixaWithPos));
             
             MPResponse returnedResponse = mockOrderWithSuccess(ORDER_ID_MP, QR_DATA_EMVCO);
@@ -118,7 +118,7 @@ class MercadoPagoOrderAdapterTest {
         @DisplayName("Mode must be 'dynamic' regardless of inputs")
         void modeMustAlwaysBeDynamic() throws MPException, MPApiException {
             CobrancaQr anotherCobranca = new CobrancaQr("P-111", new BigDecimal("100"), CAIXA_EXT_ID, "uuid");
-            when(caixaMpRepository.findById(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
+            when(caixaMpRepository.findByExternalId(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
             when(httpClient.send(any(MPRequest.class))).thenReturn(mockOrderWithSuccess("O-id", "qr-data"));
 
             adapter.createOrder(anotherCobranca);
@@ -138,8 +138,8 @@ class MercadoPagoOrderAdapterTest {
         @Test
         @DisplayName("Should throw exception if Caixa lacks pos_id")
         void shouldThrowExceptionIfCaixaHasNoPosId() throws MPException, MPApiException {
-            Caixa caixaSemPos = new Caixa(CAIXA_EXT_ID, "No POS", "COMP-001", null);
-            when(caixaMpRepository.findById(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaSemPos));
+            Caixa caixaSemPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_EXT_ID, "No POS", "COMP-001", null);
+            when(caixaMpRepository.findByExternalId(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaSemPos));
 
             IllegalStateException ex = assertThrows(IllegalStateException.class,
                     () -> adapter.createOrder(validCobranca));
@@ -156,7 +156,7 @@ class MercadoPagoOrderAdapterTest {
         @Test
         @DisplayName("Should throw exception when qr_data is missing from SDK response")
         void shouldThrowExceptionWhenQrDataMissing() throws MPException, MPApiException {
-            when(caixaMpRepository.findById(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
+            when(caixaMpRepository.findByExternalId(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
             when(httpClient.send(any(MPRequest.class))).thenReturn(mockOrderWithoutQrData(ORDER_ID_MP));
 
             MercadoPagoIntegrationException ex = assertThrows(
@@ -175,7 +175,7 @@ class MercadoPagoOrderAdapterTest {
         @Test
         @DisplayName("Should convert SDK exception")
         void shouldConvertSdkException() throws MPException, MPApiException {
-            when(caixaMpRepository.findById(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
+            when(caixaMpRepository.findByExternalId(CAIXA_EXT_ID)).thenReturn(Optional.of(caixaWithPos));
             when(httpClient.send(any(MPRequest.class))).thenThrow(new MPException("Comm error"));
 
             assertThrows(MercadoPagoIntegrationException.class,

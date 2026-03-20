@@ -181,9 +181,18 @@ function RegisterCard({ register, onOpen }: RegisterCardProps) {
           variant={isOpen ? "outline" : "default"}
           className="w-full"
           onClick={() => onOpen(register)}
-          disabled={isOpen}
+          disabled={isOpen || !register.paymentIntegrationConfigured}
+          title={
+            !isOpen && !register.paymentIntegrationConfigured
+              ? "É necessário configurar a integração de pagamento primeiro."
+              : undefined
+          }
         >
-          {isOpen ? "Sessão em andamento" : "Abrir sessão"}
+          {isOpen
+            ? "Sessão em andamento"
+            : !register.paymentIntegrationConfigured
+              ? "Pagamento não configurado"
+              : "Abrir sessão"}
         </Button>
       </CardContent>
     </Card>

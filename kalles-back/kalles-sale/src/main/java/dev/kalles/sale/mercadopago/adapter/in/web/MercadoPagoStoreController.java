@@ -4,9 +4,8 @@ import dev.kalles.sale.mercadopago.application.usecase.CreateMercadoPagoStoreUse
 import dev.kalles.sale.mercadopago.application.usecase.GetCompanyMpUseCase;
 import dev.kalles.sale.mercadopago.domain.Company;
 
-import java.util.UUID;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/mercadopago/stores")
 public class MercadoPagoStoreController {
@@ -26,9 +26,9 @@ public class MercadoPagoStoreController {
         this.getCompanyMpUseCase = getCompanyMpUseCase;
     }
 
-    @GetMapping("/{companyId}/status")
-    public ResponseEntity<CompanyStatusResponse> getCompanyStoreStatus(@PathVariable UUID companyId) {
-        return getCompanyMpUseCase.execute(companyId)
+    @GetMapping("/{externalId}/status")
+    public ResponseEntity<CompanyStatusResponse> getCompanyStoreStatus(@PathVariable String externalId) {
+        return getCompanyMpUseCase.execute(externalId)
                 .map(company -> ResponseEntity.ok(new CompanyStatusResponse(true, company.hasStoreRegistered())))
                 .orElseGet(() -> ResponseEntity.ok(new CompanyStatusResponse(false, false)));
     }
@@ -37,7 +37,8 @@ public class MercadoPagoStoreController {
     public ResponseEntity<CreateStoreResponse> createStore(@RequestBody CreateStoreRequest request) {
         System.out.println(request);
         Company company = new Company(
-                request.companyId(),
+                null,
+                request.externalId(),
                 request.name(),
                 request.streetName(),
                 request.streetNumber(),
@@ -51,7 +52,7 @@ public class MercadoPagoStoreController {
     }
 
     public record CreateStoreRequest(
-            UUID companyId,
+            String externalId,
             String name,
             String streetName,
             String streetNumber,

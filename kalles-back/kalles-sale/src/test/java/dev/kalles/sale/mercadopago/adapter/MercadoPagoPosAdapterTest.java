@@ -50,13 +50,13 @@ class MercadoPagoPosAdapterTest {
     void setUp() {
         adapter = new MercadoPagoPosAdapter(httpClient, "mock-token");
         companyWithStore = new Company(
-                COMPANY_ID, "Kalles Matriz", "Street", "1", "City", "ST", -23.0, -46.0, STORE_ID_MP
+                COMPANY_ID, "EXT-LOJ001", "Kalles Matriz", "Street", "1", "City", "ST", -23.0, -46.0, STORE_ID_MP
         );
         companyWithoutStore = new Company(
-                java.util.UUID.randomUUID(), "Orphan Corp", "X", "1", "City", "ST", 0.0, 0.0, null
+                java.util.UUID.randomUUID(), "EXT-LOJ002", "Orphan Corp", "X", "1", "City", "ST", 0.0, 0.0, null
         );
-        caixaWithoutPos = new Caixa(CAIXA_ID, CAIXA_NAME, COMPANY_ID.toString(), null);
-        caixaWithPos = new Caixa(CAIXA_ID, CAIXA_NAME, COMPANY_ID.toString(), POS_ID_MP);
+        caixaWithoutPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", null);
+        caixaWithPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", POS_ID_MP);
     }
 
     @Nested
@@ -77,7 +77,7 @@ class MercadoPagoPosAdapterTest {
             assertEquals(CAIXA_NAME, payload.get("name").getAsString());
             assertEquals(CAIXA_ID, payload.get("external_id").getAsString());
             assertEquals(STORE_ID_MP, payload.get("store_id").getAsLong());
-            assertEquals(COMPANY_ID.toString(), payload.get("external_store_id").getAsString());
+            assertEquals("EXT-LOJ001", payload.get("external_store_id").getAsString());
             assertFalse(payload.get("fixed_amount").getAsBoolean());
         }
 
@@ -113,7 +113,7 @@ class MercadoPagoPosAdapterTest {
         @Test
         @DisplayName("Should throw IllegalStateException if Company lacks store_id")
         void shouldThrowExceptionIfNoStoreId() throws MPException, MPApiException {
-            Caixa orphanCaixa = new Caixa("C999", "Orphan", "COMP-NO-STORE", null);
+            Caixa orphanCaixa = new Caixa(java.util.UUID.randomUUID(), "C999", "Orphan", "COMP-NO-STORE", null);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class,
                     () -> adapter.createPos(orphanCaixa, companyWithoutStore));

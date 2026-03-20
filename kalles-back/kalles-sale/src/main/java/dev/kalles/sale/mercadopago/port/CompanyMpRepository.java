@@ -7,6 +7,8 @@ import java.util.UUID;
 public interface CompanyMpRepository {
     Optional<Company> findById(UUID companyId);
 
+    Optional<Company> findByExternalId(String externalId);
+
     void save(Company company);
 
     void saveStoreId(UUID companyId, Long storeId);
