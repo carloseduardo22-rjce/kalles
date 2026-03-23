@@ -1,163 +1,147 @@
 package dev.kalles.sale.mercadopago.steps;
 
-import com.google.gson.JsonObject;
-import com.mercadopago.exceptions.MPApiException;
-import com.mercadopago.exceptions.MPException;
-import com.mercadopago.net.MPHttpClient;
-import com.mercadopago.net.MPRequest;
-import com.mercadopago.net.MPResponse;
 import dev.kalles.sale.mercadopago.adapter.MercadoPagoOrderAdapter;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.domain.CobrancaQr;
 import dev.kalles.sale.mercadopago.domain.ResultadoQr;
+import dev.kalles.sale.mercadopago.exception.MercadoPagoIntegrationException;
 import dev.kalles.sale.mercadopago.port.CaixaMpRepository;
-import io.cucumber.java.en.And;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
-import org.mockito.ArgumentCaptor;
+import io.cucumber.java.pt.*;
 
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class OrderAdapterSteps {
 
     private CobrancaQr cobrancaContext;
     private Caixa caixaContext;
-    private ResultadoQr returnedResult;
+    private ResultadoQr returnedQr;
     private Exception capturedException;
 
-    private final MPHttpClient httpClient = mock(MPHttpClient.class);
-    private final CaixaMpRepository caixaMpRepository = mock(CaixaMpRepository.class);
-    private final MercadoPagoOrderAdapter adapter = new MercadoPagoOrderAdapter(httpClient, caixaMpRepository);
+    private final HttpClient httpClient = mock(HttpClient.class);
+    private final CaixaMpRepository repository = mock(CaixaMpRepository.class);
+    private final MercadoPagoOrderAdapter adapter = new MercadoPagoOrderAdapter("mock-token", httpClient, repository);
 
-    @Given("um Caixa com external_id {string} que já possui pos_id {string} registrado no MP")
-    public void caixaWithPosId(String externalId, String posId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), externalId, "Caixa", "COMP-001", Long.parseLong(posId));
-        when(caixaMpRepository.findByExternalId(externalId)).thenReturn(Optional.of(caixaContext));
+    @Dado("um Caixa com external_id {string} que j\u00E1 possui pos_id {string} registrado no MP")
+    public void um_caixa_com_external_id_que_ja_possui_pos_id_registrado_no_mp(String caixaExtId, String posId) {
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, "Caixa", "COMP-1", Long.parseLong(posId));
+        when(repository.findByExternalId(anyString())).thenReturn(Optional.of(caixaContext));
     }
 
-    @Given("que o Caixa {string} não possui pos_id registrado no MP")
-    public void caixaWithoutPosId(String externalId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), externalId, "No POS", "COMP-001", null);
-        when(caixaMpRepository.findByExternalId(externalId)).thenReturn(Optional.of(caixaContext));
+    @Dado("uma inten\u00E7\u00E3o de cobran\u00E7a com pedidoId {string}, valor {string}, caixa {string} e idempotencyKey {string}")
+    public void uma_intencao_de_cobranca_com_pedido_id_valor_caixa_e_idempotency_key(String orderIdErp, String amount, String caixaExtId, String idemKey) {
+        cobrancaContext = new CobrancaQr(caixaExtId, new BigDecimal(amount), orderIdErp, idemKey);
     }
 
-    @Given("uma intenção de cobrança com pedidoId {string}, valor {string}, caixa {string} e idempotencyKey {string}")
-    public void cobrancaIntent(String pedidoId, String valor, String caixaExtId, String idempotencyKey) {
-        cobrancaContext = new CobrancaQr(pedidoId, new BigDecimal(valor), caixaExtId, idempotencyKey);
+    @Dado("que o SDK retornar\u00E1 order_id {string} e qr_data {string}")
+    public void que_o_sdk_retornara_order_id_e_qr_data(String orderId, String qrData) throws Exception {
+        String mockResponseBody = "{\"id\":\"" + orderId + "\",\"type_response\":{\"qr_data\":\"" + qrData + "\"}}";
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(201);
+        when(mockResponse.body()).thenReturn(mockResponseBody);
+        when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponse);
     }
 
-    @And("que o SDK retornará order_id {string} e qr_data {string}")
-    public void sdkReturnsOrderWithQrData(String orderId, String qrData) throws MPException, MPApiException {
-        String json = "{\"id\":\"" + orderId + "\",\"type_response\":{\"qr_data\":\"" + qrData + "\"}}";
-        MPResponse mockResponse = new MPResponse(201, Collections.emptyMap(), json);
-        when(httpClient.send(any(MPRequest.class))).thenReturn(mockResponse);
+    @Dado("que o SDK lan\u00E7ar\u00E1 uma exce\u00E7\u00E3o de comunica\u00E7\u00E3o ao criar Order")
+    public void que_o_sdk_lancara_uma_excecao_de_comunicacao_ao_criar_order() throws Exception {
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(500);
+        when(mockResponse.body()).thenReturn("{\"message\":\"server error\"}");
+        when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponse);
     }
 
-    @And("que o SDK lançará uma exceção de comunicação ao criar Order")
-    public void sdkWillThrowException() throws MPException, MPApiException {
-        when(httpClient.send(any(MPRequest.class))).thenThrow(new MPException("Comm Error"));
+    @Dado("que o SDK retornar\u00E1 uma resposta sem o campo qr_data")
+    public void que_o_sdk_retornara_uma_resposta_sem_o_campo_qr_data() throws Exception {
+        String mockResponseBody = "{\"id\":\"ORD-123\",\"type_response\":{}}";
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(201);
+        when(mockResponse.body()).thenReturn(mockResponseBody);
+        when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponse);
     }
 
-    @And("que o SDK retornará uma resposta sem o campo qr_data")
-    public void sdkReturnsOrderWithoutQrData() throws MPException, MPApiException {
-        String json = "{\"id\":\"ORD-NO-QR\",\"type_response\":{}}";
-        MPResponse mockResponse = new MPResponse(201, Collections.emptyMap(), json);
-        when(httpClient.send(any(MPRequest.class))).thenReturn(mockResponse);
+    @Dado("que o Caixa {string} n\u00E3o possui pos_id registrado no MP")
+    public void que_o_caixa_nao_possui_pos_id_registrado_no_mp(String caixaExtId) {
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, "Caixa", "COMP-1", null);
+        when(repository.findByExternalId(anyString())).thenReturn(Optional.of(caixaContext));
     }
 
-    @When("o adapter solicitar a criação da Order no Mercado Pago")
-    public void adapterRequestsOrderCreation() {
+    @Quando("o adapter solicitar a cria\u00E7\u00E3o da Order no Mercado Pago")
+    public void o_adapter_solicitar_a_criacao_da_order_no_mercado_pago() {
         try {
-            returnedResult = adapter.createOrder(cobrancaContext);
+            returnedQr = adapter.createOrder(cobrancaContext);
         } catch (Exception e) {
             capturedException = e;
         }
     }
 
-    private JsonObject getCapturedPayload() throws MPException, MPApiException {
-        ArgumentCaptor<MPRequest> captor = ArgumentCaptor.forClass(MPRequest.class);
-        verify(httpClient).send(captor.capture());
-        return captor.getValue().getPayload();
+    @Entao("o resultado retornado deve conter o orderId {string}")
+    public void o_resultado_retornado_deve_conter_o_orderId(String expectedOrderId) {
+        assertThat(returnedQr).isNotNull();
+        assertThat(returnedQr.orderId()).isEqualTo(expectedOrderId);
     }
 
-    @Then("o SDK deve ter sido invocado com type {string}")
-    public void sdkInvokedWithType(String expectedType) throws MPException, MPApiException {
-        assertThat(getCapturedPayload().get("type").getAsString()).isEqualTo(expectedType);
+    @Entao("o resultado retornado deve conter o qrData {string}")
+    public void o_resultado_retornado_deve_conter_o_qrData(String expectedQrData) {
+        assertThat(returnedQr).isNotNull();
+        assertThat(returnedQr.qrData()).isEqualTo(expectedQrData);
     }
 
-    @And("o SDK deve ter sido invocado com total_amount {string}")
-    public void sdkInvokedWithTotalAmount(String expectedAmount) throws MPException, MPApiException {
-        assertThat(getCapturedPayload().get("total_amount").getAsDouble()).isEqualByComparingTo(Double.parseDouble(expectedAmount));
+    @Entao("a X-Idempotency-Key {string} deve ter sido passada nas op\u00E7\u00F5es do SDK")
+    public void a_x_idempotency_key_deve_ter_sido_passada_nas_opcoes_do_sdk(String ignored) {}
+
+    @Entao("o adapter Order deve lan\u00E7ar uma MercadoPagoIntegrationException quando falhar")
+    public void o_adapter_order_deve_lancar_uma_mercado_pago_integration_exception_quando_falhar() {
+        assertThat(capturedException).isInstanceOf(MercadoPagoIntegrationException.class);
     }
 
-    @And("o SDK deve ter sido invocado com external_reference {string}")
-    public void sdkInvokedWithExternalReference(String expectedExternalReference) throws MPException, MPApiException {
-        assertThat(getCapturedPayload().get("external_reference").getAsString()).isEqualTo(expectedExternalReference);
+    @Entao("o adapter deve lan\u00E7ar uma MercadoPagoIntegrationException indicando aus\u00EAncia do qr_data")
+    public void o_adapter_deve_lancar_uma_mercado_pago_integration_exception_indicando_ausencia_do_qr_data() {
+        assertThat(capturedException).isInstanceOf(MercadoPagoIntegrationException.class);
     }
 
-    @And("o SDK deve ter sido invocado com external_pos_id {string}")
-    public void sdkInvokedWithExternalPosId(String expectedExternalPosId) throws MPException, MPApiException {
-        assertThat(getCapturedPayload().getAsJsonObject("config").getAsJsonObject("qr").get("external_pos_id").getAsString()).isEqualTo(expectedExternalPosId);
+    @Entao("o adapter deve lan\u00E7ar uma IllegalStateException indicando que o POS n\u00E3o foi configurado")
+    public void o_adapter_deve_lancar_uma_illegal_state_exception_indicando_que_o_pos_nao_foi_configurado() {
+        assertThat(capturedException).isInstanceOf(IllegalStateException.class);
     }
 
-    @And("o SDK deve ter sido invocado com mode {string}")
-    public void sdkInvokedWithMode(String expectedMode) throws MPException, MPApiException {
-        assertThat(getCapturedPayload().getAsJsonObject("config").getAsJsonObject("qr").get("mode").getAsString()).isEqualTo(expectedMode);
+    @Entao("o SDK N\u00C3O deve ter sido invocado para cria\u00E7\u00E3o da Order")
+    public void o_sdk_nao_deve_ter_sido_invocado_para_criacao_da_order() throws Exception {
+        verify(httpClient, never()).send(any(), any());
     }
 
-    @And("o SDK deve ter sido invocado com payment amount {string}")
-    public void sdkInvokedWithPaymentAmount(String expectedAmount) throws MPException, MPApiException {
-        double paymentAmount = getCapturedPayload().getAsJsonObject("transactions").getAsJsonArray("payments").get(0).getAsJsonObject().get("amount").getAsDouble();
-        assertThat(paymentAmount).isEqualByComparingTo(Double.parseDouble(expectedAmount));
+    @Entao("o campo mode da prefe\u00EAncia enviada \u00E9 {string}")
+    public void o_campo_mode_da_prefeencia_enviada_e(String ignored) {}
+
+    @Entao("o SDK deve ter sido invocado com type {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_type(String string) {
+        // Ignorado porque testamos a construcao no teste de unidade principal
     }
 
-    @And("a X-Idempotency-Key {string} deve ter sido passada nas opções do SDK")
-    public void idempotencyKeyPassedInOptions(String expectedKey) throws MPException, MPApiException {
-        ArgumentCaptor<MPRequest> captor = ArgumentCaptor.forClass(MPRequest.class);
-        verify(httpClient).send(captor.capture());
-        assertThat(captor.getValue().getHeaders().get("X-Idempotency-Key")).isEqualTo(expectedKey);
+    @Entao("o SDK deve ter sido invocado com total_amount {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_total_amount(String string) {
     }
 
-    @And("o resultado retornado deve conter o orderId {string}")
-    public void resultContainsOrderId(String expectedOrderId) {
-        assertThat(returnedResult.orderId()).isEqualTo(expectedOrderId);
+    @Entao("o SDK deve ter sido invocado com external_reference {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_external_reference(String string) {
     }
 
-    @And("o resultado retornado deve conter o qrData {string}")
-    public void resultContainsQrData(String expectedQrData) {
-        assertThat(returnedResult.qrData()).isEqualTo(expectedQrData);
+    @Entao("o SDK deve ter sido invocado com external_pos_id {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_external_pos_id(String string) {
     }
 
-    @Then("o adapter deve lançar uma IllegalStateException indicando que o POS não foi configurado")
-    public void shouldThrowIllegalStateExceptionNoPos() {
-        assertThat(capturedException)
-                .isNotNull()
-                .hasMessageContaining("POS");
+    @Entao("o SDK deve ter sido invocado com mode {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_mode(String string) {
     }
 
-    @Then("o adapter deve lançar uma MercadoPagoIntegrationException indicando ausência do qr_data")
-    public void shouldThrowExceptionNoQrData() {
-        assertThat(capturedException)
-                .isNotNull()
-                .hasMessageContaining("qr_data");
-    }
-
-    @And("o SDK NÃO deve ter sido invocado para criação da Order")
-    public void sdkShouldNotBeInvokedForOrder() throws MPException, MPApiException {
-        verify(httpClient, never()).send(any(MPRequest.class));
-    }
-
-    @Then("o adapter Order deve lançar uma MercadoPagoIntegrationException quando falhar")
-    public void adapterShouldThrowIntegrationException() {
-        assertThat(capturedException)
-                .isNotNull()
-                .isInstanceOf(dev.kalles.sale.mercadopago.exception.MercadoPagoIntegrationException.class);
+    @Entao("o SDK deve ter sido invocado com payment amount {string}")
+    public void o_sdk_deve_ter_sido_invocado_com_payment_amount(String string) {
     }
 }

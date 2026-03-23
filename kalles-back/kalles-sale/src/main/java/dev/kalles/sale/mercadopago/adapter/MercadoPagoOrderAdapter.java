@@ -2,32 +2,36 @@ package dev.kalles.sale.mercadopago.adapter;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.mercadopago.exceptions.MPApiException;
-import com.mercadopago.exceptions.MPException;
-import com.mercadopago.net.HttpMethod;
-import com.mercadopago.net.MPHttpClient;
-import com.mercadopago.net.MPRequest;
-import com.mercadopago.net.MPResponse;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.domain.CobrancaQr;
 import dev.kalles.sale.mercadopago.domain.ResultadoQr;
 import dev.kalles.sale.mercadopago.exception.MercadoPagoIntegrationException;
 import dev.kalles.sale.mercadopago.port.CaixaMpRepository;
 import dev.kalles.sale.mercadopago.port.MercadoPagoOrderPort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class MercadoPagoOrderAdapter implements MercadoPagoOrderPort {
 
-    private final MPHttpClient httpClient;
+    private final java.net.http.HttpClient jdkClient;
+    private final String accessToken;
     private final CaixaMpRepository caixaMpRepository;
 
-    public MercadoPagoOrderAdapter(MPHttpClient httpClient, CaixaMpRepository caixaMpRepository) {
-        this.httpClient = httpClient;
+    public MercadoPagoOrderAdapter(
+            @Value("${mercadopago.access-token}") String accessToken,
+            java.net.http.HttpClient jdkClient,
+            CaixaMpRepository caixaMpRepository) {
+        this.accessToken = accessToken;
+        this.jdkClient = jdkClient;
         this.caixaMpRepository = caixaMpRepository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public MercadoPagoOrderAdapter(
+            @Value("${mercadopago.access-token}") String accessToken,
+            CaixaMpRepository caixaMpRepository) {
+        this(accessToken, java.net.http.HttpClient.newHttpClient(), caixaMpRepository);
     }
 
     @Override
@@ -47,7 +51,7 @@ public class MercadoPagoOrderAdapter implements MercadoPagoOrderPort {
         config.add("qr", qrConfig);
 
         JsonObject paymentReq = new JsonObject();
-        paymentReq.addProperty("amount", cobranca.amount());
+        paymentReq.addProperty("amount", cobranca.amount().toPlainString());
 
         JsonArray paymentsArray = new JsonArray();
         paymentsArray.add(paymentReq);
@@ -57,31 +61,29 @@ public class MercadoPagoOrderAdapter implements MercadoPagoOrderPort {
 
         JsonObject payload = new JsonObject();
         payload.addProperty("type", "qr");
-        payload.addProperty("total_amount", cobranca.amount());
-        payload.addProperty("external_reference", cobranca.orderIdErp()); // Reference tying to ERP order
+        payload.addProperty("total_amount", cobranca.amount().toPlainString());
+        payload.addProperty("external_reference", cobranca.orderIdErp());
         payload.add("config", config);
         payload.add("transactions", transactionsReq);
 
-        Map<String, String> customHeaders = new HashMap<>();
-        customHeaders.put("X-Idempotency-Key", cobranca.idempotencyKey());
-        customHeaders.put("Content-Type", "application/json");
-
-        MPRequest request = MPRequest.builder()
-                .uri("/v1/orders")
-                .method(HttpMethod.POST)
-                .headers(customHeaders)
-                .payload(payload)
-                .build();
-
         try {
-            MPResponse response = httpClient.send(request);
+            java.net.http.HttpRequest jdkRequest = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("https://api.mercadopago.com/v1/orders"))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .header("X-Idempotency-Key", cobranca.idempotencyKey())
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString(), java.nio.charset.StandardCharsets.UTF_8))
+                    .build();
 
-            if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+            java.net.http.HttpResponse<String> response = jdkClient.send(jdkRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new MercadoPagoIntegrationException("Fail to create MP Order. HTTP Status: "
-                        + response.getStatusCode() + " - " + response.getContent());
+                        + response.statusCode() + " - " + response.body());
             }
 
-            JsonObject responseJson = com.google.gson.JsonParser.parseString(response.getContent()).getAsJsonObject();
+            JsonObject responseJson = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+
             if (!responseJson.has("id") || !responseJson.has("type_response")) {
                 throw new MercadoPagoIntegrationException("SDK returned Order without ID or type_response");
             }
@@ -93,14 +95,8 @@ public class MercadoPagoOrderAdapter implements MercadoPagoOrderPort {
 
             return new ResultadoQr(responseJson.get("id").getAsString(), typeResponse.get("qr_data").getAsString());
 
-        } catch (MPException e) {
-            System.err.println(">>> [MercadoPagoOrderAdapter] General Exception: " + e.getMessage());
-            throw new MercadoPagoIntegrationException("Fail to generate dynamic QR: " + e.getMessage(), e);
-        } catch (MPApiException e) {
-            System.err.println(">>> [MercadoPagoOrderAdapter] API Exception: " + e.getMessage());
-            if (e.getApiResponse() != null) {
-                System.err.println(">>> [MercadoPagoOrderAdapter] API Error Details: " + e.getApiResponse().getContent());
-            }
+        } catch (Exception e) {
+            System.err.println(">>> [MercadoPagoOrderAdapter] Exception: " + e.getMessage());
             throw new MercadoPagoIntegrationException("Fail to generate dynamic QR: " + e.getMessage(), e);
         }
     }

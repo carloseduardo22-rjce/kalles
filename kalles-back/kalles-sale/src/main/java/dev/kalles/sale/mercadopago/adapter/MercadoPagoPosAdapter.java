@@ -20,12 +20,12 @@ import java.util.Map;
 @Component
 public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
 
-    private final MPHttpClient httpClient;
+    private final java.net.http.HttpClient jdkClient;
     private final String accessToken;
 
-    public MercadoPagoPosAdapter(MPHttpClient httpClient,
+    public MercadoPagoPosAdapter(java.net.http.HttpClient jdkClient,
             @Value("${mercadopago.access-token}") String accessToken) {
-        this.httpClient = httpClient;
+        this.jdkClient = jdkClient;
         this.accessToken = accessToken;
     }
 
@@ -42,7 +42,6 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
         String extId = caixa.externalId() != null ? caixa.externalId().trim() : "";
 
         try {
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest searchReq = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/pos?external_id=" + java.net.URLEncoder.encode(extId, "UTF-8")))
                     .header("Authorization", "Bearer " + accessToken)
@@ -77,7 +76,7 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
             System.out.println(">>> [MercadoPagoPosAdapter] Sending request to MP API: /pos");
 
             // Standardizing with java.net.http.HttpClient to ensure UTF-8 payload encoding
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
+            
             java.net.http.HttpRequest jdkRequest = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/pos"))
                     .header("Authorization", "Bearer " + accessToken)
@@ -114,7 +113,7 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
 
     private Long searchPosIdFallback(String extId) {
         try {
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
+            
             java.net.http.HttpRequest jdkRequest = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/pos?external_id=" + java.net.URLEncoder.encode(extId, "UTF-8")))
                     .header("Authorization", "Bearer " + accessToken)
@@ -131,3 +130,4 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
         return null;
     }
 }
+

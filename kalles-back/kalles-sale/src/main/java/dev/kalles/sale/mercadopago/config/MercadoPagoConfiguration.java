@@ -23,4 +23,9 @@ public class MercadoPagoConfiguration {
     public MPHttpClient mpHttpClient() {
         return MercadoPagoConfig.getHttpClient();
     }
+
+    @Bean
+    public java.net.http.HttpClient jdkHttpClient() {
+        return java.net.http.HttpClient.newHttpClient();
+    }
 }

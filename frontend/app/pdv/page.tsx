@@ -159,9 +159,12 @@ export default function PdvPage() {
           cashRegisterService.listCashRegisters(),
           cashRegisterService.listOperators(),
         ]);
-        const openRegister = registers.find(
+        const openRegisters = registers.filter(
           (r) => r.hasActiveSession && r.activeSessionId != null,
         );
+        const openRegister =
+          openRegisters.find((r) => r.paymentIntegrationConfigured) ||
+          openRegisters[0];
         if (openRegister && openRegister.activeSessionId) {
           // Only sync if stored session is missing or stale (different ID)
           if (!stored || stored.sessionId !== openRegister.activeSessionId) {
@@ -517,6 +520,7 @@ export default function PdvPage() {
                 sale={sale}
                 isLoading={isLoading}
                 error={saleError}
+                cashRegisterCode={sessionData.cashRegisterCode}
                 onAddPayment={addPayment}
                 onCompleteSale={completeSale}
               />

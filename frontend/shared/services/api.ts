@@ -28,7 +28,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text || text.trim() === "") {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 type HttpHeaders = Record<string, string>;

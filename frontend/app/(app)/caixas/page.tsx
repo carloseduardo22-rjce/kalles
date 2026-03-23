@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
+import { CreateCashRegisterDialog } from "@/features/cash-register/components/create-cash-register-dialog";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import type {
   CashRegisterStatusResponse,
@@ -384,7 +385,11 @@ export default function CaixasPage() {
 
   /* ── Handlers ── */
   function handleOpenDialog(reg: CashRegisterStatusResponse) {
-    if (!reg.hasActiveSession) setSelectedRegister(reg);
+    if (!reg.hasActiveSession && reg.paymentIntegrationConfigured) {
+      setSelectedRegister(reg);
+    } else if (!reg.paymentIntegrationConfigured) {
+      toast.error("Integração de pagamento não configurada para este caixa.");
+    }
   }
 
   function handleDialogSuccess() {
@@ -396,13 +401,16 @@ export default function CaixasPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Gerenciamento de Caixas
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Visualize e gerencie as sessões dos caixas registradores.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Gerenciamento de Caixas
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Visualize e gerencie as sessões dos caixas registradores.
+          </p>
+        </div>
+        <CreateCashRegisterDialog />
       </div>
 
       {/* Summary row */}

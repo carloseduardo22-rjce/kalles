@@ -20,16 +20,24 @@ import java.util.Map;
 @Component
 public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
 
-    private final MPHttpClient httpClient;
     private final String userId;
     private final String accessToken;
+    private final java.net.http.HttpClient jdkClient;
 
-    public MercadoPagoStoreAdapter(MPHttpClient httpClient,
+    public MercadoPagoStoreAdapter(
             @Value("${mercadopago.user-id:me}") String userId,
-            @Value("${mercadopago.access-token}") String accessToken) {
-        this.httpClient = httpClient;
+            @Value("${mercadopago.access-token}") String accessToken,
+            java.net.http.HttpClient jdkClient) {
         this.userId = userId;
         this.accessToken = accessToken;
+        this.jdkClient = jdkClient;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public MercadoPagoStoreAdapter(
+            @Value("${mercadopago.user-id:me}") String userId,
+            @Value("${mercadopago.access-token}") String accessToken) {
+        this(userId, accessToken, java.net.http.HttpClient.newHttpClient());
     }
 
     @Override
@@ -41,7 +49,6 @@ public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
         String extId = company.externalId() != null ? company.externalId().trim() : "";
 
         try {
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest searchReq = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/users/" + userId + "/stores/search?external_id=" + java.net.URLEncoder.encode(extId, "UTF-8")))
                     .header("Authorization", "Bearer " + accessToken)
@@ -82,7 +89,6 @@ public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
             System.out.println(">>> [MercadoPagoStoreAdapter] Sending request to MP API: /users/" + userId + "/stores");
             
             // Standardizing with java.net.http.HttpClient to ensure UTF-8 payload encoding
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest jdkRequest = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/users/" + userId + "/stores"))
                     .header("Authorization", "Bearer " + accessToken)
@@ -122,7 +128,6 @@ public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
 
     private Long searchStoreIdFallback(String extId) {
         try {
-            java.net.http.HttpClient jdkClient = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest jdkRequest = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://api.mercadopago.com/users/" + userId + "/stores/search?external_id=" + java.net.URLEncoder.encode(extId, "UTF-8")))
                     .header("Authorization", "Bearer " + accessToken)

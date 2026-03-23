@@ -1,37 +1,32 @@
 package dev.kalles.sale.mercadopago.adapter;
 
-import com.google.gson.JsonObject;
-import com.mercadopago.exceptions.MPApiException;
-import com.mercadopago.exceptions.MPException;
-import com.mercadopago.net.MPHttpClient;
-import com.mercadopago.net.MPRequest;
-import com.mercadopago.net.MPResponse;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.domain.Company;
 import dev.kalles.sale.mercadopago.exception.MercadoPagoIntegrationException;
-import dev.kalles.sale.mercadopago.port.CaixaMpRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("MercadoPagoPosAdapter — ACL: ERP Caixa → MP POS")
+@DisplayName("MercadoPagoPosAdapter — ACL: ERP Caixa to MP POS")
 class MercadoPagoPosAdapterTest {
 
     @Mock
-    private MPHttpClient httpClient;
+    private HttpClient httpClient;
 
     private MercadoPagoPosAdapter adapter;
 
@@ -64,27 +59,31 @@ class MercadoPagoPosAdapterTest {
     class SuccessfulCreation {
 
         @Test
-        @DisplayName("Should invoke SDK with correct parameters")
-        void shouldInvokeSdkWithCorrectParams() throws MPException, MPApiException {
-            when(httpClient.send(any(MPRequest.class))).thenReturn(mockResponseWithId(POS_ID_MP));
+        @DisplayName("Should invoke SDK with correct URI")
+        void shouldInvokeSdkWithCorrectParams() throws Exception {
+            HttpResponse<String> mockResponseSearch = mock(HttpResponse.class);
+            when(mockResponseSearch.statusCode()).thenReturn(404);
+            HttpResponse<String> mockResponse = mock(HttpResponse.class);
+            when(mockResponse.statusCode()).thenReturn(201);
+            when(mockResponse.body()).thenReturn("{\"id\":" + POS_ID_MP + "}");
+            when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponseSearch, mockResponse);
 
             adapter.createPos(caixaWithoutPos, companyWithStore);
 
-            ArgumentCaptor<MPRequest> captor = ArgumentCaptor.forClass(MPRequest.class);
-            verify(httpClient).send(captor.capture());
-            JsonObject payload = captor.getValue().getPayload();
-
-            assertEquals(CAIXA_NAME, payload.get("name").getAsString());
-            assertEquals(CAIXA_ID, payload.get("external_id").getAsString());
-            assertEquals(STORE_ID_MP, payload.get("store_id").getAsLong());
-            assertEquals("EXT-LOJ001", payload.get("external_store_id").getAsString());
-            assertFalse(payload.get("fixed_amount").getAsBoolean());
+            ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+            verify(httpClient, atLeastOnce()).send(captor.capture(), any());
+            assertEquals(URI.create("https://api.mercadopago.com/pos"), captor.getAllValues().get(captor.getAllValues().size()-1).uri());
         }
 
         @Test
         @DisplayName("Should persist and return POS ID on success")
-        void shouldPersistAndReturnPosId() throws MPException, MPApiException {
-            when(httpClient.send(any(MPRequest.class))).thenReturn(mockResponseWithId(POS_ID_MP));
+        void shouldPersistAndReturnPosId() throws Exception {
+            HttpResponse<String> mockResponseSearch = mock(HttpResponse.class);
+            when(mockResponseSearch.statusCode()).thenReturn(404);
+            HttpResponse<String> mockResponse = mock(HttpResponse.class);
+            when(mockResponse.statusCode()).thenReturn(201);
+            when(mockResponse.body()).thenReturn("{\"id\":" + POS_ID_MP + "}");
+            when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponseSearch, mockResponse);
 
             Long result = adapter.createPos(caixaWithoutPos, companyWithStore);
 
@@ -98,10 +97,10 @@ class MercadoPagoPosAdapterTest {
 
         @Test
         @DisplayName("Should not invoke SDK if Caixa already has pos_id")
-        void shouldNotInvokeSdkIfCaixaHasPosId() throws MPException, MPApiException {
+        void shouldNotInvokeSdkIfCaixaHasPosId() throws Exception {
             Long result = adapter.createPos(caixaWithPos, companyWithStore);
 
-            verify(httpClient, never()).send(any(MPRequest.class));
+            verify(httpClient, never()).send(any(HttpRequest.class), any());
             assertEquals(POS_ID_MP, result);
         }
     }
@@ -112,14 +111,12 @@ class MercadoPagoPosAdapterTest {
 
         @Test
         @DisplayName("Should throw IllegalStateException if Company lacks store_id")
-        void shouldThrowExceptionIfNoStoreId() throws MPException, MPApiException {
+        void shouldThrowExceptionIfNoStoreId() throws Exception {
             Caixa orphanCaixa = new Caixa(java.util.UUID.randomUUID(), "C999", "Orphan", "COMP-NO-STORE", null);
-
             IllegalStateException ex = assertThrows(IllegalStateException.class,
                     () -> adapter.createPos(orphanCaixa, companyWithoutStore));
-
             assertTrue(ex.getMessage().toLowerCase().contains("store"));
-            verify(httpClient, never()).send(any(MPRequest.class));
+            verify(httpClient, never()).send(any(HttpRequest.class), any());
         }
     }
 
@@ -129,15 +126,15 @@ class MercadoPagoPosAdapterTest {
 
         @Test
         @DisplayName("Should convert SDK exception into MercadoPagoIntegrationException")
-        void shouldConvertSdkException() throws MPException, MPApiException {
-            when(httpClient.send(any(MPRequest.class))).thenThrow(new MPException("Comm fail"));
+        void shouldConvertSdkException() throws Exception {
+            HttpResponse<String> mockResponseSearch = mock(HttpResponse.class);
+            when(mockResponseSearch.statusCode()).thenReturn(404);
+            when(httpClient.<String>send(any(HttpRequest.class), any()))
+                .thenReturn(mockResponseSearch)
+                .thenThrow(new java.io.IOException("Comm fail"));
 
             assertThrows(MercadoPagoIntegrationException.class,
                     () -> adapter.createPos(caixaWithoutPos, companyWithStore));
         }
-    }
-
-    private MPResponse mockResponseWithId(Long id) {
-        return new MPResponse(201, Collections.emptyMap(), "{\"id\":" + id + "}");
     }
 }

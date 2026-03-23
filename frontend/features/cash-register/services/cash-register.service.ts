@@ -25,6 +25,12 @@ export const cashRegisterService = {
   listCashRegisters: (): Promise<CashRegisterStatusResponse[]> =>
     api.get<CashRegisterStatusResponse[]>(REGISTERS_BASE),
 
+  /** Cria um novo caixa. */
+  createCashRegister: (body: {
+    code: string;
+    description: string;
+  }): Promise<void> => api.post<void>(REGISTERS_BASE, body),
+
   /** Lista operadores disponíveis para vinculação. */
   listOperators: (): Promise<OperatorResponse[]> =>
     api.get<OperatorResponse[]>(`${REGISTERS_BASE}/operators`),
