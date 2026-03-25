@@ -31,14 +31,14 @@ public class PosAdapterSteps {
     @Given("uma Company {string} que possui store_id {string} gerado no MP")
     public void companyWithStoreId(String companyId, String storeId) {
         companyContext = new Company(
-                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, Long.parseLong(storeId)
+                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, Long.parseLong(storeId), null
         );
     }
 
     @Given("uma Company {string} que AINDA NÃO possui store_id no MP")
     public void companyWithoutStoreId(String companyId) {
         companyContext = new Company(
-                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, null
+                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, null, null
         );
     }
 

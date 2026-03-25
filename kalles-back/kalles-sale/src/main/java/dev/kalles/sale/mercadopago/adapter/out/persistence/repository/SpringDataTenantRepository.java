@@ -1,0 +1,9 @@
+package dev.kalles.sale.mercadopago.adapter.out.persistence.repository;
+
+import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.UUID;
+
+public interface SpringDataTenantRepository extends JpaRepository<TenantEntity, UUID> {
+}

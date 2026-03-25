@@ -11,6 +11,9 @@ import type {
 const BASE = "/api/sales";
 
 export const saleService = {
+  getSale: (sessionToken: string): Promise<SaleResponse> =>
+    api.get<SaleResponse>(`${BASE}/${sessionToken}`),
+
   createSale: (sessionToken: string): Promise<SaleResponse> =>
     api.post<SaleResponse>(`${BASE}/${sessionToken}`),
 

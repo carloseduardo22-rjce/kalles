@@ -53,11 +53,11 @@ class MercadoPagoStoreAdapterTest {
 
         companyWithoutStore = new Company(
                 COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
-                LATITUDE, LONGITUDE, null
+                LATITUDE, LONGITUDE, null, null
         );
         companyWithStore = new Company(
                 COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
-                LATITUDE, LONGITUDE, STORE_ID_MP
+                LATITUDE, LONGITUDE, STORE_ID_MP, null
         );
     }
 

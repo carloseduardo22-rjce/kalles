@@ -33,8 +33,11 @@ public class MercadoPagoCompanyEntity {
     private String streetNumber;
     private String cityName;
     private String stateName;
-    private double latitude;
-    private double longitude;
+    private Double latitude;
+    private Double longitude;
 
     private Long mpStoreId;
+    
+    @Column(name = "tenant_id")
+    private UUID tenantId;
 }

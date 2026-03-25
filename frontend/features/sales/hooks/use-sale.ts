@@ -24,6 +24,7 @@ interface UseSaleReturn {
   applyDiscount: (itemId: string, discountAmount: number) => Promise<void>;
   associateClient: (clientId: string) => Promise<void>;
   applyFidelityDiscount: () => Promise<void>;
+  refreshSale: () => Promise<void>;
   clearError: () => void;
   resetSale: () => void;
 }
@@ -58,6 +59,16 @@ export function useSale(sessionToken: string): UseSaleReturn {
         handleError(err, "Falha ao criar venda.");
       }
     });
+  }, [sessionToken]);
+
+  const refreshSale = useCallback(async () => {
+    try {
+      const currentSale = await saleService.getSale(sessionToken);
+      setSale(currentSale);
+    } catch (err) {
+      // Don't show critical errors to user if just polling fails
+      console.error("Falha ao atualizar venda:", err);
+    }
   }, [sessionToken]);
 
   const addItem = useCallback(
@@ -239,6 +250,7 @@ export function useSale(sessionToken: string): UseSaleReturn {
     applyDiscount,
     associateClient,
     applyFidelityDiscount,
+    refreshSale,
     clearError,
     resetSale,
   };

@@ -12,12 +12,14 @@ public record Company(
         String stateName,
         double latitude,
         double longitude,
-        Long mpStoreId) {
+        Long mpStoreId,
+        UUID tenantId) {
+            
     public boolean hasStoreRegistered() {
         return mpStoreId != null;
     }
 
     public Company withStoreId(Long storeId) {
-        return new Company(id, externalId, name, streetName, streetNumber, cityName, stateName, latitude, longitude, storeId);
+        return new Company(id, externalId, name, streetName, streetNumber, cityName, stateName, latitude, longitude, storeId, tenantId);
     }
 }

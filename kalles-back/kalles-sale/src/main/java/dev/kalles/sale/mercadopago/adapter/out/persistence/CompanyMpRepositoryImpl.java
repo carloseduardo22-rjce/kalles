@@ -37,9 +37,10 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
                 entity.getStreetNumber(),
                 entity.getCityName(),
                 entity.getStateName(),
-                entity.getLatitude(),
-                entity.getLongitude(),
-                entity.getMpStoreId());
+                entity.getLatitude() != null ? entity.getLatitude() : 0.0,
+                entity.getLongitude() != null ? entity.getLongitude() : 0.0,
+                entity.getMpStoreId(),
+                entity.getTenantId());
     }
 
     @Override
@@ -58,6 +59,7 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
         entity.setLatitude(company.latitude());
         entity.setLongitude(company.longitude());
         entity.setMpStoreId(company.mpStoreId());
+        entity.setTenantId(company.tenantId());
         
         repository.save(entity);
     }

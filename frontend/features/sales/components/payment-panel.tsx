@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import {
   Smartphone,
   Landmark,
   QrCode,
+  CheckCircle2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,8 @@ interface PaymentPanelProps {
   cashRegisterCode?: string; // ← Add this for MercadoPago integration
   onAddPayment: (method: PaymentMethod, amount: number) => Promise<void>;
   onCompleteSale: () => Promise<void>;
+  onRefreshSale?: () => Promise<void>;
+  onStartNewSale?: () => void;
 }
 
 const PAYMENT_METHODS: {
@@ -86,6 +89,8 @@ export function PaymentPanel({
   cashRegisterCode,
   onAddPayment,
   onCompleteSale,
+  onRefreshSale,
+  onStartNewSale,
 }: PaymentPanelProps) {
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 
@@ -94,6 +99,63 @@ export function PaymentPanel({
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [pendingPixAmount, setPendingPixAmount] = useState<number>(0);
+  const [pixPaymentStatus, setPixPaymentStatus] = useState<
+    "pending" | "success"
+  >("pending");
+
+  // Polling check for external payments
+  useEffect(() => {
+    if (!showQrDialog || !onRefreshSale) return;
+
+    const intervalId = setInterval(() => {
+      onRefreshSale();
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(intervalId);
+  }, [showQrDialog, onRefreshSale]);
+
+  // Handle auto-close QR Dialog on Payment
+  useEffect(() => {
+    if (
+      showQrDialog &&
+      sale.state === "PAID" &&
+      pixPaymentStatus === "pending"
+    ) {
+      setPixPaymentStatus("success");
+    }
+  }, [sale.state, showQrDialog, pixPaymentStatus]);
+
+  // Trigger completion after showing success animation
+  useEffect(() => {
+    let t: NodeJS.Timeout;
+    if (pixPaymentStatus === "success" && showQrDialog) {
+      t = setTimeout(async () => {
+        setShowQrDialog(false);
+        try {
+          await onCompleteSale();
+          if (onStartNewSale) {
+            onStartNewSale();
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }, 3000); // 3 seconds to show the pretty animation
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [pixPaymentStatus, showQrDialog, onCompleteSale, onStartNewSale]);
+
+  useEffect(() => {
+    if (
+      showQrDialog &&
+      sale.amountDue <= 0 &&
+      sale.state !== "OPEN" &&
+      sale.state !== "PAID"
+    ) {
+      setShowQrDialog(false);
+    }
+  }, [sale.state, sale.amountDue, showQrDialog]);
 
   const {
     register,
@@ -117,12 +179,13 @@ export function PaymentPanel({
   async function handlePixPayment(amount: number) {
     if (cashRegisterCode) {
       // Generate dynamic QR Code for MercadoPago
+      setPixPaymentStatus("pending");
       setIsGeneratingQr(true);
       try {
         const response = await api.post<{ orderId: string; qrData: string }>(
           "/api/mercadopago/orders",
           {
-            pedidoIdErp: sale.id,
+            pedidoIdErp: sale.sessionToken,
             amount: amount,
             caixaId: cashRegisterCode.replace("-", ""),
           },
@@ -313,50 +376,80 @@ export function PaymentPanel({
 
       {/* MercadoPago PIX QR Code Dialog */}
       <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5" />
-              Pagamento via Mercado Pago
-            </DialogTitle>
-            <DialogDescription>
-              Escaneie o QR Code abaixo com o aplicativo do Mercado Pago para
-              pagar o valor de{" "}
-              <strong className="text-foreground">
-                R$ {pendingPixAmount.toFixed(2).replace(".", ",")}
-              </strong>
-              .
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg border border-border/50">
-            {qrData ? (
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <QRCodeSVG value={qrData} size={200} level="H" />
+        <DialogContent className={`sm:max-w-md transition-all duration-500 overflow-hidden ${pixPaymentStatus === "success" ? "bg-green-50/50 dark:bg-green-950/10 border-green-200 dark:border-green-900" : ""}`}>
+          
+          {pixPaymentStatus === "pending" && (
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                Pagamento via Mercado Pago
+              </DialogTitle>
+              <DialogDescription>
+                Escaneie o QR Code abaixo com o aplicativo do Mercado Pago para
+                pagar o valor de{" "}
+                <strong className="text-foreground">
+                  R$ {pendingPixAmount.toFixed(2).replace(".", ",")}
+                </strong>
+                .
+              </DialogDescription>
+            </DialogHeader>
+          )}
+
+          {pixPaymentStatus === "success" ? (
+            <div className="flex flex-col items-center justify-center p-12 min-h-[300px] animate-in zoom-in-95 duration-500">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20 duration-1000" />
+                <div className="relative bg-green-500 text-white p-4 rounded-full shadow-lg shadow-green-500/30">
+                  <CheckCircle2 className="h-12 w-12 animate-in fade-in zoom-in duration-500 delay-150 fill-none" strokeWidth={2.5} />
+                </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground p-8">
-                <LoadingSpinner size="md" label="Processando..." />
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold tracking-tight text-green-700 dark:text-green-500 animate-in slide-in-from-bottom-2 duration-500 delay-200">
+                  Pagamento Confirmado!
+                </h3>
+                <p className="text-green-600/80 dark:text-green-400/80 font-medium animate-in slide-in-from-bottom-2 duration-500 delay-300">
+                  Valor de {formatCurrency(pendingPixAmount)} recebido
+                </p>
+                <div className="flex items-center justify-center gap-2 mt-6 pt-4 text-sm text-muted-foreground animate-in fade-in duration-500 delay-500">
+                  <LoadingSpinner size="sm" label="" />
+                  Concluindo a venda e preparando o próximo caixa...
+                </div>
               </div>
-            )}
-            <p className="mt-4 text-xs text-muted-foreground text-center">
-              O modelo de QR Code configurado é dinâmico. O valor a ser cobrado
-              será preenchido automaticamente ao escanear.
-            </p>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <Button variant="outline" onClick={() => setShowQrDialog(false)}>
-              Cancelar ou Voltar
-            </Button>
-            <Button
-              onClick={async () => {
-                // Simulate that the payment was processed after they scanned
-                setShowQrDialog(false);
-                await onAddPayment("PIX", pendingPixAmount);
-              }}
-            >
-              Simular Confirmação Webhook
-            </Button>
-          </DialogFooter>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg border border-border/50 min-h-[300px]">
+              {qrData ? (
+                <div className="bg-white p-4 rounded-xl shadow-sm">
+                  <QRCodeSVG value={qrData} size={200} level="H" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground p-8">
+                  <LoadingSpinner size="md" label="Gerando QR Code Pix..." />
+                </div>
+              )}
+              <p className="mt-4 text-xs text-muted-foreground text-center">
+                O modelo de QR Code configurado é dinâmico. O valor a ser
+                cobrado será preenchido automaticamente ao escanear.
+              </p>
+            </div>
+          )}
+
+          {pixPaymentStatus === "pending" && (
+            <DialogFooter className="sm:justify-between">
+              <Button variant="outline" onClick={() => setShowQrDialog(false)}>
+                Cancelar ou Voltar
+              </Button>
+              <Button
+                onClick={async () => {
+                  // Simulate that the payment was processed after they scanned
+                  setShowQrDialog(false);
+                  await onAddPayment("PIX", pendingPixAmount);
+                }}
+              >
+                Simular Confirmação Webhook
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

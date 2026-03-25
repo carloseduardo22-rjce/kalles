@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.UUID;
 import java.math.BigDecimal;
 
+import dev.kalles.sale.core.state.SaleState;
+
 import org.springframework.stereotype.Service;
 
 import dev.kalles.sale.cashregister.entity.Operator;
@@ -186,6 +188,27 @@ public class SaleService {
                     Sale newSale = Sale.createForSession(sessionToken);
                     return saleRepository.save(newSale);
                 });
+    }
+
+    @Transactional(readOnly = true)
+    public Sale getCurrentSale(String sessionToken) {
+        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        
+        List<SaleState> activeStates = List.of(
+            new dev.kalles.sale.core.state.OpenState(), 
+            new dev.kalles.sale.core.state.OnHoldState(),
+            new dev.kalles.sale.core.state.PaymentInProgressState(),
+            new dev.kalles.sale.core.state.PaidState()
+        );
+        
+        List<Sale> sales = saleRepository.findAllBySessionTokenAndStateIn(sessionToken, activeStates);
+        
+        if (sales.isEmpty()) {
+            throw new NotFoundException("Nenhuma venda em andamento ou pendente de conclusão para esta sessão");
+        }
+        
+        // Em casos de testes não concluídos corretamente, pode haver múltiplas vendas PAID. Retornamos a última encontrada.
+        return sales.get(sales.size() - 1);
     }
 
     @Transactional

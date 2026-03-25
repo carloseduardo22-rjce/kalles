@@ -45,10 +45,10 @@ class MercadoPagoPosAdapterTest {
     void setUp() {
         adapter = new MercadoPagoPosAdapter(httpClient, "mock-token");
         companyWithStore = new Company(
-                COMPANY_ID, "EXT-LOJ001", "Kalles Matriz", "Street", "1", "City", "ST", -23.0, -46.0, STORE_ID_MP
+                COMPANY_ID, "EXT-LOJ001", "Kalles Matriz", "Street", "1", "City", "ST", -23.0, -46.0, STORE_ID_MP, null
         );
         companyWithoutStore = new Company(
-                java.util.UUID.randomUUID(), "EXT-LOJ002", "Orphan Corp", "X", "1", "City", "ST", 0.0, 0.0, null
+                java.util.UUID.randomUUID(), "EXT-LOJ002", "Orphan Corp", "X", "1", "City", "ST", 0.0, 0.0, null, null
         );
         caixaWithoutPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", null);
         caixaWithPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", POS_ID_MP);

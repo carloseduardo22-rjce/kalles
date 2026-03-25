@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,6 +48,20 @@ public class SaleController {
 
     private final SaleService saleService;
     private final PaymentService paymentService;
+
+    @GetMapping("/{sessionToken}")
+    @Operation(summary = "Obter venda atual",
+            description = "Retorna a venda ativa para a sessão (pode estar OPEN, ON_HOLD, PAYMENT_IN_PROGRESS ou PAID).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Venda encontrada com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Nenhum venda ativa encontrada para esta sessão", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<SaleResponse> getCurrentSale(
+            @PathVariable @NotBlank String sessionToken) {
+
+        Sale sale = saleService.getCurrentSale(sessionToken);
+        return ResponseEntity.ok(SaleResponse.from(sale));
+    }
 
     @PostMapping("/{sessionToken}")
     @Operation(summary = "Criar venda",

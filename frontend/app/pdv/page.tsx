@@ -214,6 +214,7 @@ export default function PdvPage() {
     applyDiscount,
     associateClient,
     applyFidelityDiscount,
+    refreshSale,
     clearError: clearSaleError,
     resetSale,
   } = useSale(sessionToken);
@@ -523,6 +524,8 @@ export default function PdvPage() {
                 cashRegisterCode={sessionData.cashRegisterCode}
                 onAddPayment={addPayment}
                 onCompleteSale={completeSale}
+                onRefreshSale={refreshSale}
+                onStartNewSale={handleNewSale}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

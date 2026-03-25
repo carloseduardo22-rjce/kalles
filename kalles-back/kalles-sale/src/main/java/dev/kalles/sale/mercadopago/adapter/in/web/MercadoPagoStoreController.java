@@ -46,6 +46,7 @@ public class MercadoPagoStoreController {
                 request.stateName(),
                 request.latitude(),
                 request.longitude(),
+                null,
                 null);
         Long storeId = createMercadoPagoStoreUseCase.execute(company);
         return ResponseEntity.ok(new CreateStoreResponse(storeId));
