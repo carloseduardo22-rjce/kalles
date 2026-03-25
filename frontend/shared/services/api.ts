@@ -43,6 +43,7 @@ export const api = {
     fetch(`${BASE_URL}${path}`, {
       method: "GET",
       headers: { "Content-Type": "application/json", ...headers },
+      credentials: "include",
     }).then(handleResponse<T>),
 
   post: <T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> =>
@@ -50,6 +51,7 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "include",
     }).then(handleResponse<T>),
 
   patch: <T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> =>
@@ -57,6 +59,7 @@ export const api = {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "include",
     }).then(handleResponse<T>),
 
   put: <T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> =>
@@ -64,6 +67,7 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "include",
     }).then(handleResponse<T>),
 
   delete: <T>(
@@ -78,6 +82,7 @@ export const api = {
     return fetch(url.toString(), {
       method: "DELETE",
       headers: { "Content-Type": "application/json", ...headers },
+      credentials: "include",
     }).then(handleResponse<T>);
   },
 };

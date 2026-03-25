@@ -1,0 +1,55 @@
+package dev.kalles.sale.security.service;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import dev.kalles.sale.security.domain.Account;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Date;
+
+@Service
+public class JwtService {
+
+    @Value("${api.security.token.secret:my-very-secret-default-key-keep-it-safe}")
+    private String secret;
+
+    @Value("${api.security.token.expiration:12}")
+    private Integer expirationHours;
+
+    public String generateToken(Account account) {
+        try {
+            Algorithm algorithm = Algorithm.HMAC256(secret);
+            return JWT.create()
+                    .withIssuer("kalles-api")
+                    .withSubject(account.getEmail())
+                    .withClaim("tenantId", account.getTenantId().toString())
+                    .withClaim("role", account.getRole().name())
+                    .withClaim("accountId", account.getId().toString())
+                    .withExpiresAt(genExpirationDate())
+                    .sign(algorithm);
+        } catch (Exception exception) {
+            throw new RuntimeException("Error while generating token", exception);
+        }
+    }
+
+    public DecodedJWT validateToken(String token) {
+        try {
+            Algorithm algorithm = Algorithm.HMAC256(secret);
+            return JWT.require(algorithm)
+                    .withIssuer("kalles-api")
+                    .build()
+                    .verify(token);
+        } catch (JWTVerificationException exception) {
+            return null;
+        }
+    }
+
+    private Date genExpirationDate() {
+        return Date.from(Instant.now().plusSeconds(expirationHours * 3600L).atZone(ZoneId.systemDefault()).toInstant());
+    }
+}
