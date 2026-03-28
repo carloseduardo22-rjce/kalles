@@ -19,4 +19,8 @@ public class GetCompanyMpUseCase {
     public Optional<Company> execute(String externalId) {
         return companyMpRepository.findByExternalId(externalId);
     }
+
+    public Optional<Company> executeByTenantId(UUID tenantId) {
+        return companyMpRepository.findByTenantId(tenantId);
+    }
 }

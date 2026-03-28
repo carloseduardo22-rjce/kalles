@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -21,7 +21,12 @@ export default function MpCallbackPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
+  const hasFetched = useRef(false);
+
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     const code = searchParams.get("code");
     const state = searchParams.get("state");
     const error = searchParams.get("error");
@@ -88,10 +93,10 @@ export default function MpCallbackPage() {
                 processar pagamentos.
               </p>
               <Button
-                onClick={() => router.push("/admin/integracoes")}
+                onClick={() => router.push("/admin/pagamentos")}
                 className="mt-4"
               >
-                Voltar para Integrações
+                Voltar para Configuração de Pagamento
               </Button>
             </>
           )}
@@ -104,7 +109,7 @@ export default function MpCallbackPage() {
               </p>
               <p className="text-sm text-gray-500">{errorMessage}</p>
               <Button
-                onClick={() => router.push("/admin/integracoes")}
+                onClick={() => router.push("/admin/pagamentos")}
                 variant="outline"
                 className="mt-4"
               >

@@ -6,18 +6,20 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    allowedDevOrigins: [
-      "7e0f-2804-1494-dbb-aa00-986b-3d27-3b5a-f89c.ngrok-free.app",
-    ],
-  },
+  allowedDevOrigins: [
+    "08e8-2804-1494-dbb-aa00-f8ed-896b-5037-a22f.ngrok-free.app",
+  ],
   async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://localhost:8080/api/:path*",
-      },
-    ];
+    return {
+      // afterFiles ensures filesystem routes (Route Handlers in app/api/)
+      // are checked FIRST. Only unmatched /api/* paths fall through here.
+      afterFiles: [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:8080/api/:path*",
+        },
+      ],
+    };
   },
 };
 

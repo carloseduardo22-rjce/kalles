@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Terminal, Loader2, Lock, List, PlusCircle } from "lucide-react";
+import { Store, Terminal, Loader2, Lock, List, PlusCircle, Link as LinkIcon } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/shared/components/loading-spinner";
+import { mercadopagoService } from "@/features/admin/services/mercadopago.service";
 
 interface StoreFormData {
   companyId: string;
@@ -72,9 +76,21 @@ const BRAZILIAN_STATES = [
 
 export default function PaymentSettingsPage() {
   const [activeTab, setActiveTab] = useState<"listar" | "criar">("listar");
-  const [newIntegrationStep, setNewIntegrationStep] = useState<"store" | "pos">(
-    "store",
+  const [newIntegrationStep, setNewIntegrationStep] = useState<"oauth" | "store" | "pos">(
+    "oauth",
   );
+
+  // Em produção, isso viraria de variáveis de ambiente (.env)
+  const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
+  const REDIRECT_URI =
+    process.env.NEXT_PUBLIC_MP_REDIRECT_URI ||
+    "https://08e8-2804-1494-dbb-aa00-f8ed-896b-5037-a22f.ngrok-free.app/admin/pagamentos/mp-callback";
+
+  // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
+  const [tenantId, setTenantId] = useState<string>("");
+
+  const mpAuthUrl = `https://auth.mercadopago.com/authorization?client_id=${MP_APP_ID}&response_type=code&platform_id=mp&state=${tenantId}&redirect_uri=${REDIRECT_URI}`;
+
   const [loading, setLoading] = useState(false);
   const [storeConfigured, setStoreConfigured] = useState(false);
   const [cashRegisters, setCashRegisters] = useState<
@@ -82,9 +98,13 @@ export default function PaymentSettingsPage() {
   >([]);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/cash-registers")
-      .then((res) => res.json())
+    fetch("/api/cash-registers")
+      .then(async (res) => {
+        const text = await res.text();
+        return text ? JSON.parse(text) : [];
+      })
       .then((data) => {
+        if (!Array.isArray(data)) return;
         const registers = data.map((cr: any) => ({
           id: cr.cashRegisterId,
           code: cr.code,
@@ -93,7 +113,32 @@ export default function PaymentSettingsPage() {
         setCashRegisters(registers);
       })
       .catch((err) => console.error("Error fetching cash registers", err));
+
+    // Busca o tenantId do usuário logado
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.tenantId) setTenantId(data.tenantId);
+      })
+      .catch(console.error);
   }, []);
+
+  // Verifica se a conta do MP já está conectada ao entrar na aba "criar".
+  // Se já estiver, pula direto para o passo "Estabelecimento".
+  useEffect(() => {
+    if (activeTab !== "criar") return;
+
+    fetch("/api/mercadopago/stores/my-status")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.companyExists) {
+          setNewIntegrationStep("store");
+        } else {
+          setNewIntegrationStep("oauth");
+        }
+      })
+      .catch(() => setNewIntegrationStep("oauth"));
+  }, [activeTab]);
 
   const [storeForm, setStoreForm] = useState<StoreFormData>({
     companyId: "",
@@ -136,9 +181,10 @@ export default function PaymentSettingsPage() {
         stateName: storeForm.stateName,
         latitude: storeForm.latitude,
         longitude: storeForm.longitude,
+        tenantId: tenantId,
       };
 
-      const res = await fetch("http://localhost:8080/api/mercadopago/stores", {
+      const res = await fetch("/api/mercadopago/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -185,7 +231,7 @@ export default function PaymentSettingsPage() {
 
       console.log(payload);
 
-      const res = await fetch("http://localhost:8080/api/mercadopago/pos", {
+      const res = await fetch("/api/mercadopago/pos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -207,19 +253,23 @@ export default function PaymentSettingsPage() {
     }
   };
 
-  // Mock data para listagem de integrações
-  const mockIntegrations = [
-    {
-      id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      name: "Kalles Matriz Centro",
-      externalId: "LOJ001",
-      mpStoreId: "84759384",
-      terminals: [
-        { id: "CAIXA-001", name: "Caixa Frontal 01" },
-        { id: "CAIXA-002", name: "Caixa Frontal 02" },
-      ],
-    },
-  ];
+  const { data: stores = [], isLoading: isLoadingStores } = useQuery({
+    queryKey: ["mp-stores"],
+    queryFn: mercadopagoService.listStores,
+  });
+
+  const integrationStores = stores.map((store) => ({
+    id: store.id.toString(),
+    name: store.name,
+    externalId: store.external_id,
+    mpStoreId: store.id.toString(),
+    terminals: (store.terminals || []).map((pos) => ({
+      id: pos.external_id || pos.id.toString(),
+      name: pos.name,
+    })),
+  }));
+
+  const isLoadingData = isLoadingStores;
 
   return (
     <div className="flex-1 min-h-screen bg-[#009EE3] p-4 md:p-8 pt-6">
@@ -269,72 +319,86 @@ export default function PaymentSettingsPage() {
 
         <TabsContent value="listar" className="pb-20">
           <div className="grid gap-6">
-            {mockIntegrations.map((store) => (
-              <Card
-                key={store.id}
-                className="border-0 p-0 gap-0 shadow-md overflow-hidden"
-              >
-                <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-1">
-                      <CardTitle className="text-xl flex items-center gap-2">
-                        <Store className="h-5 w-5 text-zinc-600" />
-                        {store.name}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-4">
-                        <span>
-                          <strong>ID Interno:</strong> {store.externalId}
-                        </span>
-                        <span>
-                          <strong>ID Mercado Pago:</strong> {store.mpStoreId}
-                        </span>
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setActiveTab("criar");
-                        setStoreConfigured(true);
-                        setNewIntegrationStep("pos");
-                        setStoreForm((prev) => ({
-                          ...prev,
-                          companyId: store.externalId,
-                        }));
-                      }}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Adicionar Terminal
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6 pt-4">
-                  <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
-                    <Terminal className="h-4 w-4" />
-                    Terminais (Caixas) Vinculados
-                  </h4>
-                  {store.terminals.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {store.terminals.map((terminal) => (
-                        <div
-                          key={terminal.id}
-                          className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
-                        >
-                          <span className="font-medium">{terminal.name}</span>
-                          <span className="text-xs text-muted-foreground mt-1">
-                            ID: {terminal.id}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhum terminal vinculado a esta loja.
-                    </p>
-                  )}
+            {isLoadingData ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center text-white">
+                <LoadingSpinner />
+                <p className="mt-4">Buscando lojas e caixas no Mercado Pago...</p>
+              </div>
+            ) : integrationStores.length === 0 ? (
+              <Card className="border-0 shadow-md">
+                <CardContent className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
+                  <Store className="h-16 w-16 mb-4 text-zinc-300" />
+                  <p className="text-lg font-medium">Nenhuma loja vinculada.</p>
+                  <p>Mude para a aba de ConfiguraçÃ£o para criar a sua loja.</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              integrationStores.map((store) => (
+                <Card
+                  key={store.id}
+                  className="border-0 p-0 gap-0 shadow-md overflow-hidden"
+                >
+                  <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col gap-1">
+                        <CardTitle className="text-xl flex items-center gap-2">
+                          <Store className="h-5 w-5 text-zinc-600" />
+                          {store.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-4">
+                          <span>
+                            <strong>ID Interno:</strong> {store.externalId}
+                          </span>
+                          <span>
+                            <strong>ID Mercado Pago:</strong> {store.mpStoreId}
+                          </span>
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setActiveTab("criar");
+                          setStoreConfigured(true);
+                          setNewIntegrationStep("pos");
+                          setStoreForm((prev) => ({
+                            ...prev,
+                            companyId: store.externalId,
+                          }));
+                        }}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Adicionar Terminal
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-4">
+                    <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
+                      <Terminal className="h-4 w-4" />
+                      Terminais (Caixas) Vinculados
+                    </h4>
+                    {store.terminals.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {store.terminals.map((terminal) => (
+                          <div
+                            key={terminal.id}
+                            className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
+                          >
+                            <span className="font-medium">{terminal.name}</span>
+                            <span className="text-xs text-muted-foreground mt-1">
+                              ID: {terminal.id}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum terminal vinculado a esta loja.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )))}
           </div>
         </TabsContent>
 
@@ -342,34 +406,74 @@ export default function PaymentSettingsPage() {
           {/* Tabs / Stepper Header for Creation */}
           <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
             <button
+              onClick={() => setNewIntegrationStep("oauth")}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "oauth"
+                ? "border-white text-white drop-shadow-md"
+                : "border-transparent text-white/70 hover:text-white"
+                }`}
+            >
+              <LinkIcon className="h-4 w-4" />
+              <span>1. Conectar Conta</span>
+            </button>
+            <button
               onClick={() => setNewIntegrationStep("store")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                newIntegrationStep === "store"
-                  ? "border-white text-white drop-shadow-md"
-                  : "border-transparent text-white/70 hover:text-white"
-              }`}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "store"
+                ? "border-white text-white drop-shadow-md"
+                : "border-transparent text-white/70 hover:text-white"
+                }`}
             >
               <Store className="h-4 w-4" />
-              <span>1. Estabelecimento</span>
+              <span>2. Estabelecimento</span>
             </button>
             <button
               onClick={() => {
                 if (storeConfigured) setNewIntegrationStep("pos");
               }}
               disabled={!storeConfigured}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                newIntegrationStep === "pos"
-                  ? "border-white text-white drop-shadow-md"
-                  : "border-transparent text-white/50"
-              } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "pos"
+                ? "border-white text-white drop-shadow-md"
+                : "border-transparent text-white/50"
+                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
             >
               <Terminal className="h-4 w-4" />
-              <span>2. Terminais (Caixas)</span>
+              <span>3. Terminais (Caixas)</span>
               {!storeConfigured && <Lock className="h-3 w-3 ml-1" />}
             </button>
           </div>
 
           <div className="w-full pb-20">
+            {newIntegrationStep === "oauth" && (
+              <Card className="border-0 shadow-md">
+                <CardHeader>
+                  <CardTitle>Conectar Conta Mercado Pago</CardTitle>
+                  <CardDescription>
+                    Vincule sua conta do Mercado Pago para receber pagamentos de suas
+                    vendas e criar seus caixas.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {tenantId ? (
+                    <Button
+                      asChild
+                      className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
+                    >
+                      <Link href={mpAuthUrl}>
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Conectar Mercado Pago
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      disabled
+                      className="w-auto bg-[#009EE3]/70 text-white cursor-not-allowed"
+                    >
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Preparando conexão...
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
             {newIntegrationStep === "store" && (
               <Card className="border-0 shadow-md">
                 <CardHeader>

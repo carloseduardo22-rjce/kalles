@@ -28,6 +28,11 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
         return repository.findByExternalId(externalId).map(this::toDomain);
     }
 
+    @Override
+    public Optional<Company> findByTenantId(UUID tenantId) {
+        return repository.findByTenantId(tenantId).map(this::toDomain);
+    }
+
     private Company toDomain(MercadoPagoCompanyEntity entity) {
         return new Company(
                 entity.getId(),

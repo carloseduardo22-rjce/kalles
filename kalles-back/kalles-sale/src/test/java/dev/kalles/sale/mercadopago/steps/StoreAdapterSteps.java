@@ -8,6 +8,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.mockito.ArgumentCaptor;
+import dev.kalles.sale.mercadopago.port.TenantRepository;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,7 +26,8 @@ public class StoreAdapterSteps {
 
     private final HttpClient httpClient = mock(HttpClient.class);
     private final CompanyMpRepository repository = mock(CompanyMpRepository.class);
-    private final MercadoPagoStoreAdapter adapter = new MercadoPagoStoreAdapter("12345", "mock-token", httpClient);
+    private final TenantRepository tenantRepository = mock(TenantRepository.class);
+    private final MercadoPagoStoreAdapter adapter = new MercadoPagoStoreAdapter("12345", "mock-token", httpClient, tenantRepository);
 
     @Given("uma Company com id {string}, nome {string}, logradouro {string}, numero {string}, cidade {string}, estado {string}, latitude {string} e longitude {string}")
     public void companyWithData(String id, String nome, String logradouro, String numero, String cidade, String estado, String lat, String lon) {

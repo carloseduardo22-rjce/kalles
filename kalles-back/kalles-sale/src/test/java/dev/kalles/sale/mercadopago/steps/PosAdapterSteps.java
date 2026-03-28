@@ -9,6 +9,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.mockito.ArgumentCaptor;
+import dev.kalles.sale.mercadopago.port.TenantRepository;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,7 +27,8 @@ public class PosAdapterSteps {
     private Exception capturedException;
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final MercadoPagoPosAdapter adapter = new MercadoPagoPosAdapter(httpClient, "mock-token");
+    private final TenantRepository tenantRepository = mock(TenantRepository.class);
+    private final MercadoPagoPosAdapter adapter = new MercadoPagoPosAdapter(httpClient, "mock-token", tenantRepository);
 
     @Given("uma Company {string} que possui store_id {string} gerado no MP")
     public void companyWithStoreId(String companyId, String storeId) {

@@ -9,6 +9,8 @@ public interface CompanyMpRepository {
 
     Optional<Company> findByExternalId(String externalId);
 
+    Optional<Company> findByTenantId(UUID tenantId);
+
     void save(Company company);
 
     void saveStoreId(UUID companyId, Long storeId);

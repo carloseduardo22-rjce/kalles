@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import dev.kalles.sale.mercadopago.port.TenantRepository;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -31,6 +32,9 @@ class MercadoPagoStoreAdapterTest {
     @Mock
     private CompanyMpRepository companyMpRepository;
 
+    @Mock
+    private TenantRepository tenantRepository;
+
     private MercadoPagoStoreAdapter adapter;
 
     private static final java.util.UUID COMPANY_ID    = java.util.UUID.randomUUID();
@@ -49,7 +53,7 @@ class MercadoPagoStoreAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new MercadoPagoStoreAdapter(MP_USER_ID, "mock-token", httpClient);
+        adapter = new MercadoPagoStoreAdapter(MP_USER_ID, "mock-token", httpClient, tenantRepository);
 
         companyWithoutStore = new Company(
                 COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,

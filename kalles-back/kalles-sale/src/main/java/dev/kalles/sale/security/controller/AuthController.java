@@ -5,6 +5,7 @@ import dev.kalles.sale.security.dto.RegisterRequest;
 import dev.kalles.sale.security.dto.VerifyCodeRequest;
 import dev.kalles.sale.security.filter.JwtAuthenticationFilter;
 import dev.kalles.sale.security.service.AuthService;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +22,15 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthService authService;
+
+    @GetMapping("/me")
+    public ResponseEntity<java.util.Map<String, String>> me() {
+        java.util.UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(java.util.Map.of("tenantId", tenantId.toString()));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request) {
@@ -57,8 +67,8 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(false) // Mude para true em prod usando HTTPS
                 .path("/")
-                .maxAge(0) // Expira imediatamente
-                .sameSite("Strict")
+                .maxAge(0)
+                .sameSite("Lax")
                 .build();
 
         return ResponseEntity.ok()
@@ -72,7 +82,7 @@ public class AuthController {
                 .secure(false) // Mude para true em produção (assumindo que no local roda por http)
                 .path("/")
                 .maxAge(Duration.ofHours(12))
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
     }
 }

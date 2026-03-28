@@ -2,7 +2,13 @@ package dev.kalles.sale.mercadopago.adapter.in.web;
 
 import dev.kalles.sale.mercadopago.application.usecase.CreateMercadoPagoStoreUseCase;
 import dev.kalles.sale.mercadopago.application.usecase.GetCompanyMpUseCase;
+import dev.kalles.sale.mercadopago.application.usecase.ListMercadoPagoStoresUseCase;
 import dev.kalles.sale.mercadopago.domain.Company;
+import dev.kalles.sale.security.context.TenantContextHolder;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -13,17 +19,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequestMapping("/api/mercadopago/stores")
 public class MercadoPagoStoreController {
 
     private final CreateMercadoPagoStoreUseCase createMercadoPagoStoreUseCase;
     private final GetCompanyMpUseCase getCompanyMpUseCase;
+    private final ListMercadoPagoStoresUseCase listMercadoPagoStoresUseCase;
 
-    public MercadoPagoStoreController(CreateMercadoPagoStoreUseCase createMercadoPagoStoreUseCase, GetCompanyMpUseCase getCompanyMpUseCase) {
+    public MercadoPagoStoreController(CreateMercadoPagoStoreUseCase createMercadoPagoStoreUseCase,
+            GetCompanyMpUseCase getCompanyMpUseCase, ListMercadoPagoStoresUseCase listMercadoPagoStoresUseCase) {
         this.createMercadoPagoStoreUseCase = createMercadoPagoStoreUseCase;
         this.getCompanyMpUseCase = getCompanyMpUseCase;
+        this.listMercadoPagoStoresUseCase = listMercadoPagoStoresUseCase;
     }
 
     @GetMapping("/{externalId}/status")
@@ -31,6 +39,23 @@ public class MercadoPagoStoreController {
         return getCompanyMpUseCase.execute(externalId)
                 .map(company -> ResponseEntity.ok(new CompanyStatusResponse(true, company.hasStoreRegistered())))
                 .orElseGet(() -> ResponseEntity.ok(new CompanyStatusResponse(false, false)));
+    }
+
+    @GetMapping("/my-status")
+    public ResponseEntity<CompanyStatusResponse> getMyCompanyStoreStatus() {
+        java.util.UUID tenantId = TenantContextHolder.getTenantId();
+        System.out.println("TenantId em my status: " + tenantId);
+        if (tenantId == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        return getCompanyMpUseCase.executeByTenantId(tenantId)
+                .map(company -> ResponseEntity.ok(new CompanyStatusResponse(true, company.hasStoreRegistered())))
+                .orElseGet(() -> ResponseEntity.ok(new CompanyStatusResponse(false, false)));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> listStores() {
+        return ResponseEntity.ok(listMercadoPagoStoresUseCase.execute());
     }
 
     @PostMapping
@@ -47,7 +72,7 @@ public class MercadoPagoStoreController {
                 request.latitude(),
                 request.longitude(),
                 null,
-                null);
+                request.tenantId());
         Long storeId = createMercadoPagoStoreUseCase.execute(company);
         return ResponseEntity.ok(new CreateStoreResponse(storeId));
     }
@@ -60,7 +85,8 @@ public class MercadoPagoStoreController {
             String cityName,
             String stateName,
             double latitude,
-            double longitude) {
+            double longitude,
+            UUID tenantId) {
     }
 
     public record CreateStoreResponse(Long storeId) {
