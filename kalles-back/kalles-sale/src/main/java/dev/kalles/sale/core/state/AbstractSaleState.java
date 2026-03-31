@@ -9,7 +9,7 @@ import dev.kalles.sale.core.entity.Sale;
 public abstract class AbstractSaleState implements SaleState {
 
     @Override
-    public void addItem(Sale sale, Product product) {
+    public void addItem(Sale sale, Product product, BigDecimal unitPrice) {
         throw new IllegalStateException(
                 "Não é possível adicionar itens no estado: " + getDescription());
     }

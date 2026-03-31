@@ -9,17 +9,19 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;import jakarta.persistence.Version;import lombok.AllArgsConstructor;
+import jakarta.persistence.Id;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Setter;
 
 @Entity
 @Table(indexes = {
 	@Index(name = "idx_product_internal_code", columnList = "internal_code"),
 	@Index(name = "idx_product_barcode", columnList = "barcode")
-}, 
-comment = "Entidade representando um produto: código interno, código de barras, nome, descrição, preço e status de ativo/inativo")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,6 +35,9 @@ public class Product {
     @Version
     private Long version;
 
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
 	@Column(nullable = false, length = 150)
 	private String name;
 
@@ -43,11 +48,5 @@ public class Product {
 	private String barcode;
 
 	private String description;
-
-	@Column(nullable = false, precision = 19, scale = 2)
-	private BigDecimal price;
-
-	@Column(nullable = false)
-	private boolean active;
 
 }

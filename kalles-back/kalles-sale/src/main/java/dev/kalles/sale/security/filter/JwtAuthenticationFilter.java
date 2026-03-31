@@ -1,6 +1,8 @@
 package dev.kalles.sale.security.filter;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.PosContextHolder;
 import dev.kalles.sale.security.context.TenantContextHolder;
 import dev.kalles.sale.security.domain.AccountRole;
 import dev.kalles.sale.security.service.JwtService;
@@ -41,6 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var login = decodedJWT.getSubject();
                 var tenantId = decodedJWT.getClaim("tenantId").asString();
                 var role = decodedJWT.getClaim("role").asString();
+                
+                var companyId = decodedJWT.getClaim("companyId").asString();
+                var posId = decodedJWT.getClaim("posId").asString();
 
                 // Set Spring Security Context
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
@@ -49,6 +54,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Set Tenant Context
                 TenantContextHolder.setTenantId(UUID.fromString(tenantId));
+                
+                // Set Specific Store Context if present
+                if (companyId != null) {
+                    CompanyContextHolder.setCompanyId(UUID.fromString(companyId));
+                }
+                if (posId != null) {
+                    PosContextHolder.setPosId(UUID.fromString(posId));
+                }
             }
         }
         
@@ -57,6 +70,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             // Guarantee cleanup to prevent data leaking into another thread
             TenantContextHolder.clear();
+            CompanyContextHolder.clear();
+            PosContextHolder.clear();
         }
     }
 

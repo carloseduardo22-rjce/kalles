@@ -1,6 +1,7 @@
 package dev.kalles.sale.security.service;
 
 import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
+import dev.kalles.sale.mercadopago.domain.Tenant;
 import dev.kalles.sale.mercadopago.port.TenantRepository;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.domain.AccountRole;
@@ -16,24 +17,49 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import dev.kalles.sale.security.repository.PosDeviceSessionRepository;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final AccountRepository accountRepository;
-    // We ideally use the core generic Tenant, but reusing the one from MP module since it's the root owner
-    private final TenantRepository tenantRepository; 
+    // We ideally use the core generic Tenant, but reusing the one from MP module
+    // since it's the root owner
+    private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final dev.kalles.sale.security.application.AccountVerificationService accountVerificationService;
+    private final PosDeviceSessionRepository posDeviceSessionRepository;
 
-    public String authenticate(LoginRequest request) {
+    public String authenticate(LoginRequest request, String posToken) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(request.email(), request.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
         var account = (Account) auth.getPrincipal();
-        return jwtService.generateToken(account);
+
+        UUID posId = null;
+
+        if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
+            if (posToken == null || posToken.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Terminal não configurado. Por favor, solicite o pareamento do caixa.");
+            }
+
+            var session = posDeviceSessionRepository
+                    .findByTokenAndActiveTrueAndExpiresAtGreaterThan(posToken, LocalDateTime.now())
+                    .orElseThrow(() -> new IllegalArgumentException("Sessão do terminal inválida ou expirada."));
+
+            if (!session.getCompanyId().equals(account.getCompanyId())) {
+                throw new IllegalArgumentException("Este terminal não pertence a filial do caixa.");
+            }
+
+            posId = session.getPosId();
+        }
+
+        return jwtService.generateToken(account, posId);
     }
 
     @Transactional
@@ -44,9 +70,8 @@ public class AuthService {
 
         // Create Tenant first
         UUID tenantId = UUID.randomUUID();
-        dev.kalles.sale.mercadopago.domain.Tenant newTenant = new dev.kalles.sale.mercadopago.domain.Tenant(
-                tenantId, request.companyName(), null, null, null
-        );
+        Tenant newTenant = new Tenant(
+                tenantId, request.companyName(), null, null, null);
         tenantRepository.save(newTenant);
 
         // Create Account
@@ -56,9 +81,8 @@ public class AuthService {
                 request.name(),
                 request.email(),
                 encryptedPassword,
-                AccountRole.ADMIN
-        );
-        
+                AccountRole.ADMIN);
+
         accountRepository.save(newAccount);
 
         // Generate and send verification code
@@ -79,7 +103,8 @@ public class AuthService {
         }
 
         accountVerificationService.verifyCode(account, request.code());
-        // Since we opened a transaction, and Hibernate manages `account`, it could auto-save.
+        // Since we opened a transaction, and Hibernate manages `account`, it could
+        // auto-save.
         // But let's be explicit:
         accountRepository.save(account);
 

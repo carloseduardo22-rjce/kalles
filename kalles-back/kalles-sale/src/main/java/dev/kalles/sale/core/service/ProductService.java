@@ -4,7 +4,11 @@ import dev.kalles.sale.core.dto.ProductRequest;
 import dev.kalles.sale.core.dto.ProductResponse;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.core.entity.CompanyProduct;
+import dev.kalles.sale.core.repository.CompanyProductRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,26 +21,35 @@ import java.util.UUID;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final CompanyProductRepository companyProductRepository;
 
     @Transactional(readOnly = true)
     public List<ProductResponse> listAllActive() {
-        return productRepository.findAllActiveWithStock();
+        return productRepository.findAllActiveWithStock(getCompanyId());
     }
 
     @Transactional(readOnly = true)
     public List<ProductResponse> listAll() {
-        return productRepository.findAllWithStock();
+        return productRepository.findAllWithStock(getCompanyId());
     }
 
     @Transactional(readOnly = true)
     public ProductResponse findById(UUID id) {
-        return productRepository.findProductWithStockById(id)
+        return productRepository.findProductWithStockById(id, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<ProductResponse> searchActive(String q) {
-        return productRepository.searchActiveProductsWithStock(q);
+        return productRepository.searchActiveProductsWithStock(q, getCompanyId());
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 
     @Transactional
@@ -50,13 +63,20 @@ public class ProductService {
             });
         }
         Product product = new Product();
+        product.setTenantId(TenantContextHolder.getTenantId());
         product.setName(request.name());
         product.setInternalCode(request.internalCode());
         product.setBarcode(request.barcode());
         product.setDescription(request.description());
-        product.setPrice(request.price());
-        product.setActive(true);
-        productRepository.save(product);
+        product = productRepository.save(product);
+
+        CompanyProduct cp = new CompanyProduct();
+        cp.setCompanyId(getCompanyId());
+        cp.setProduct(product);
+        cp.setPrice(request.price());
+        cp.setActive(true);
+        companyProductRepository.save(cp);
+
         return findById(product.getId());
     }
 
@@ -82,16 +102,27 @@ public class ProductService {
         product.setInternalCode(request.internalCode());
         product.setBarcode(request.barcode());
         product.setDescription(request.description());
-        product.setPrice(request.price());
         productRepository.save(product);
+
+        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), product.getId())
+                .orElseGet(() -> {
+                    CompanyProduct newCp = new CompanyProduct();
+                    newCp.setCompanyId(getCompanyId());
+                    newCp.setProduct(product);
+                    newCp.setActive(true);
+                    return newCp;
+                });
+        cp.setPrice(request.price());
+        companyProductRepository.save(cp);
+
         return findById(id);
     }
 
     @Transactional
     public void deactivate(UUID id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
-        product.setActive(false);
-        productRepository.save(product);
+        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), id)
+                .orElseThrow(() -> new NotFoundException("Produto não configurado nesta filial."));
+        cp.setActive(false);
+        companyProductRepository.save(cp);
     }
 }

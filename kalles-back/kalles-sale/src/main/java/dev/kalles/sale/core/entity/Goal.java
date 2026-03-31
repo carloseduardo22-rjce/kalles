@@ -33,6 +33,9 @@ public class Goal {
     @Version
     private Long version;
 
+    @Column(name = "company_id")
+    private UUID companyId;
+
     @Column(name = "target_value", nullable = false, precision = 19, scale = 2)
     private BigDecimal targetValue;
 

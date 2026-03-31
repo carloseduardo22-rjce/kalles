@@ -22,6 +22,9 @@ public class CashRegister {
     @Column(nullable = false, unique = true)
     private String code;
 
+    @Column(name = "company_id")
+    private UUID companyId;
+
     @Column(nullable = false)
     private String description;
 

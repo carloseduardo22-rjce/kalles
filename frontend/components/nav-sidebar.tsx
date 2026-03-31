@@ -24,6 +24,7 @@ import {
   LifeBuoy,
   Ticket,
   Target,
+  SmartphoneNfc
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +311,14 @@ function SidebarInner() {
             sub
           >
             Configurar pagamentos
+          </NavLink>
+          <NavLink
+            href="/admin/integrar-maquininha"
+            icon={<SmartphoneNfc className="h-4 w-4" />}
+            active={pathname === "/admin/integrar-maquininha"}
+            sub
+          >
+            Integrar maquininha
           </NavLink>
           <NavLink
             href="/admin/configuracoes"

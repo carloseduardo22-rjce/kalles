@@ -1,47 +1,45 @@
 package dev.kalles.sale.core.entity;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Entity
-@Table(comment = "Depósito ou espaço físico onde os produtos são armazenados")
+@Table(name = "company_product")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Warehouse {
+public class CompanyProduct {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 150)
-    private String name;
-
-    @Column(name = "company_id")
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
-    @Column(length = 255)
-    private String address;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal price;
 
     @Column(nullable = false)
     private boolean active = true;
 
-    public Warehouse(UUID id, String name, String address, boolean active) {
-        this.id = id;
-        this.name = name;
-        this.address = address;
-        this.active = active;
-        this.companyId = null;
-    }
 }

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -22,14 +23,27 @@ public class JwtService {
     private Integer expirationHours;
 
     public String generateToken(Account account) {
+        return generateToken(account, null);
+    }
+
+    public String generateToken(Account account, UUID posId) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.create()
+            var jwtBuilder = JWT.create()
                     .withIssuer("kalles-api")
                     .withSubject(account.getEmail())
                     .withClaim("tenantId", account.getTenantId().toString())
                     .withClaim("role", account.getRole().name())
-                    .withClaim("accountId", account.getId().toString())
+                    .withClaim("accountId", account.getId().toString());
+
+            if (account.getCompanyId() != null) {
+                jwtBuilder.withClaim("companyId", account.getCompanyId().toString());
+            }
+            if (posId != null) {
+                jwtBuilder.withClaim("posId", posId.toString());
+            }
+
+            return jwtBuilder
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);
         } catch (Exception exception) {

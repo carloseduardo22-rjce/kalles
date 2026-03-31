@@ -30,8 +30,8 @@ import lombok.Setter;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_sale_session_token", columnList = "session_token"),
-    @Index(name = "idx_sale_state", columnList = "state")
+        @Index(name = "idx_sale_session_token", columnList = "session_token"),
+        @Index(name = "idx_sale_state", columnList = "state")
 }, comment = "Entidade principal representando uma venda: sessao, estado, itens, pagamentos e totais")
 @Getter
 @Setter
@@ -48,6 +48,9 @@ public class Sale {
 
     @Column(name = "session_token", nullable = false)
     private String sessionToken;
+
+    @Column(name = "company_id")
+    private UUID companyId;
 
     @Convert(converter = SaleStateConverter.class)
     @Column(nullable = false)
@@ -78,15 +81,41 @@ public class Sale {
     @Column(name = "points_earned", nullable = false)
     private Integer pointsEarned = 0;
 
-    public void addItem(Product product) { state.addItem(this, product); }
-    public void removeItem(Product product) { state.removeItem(this, product); }
-    public void applyItemDiscount(UUID itemId, BigDecimal discountAmount) { state.applyItemDiscount(this, itemId, discountAmount); }
-    public void startPayment() { state.startPayment(this); }
-    public void finishPayment() { state.finishPayment(this); }
-    public void cancel() { state.cancel(this); }
-    public void hold() { state.hold(this); }
-    public void resume() { state.resume(this); }
-    public void completeSale() { state.completeSale(this); }
+    public void addItem(Product product, BigDecimal unitPrice) {
+        state.addItem(this, product, unitPrice);
+    }
+
+    public void removeItem(Product product) {
+        state.removeItem(this, product);
+    }
+
+    public void applyItemDiscount(UUID itemId, BigDecimal discountAmount) {
+        state.applyItemDiscount(this, itemId, discountAmount);
+    }
+
+    public void startPayment() {
+        state.startPayment(this);
+    }
+
+    public void finishPayment() {
+        state.finishPayment(this);
+    }
+
+    public void cancel() {
+        state.cancel(this);
+    }
+
+    public void hold() {
+        state.hold(this);
+    }
+
+    public void resume() {
+        state.resume(this);
+    }
+
+    public void completeSale() {
+        state.completeSale(this);
+    }
 
     public void applyFidelityDiscount(BigDecimal discount) {
         state.applyFidelityDiscount(this, discount);
@@ -97,10 +126,12 @@ public class Sale {
         this.total = this.subtotal.subtract(discount).max(BigDecimal.ZERO);
     }
 
-    public void doStartPayment() { this.amountDue = this.total; }
+    public void doStartPayment() {
+        this.amountDue = this.total;
+    }
 
-    public void doAddItem(Product product) {
-        addOrIncrementItem(product);
+    public void doAddItem(Product product, BigDecimal unitPrice) {
+        addOrIncrementItem(product, unitPrice);
         recalculateTotals();
     }
 
@@ -150,6 +181,8 @@ public class Sale {
         Sale sale = new Sale();
         sale.setSessionToken(sessionToken);
         sale.setState(new OpenState());
+        // Using context as it's set in the Filter
+        sale.setCompanyId(dev.kalles.sale.security.context.CompanyContextHolder.getCompanyId());
         return sale;
     }
 
@@ -157,14 +190,14 @@ public class Sale {
         return state != null ? state.getName() : OpenState.NAME;
     }
 
-    private void addOrIncrementItem(Product product) {
+    private void addOrIncrementItem(Product product, BigDecimal unitPrice) {
         Optional<SaleItem> existing = items.stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
         if (existing.isPresent()) {
             existing.get().incrementQuantity();
         } else {
-            this.items.add(new SaleItem(this, product, 1));
+            this.items.add(new SaleItem(this, product, 1, unitPrice));
         }
     }
 

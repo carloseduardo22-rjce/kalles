@@ -9,6 +9,7 @@ import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.LocationRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.StockRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +45,7 @@ public class StockService {
         if (!productRepository.existsById(productId)) {
             throw new NotFoundException("Produto não encontrado: " + productId);
         }
-        return stockRepository.findAllByProductIdOrderByQuantityDesc(productId)
+        return stockRepository.findAllByProductIdOrderByQuantityDesc(productId, getCompanyId())
                 .stream()
                 .map(StockResponse::from)
                 .toList();
@@ -55,7 +56,15 @@ public class StockService {
         if (!productRepository.existsById(productId)) {
             throw new NotFoundException("Produto não encontrado: " + productId);
         }
-        return stockRepository.sumQuantityByProductId(productId);
+        return stockRepository.sumQuantityByProductId(productId, getCompanyId());
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 
     @Transactional(readOnly = true)

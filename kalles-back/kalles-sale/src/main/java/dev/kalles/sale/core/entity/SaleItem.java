@@ -49,11 +49,11 @@ public class SaleItem {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO;
 
-    public SaleItem(Sale sale, Product product, int quantity) {
+    public SaleItem(Sale sale, Product product, int quantity, BigDecimal unitPrice) {
         this.sale = sale;
         this.product = product;
         this.quantity = quantity;
-        this.unitPrice = product.getPrice(); 
+        this.unitPrice = unitPrice; 
     }
 
     public void incrementQuantity() {

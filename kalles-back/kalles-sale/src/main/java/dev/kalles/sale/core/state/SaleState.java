@@ -12,7 +12,7 @@ public interface SaleState {
 
     String getDescription();
 
-    void addItem(Sale sale, Product product);
+    void addItem(Sale sale, Product product, BigDecimal unitPrice);
 
     void removeItem(Sale sale, Product product);
 

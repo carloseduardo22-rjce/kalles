@@ -11,12 +11,18 @@ import java.util.UUID;
 
 public interface StockRepository extends JpaRepository<Stock, UUID> {
 
-    @Query("SELECT COALESCE(SUM(s.quantity), 0) FROM Stock s WHERE s.product.id = :productId")
-    int sumQuantityByProductId(@Param("productId") UUID productId);
+    @Query("SELECT COALESCE(SUM(s.quantity), 0) FROM Stock s " +
+           "JOIN s.location l JOIN l.warehouse w " +
+           "WHERE s.product.id = :productId AND w.companyId = :companyId")
+    int sumQuantityByProductId(@Param("productId") UUID productId, @Param("companyId") UUID companyId);
 
     Optional<Stock> findByProductIdAndLocationId(UUID productId, UUID locationId);
 
-    List<Stock> findAllByProductIdOrderByQuantityDesc(UUID productId);
+    @Query("SELECT s FROM Stock s " +
+           "JOIN s.location l JOIN l.warehouse w " +
+           "WHERE s.product.id = :productId AND w.companyId = :companyId " +
+           "ORDER BY s.quantity DESC")
+    List<Stock> findAllByProductIdOrderByQuantityDesc(@Param("productId") UUID productId, @Param("companyId") UUID companyId);
 
     List<Stock> findAllByLocationId(UUID locationId);
 }

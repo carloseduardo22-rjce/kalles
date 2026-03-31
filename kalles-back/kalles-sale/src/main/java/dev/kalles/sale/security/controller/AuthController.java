@@ -33,8 +33,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request) {
-        String token = authService.authenticate(request);
+    public ResponseEntity<Void> login(
+            @Valid @RequestBody LoginRequest request,
+            @CookieValue(value = "kalles_pos_token", required = false) String posToken) {
+        
+        String token = authService.authenticate(request, posToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, createAuthCookie(token).toString())
                 .build();

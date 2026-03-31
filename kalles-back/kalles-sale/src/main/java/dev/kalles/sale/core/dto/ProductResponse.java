@@ -21,15 +21,15 @@ public record ProductResponse(
         this(id, name, internalCode, barcode, price, description, active, stockQuantity != null ? stockQuantity.intValue() : 0, warehouse, location);
     }
 
-    public static ProductResponse from(Product p) {
+    public static ProductResponse from(Product p, BigDecimal price, boolean active) {
         return new ProductResponse(
             p.getId(),
             p.getName(),
             p.getInternalCode(),
             p.getBarcode(),
-            p.getPrice(),
+            price,
             p.getDescription(),
-            p.isActive(),
+            active,
             0,
             null,
             null

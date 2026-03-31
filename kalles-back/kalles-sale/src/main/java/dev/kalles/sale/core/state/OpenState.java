@@ -21,8 +21,8 @@ public class OpenState extends AbstractSaleState {
     }
 
     @Override
-    public void addItem(Sale sale, Product product) {
-        sale.doAddItem(product);
+    public void addItem(Sale sale, Product product, BigDecimal unitPrice) {
+        sale.doAddItem(product, unitPrice);
     }
 
     @Override

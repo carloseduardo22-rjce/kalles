@@ -6,73 +6,116 @@
 -- =============================================================
 
 -- ---------------------------------------------------------------
--- 1. OPERADORES
---    BASIC      → pode adicionar itens
---    SUPERVISOR → pode remover itens / autorizar BASIC
---    MANAGER    → pode cancelar vendas / autorizar todos
---    ADMIN      → acesso total ao módulo administrativo
+-- 0. EMPRESA E TENANT DE TESTE
 -- ---------------------------------------------------------------
-INSERT INTO operators (name, code, permission_level) VALUES
-  ('João Silva',           'OP-001',   'BASIC'),
-  ('Maria Santos',         'OP-002',   'SUPERVISOR'),
-  ('Pedro Costa',          'OP-003',   'MANAGER'),
-  ('Administrador Kalles', 'ADMIN-001','ADMIN'),
-  ('Lucas Oliveira',       'OP-004',   'BASIC'),
-  ('Isabela Rocha',        'OP-005',   'BASIC'),
-  ('Rafael Alves',         'OP-006',   'SUPERVISOR')
+INSERT INTO tenant (id, name) VALUES ('123e4567-e89b-12d3-a456-426614174000', 'Conta de Teste Kalles') ON CONFLICT (id) DO NOTHING;
+INSERT INTO mercadopago_company (id, name, external_id, tenant_id) VALUES ('e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', 'Loja Matriz', 'ID_DA_LOJA_TESTE_123', '123e4567-e89b-12d3-a456-426614174000') ON CONFLICT (external_id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 1. OPERADORES
+--    Linkando Operadores à Empresa Matriz
+-- ---------------------------------------------------------------
+INSERT INTO operators (name, code, permission_level, company_id) VALUES
+  ('João Silva',           'OP-001',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Maria Santos',         'OP-002',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Pedro Costa',          'OP-003',   'MANAGER',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Administrador Kalles', 'ADMIN-001','ADMIN',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Lucas Oliveira',       'OP-004',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Isabela Rocha',        'OP-005',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Rafael Alves',         'OP-006',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT (code) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 2. CAIXAS
 -- ---------------------------------------------------------------
-INSERT INTO cash_registers (code, description, active) VALUES
-  ('CAIXA-01', 'Caixa principal — frente de loja',  true),
-  ('CAIXA-02', 'Caixa secundário — balcão',         true),
-  ('CAIXA-03', 'Caixa self-checkout — Setor A',     true)
+INSERT INTO cash_registers (code, description, active, company_id) VALUES
+  ('CAIXA-01', 'Caixa principal — frente de loja',  true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('CAIXA-02', 'Caixa secundário — balcão',         true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('CAIXA-03', 'Caixa self-checkout — Setor A',     true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT (code) DO NOTHING;
 
 -- ---------------------------------------------------------------
--- 3. PRODUTOS
+-- 3. PRODUTOS (Catálogo Global)
 -- ---------------------------------------------------------------
-INSERT INTO product (name, internal_code, barcode, description, price, active, version) VALUES
-  ('Coca-Cola 350ml',        'PRD-001', '7891000100103', 'Refrigerante lata 350ml',                            5.50,  true,  0),
-  ('Água Mineral 500ml',     'PRD-002', '7891000200204', 'Água sem gás 500ml',                                 2.00,  true,  0),
-  ('Salgadinho 50g',         'PRD-003', '7891000300305', 'Salgadinho sabor queijo 50g',                        3.75,  true,  0),
-  ('Chocolate 100g',         'PRD-004', '7891000400406', 'Barra de chocolate ao leite 100g',                   6.90,  true,  0),
-  ('Biscoito Cream',         'PRD-005', '7891000500507', 'Biscoito cream cracker 200g',                        4.50,  true,  0),
-  ('Suco de Laranja',        'PRD-006', '7891000600608', 'Néctar de laranja 1L',                               7.00,  true,  0),
-  ('Arroz 5kg',              'PRD-007', '7891000700709', 'Arroz branco tipo 1, 5kg',                          22.90,  true,  0),
-  ('Feijão 1kg',             'PRD-008', '7891000800800', 'Feijão carioca 1kg',                                10.50,  true,  0),
-  ('Óleo de Soja 900ml',     'PRD-009', '7891000900901', 'Óleo de soja refinado 900ml',                        7.80,  true,  0),
-  ('Macarrão 500g',          'PRD-010', '7891001001002', 'Macarrão espaguete 500g',                            4.20,  true,  0),
-  ('Leite Integral 1L',      'PRD-011', '7891000110011', 'Leite integral tipo A 1L',                           4.50,  true,  0),
-  ('Manteiga 200g',          'PRD-012', '7891000120012', 'Manteiga extra creme sem sal 200g',                  8.90,  true,  0),
-  ('Iogurte Natural 170g',   'PRD-013', '7891000130013', 'Iogurte natural integral 170g',                      3.20,  true,  0),
-  ('Pão de Forma 500g',      'PRD-014', '7891000140014', 'Pão de forma tradicional 500g',                      7.50,  true,  0),
-  ('Café Solúvel 50g',       'PRD-015', '7891000150015', 'Café solúvel instantâneo 50g',                       6.80,  true,  0),
-  ('Açúcar Refinado 1kg',    'PRD-016', '7891000160016', 'Açúcar refinado branco 1kg',                         4.00,  true,  0),
-  ('Sabonete 90g',           'PRD-017', '7891000170017', 'Sabonete hidratante original 90g',                   3.50,  true,  0),
-  ('Shampoo 200ml',          'PRD-018', '7891000180018', 'Shampoo restauração 200ml',                         12.90,  true,  0),
-  ('Detergente 500ml',       'PRD-019', '7891000190019', 'Detergente neutro 500ml',                            2.50,  true,  0),
-  ('Papel Higiênico 4un',    'PRD-020', '7891000200020', 'Papel higiênico dupla folha 4 rolos',               10.90,  true,  0),
-  ('Amaciante 2L',           'PRD-021', '7891000210021', 'Amaciante concentrado 2L',                          15.90,  true,  0),
-  ('Desinfetante 1L',        'PRD-022', '7891000220022', 'Desinfetante pinho 1L',                              5.40,  true,  0),
-  ('Refrigerante Cola 2L',   'PRD-023', '7891000230023', 'Refrigerante cola 2L',                               8.50,  true,  0),
-  ('Suco de Uva 1L',         'PRD-024', '7891000240024', 'Suco de uva integral 1L',                           11.00,  true,  0),
-  ('Cereal Matinal 300g',    'PRD-025', '7891000250025', 'Cereal matinal de milho 300g',                       9.90,  true,  0),
-  ('Fermento em Pó 100g',    'PRD-026', '7891000260026', 'Fermento químico em pó 100g',                        2.80,  true,  0),
-  ('Vinagre 750ml',          'PRD-027', '7891000270027', 'Vinagre de álcool 750ml',                            3.10,  true,  0),
-  ('Creme de Leite 300g',    'PRD-028', '7891000280028', 'Creme de leite mesa 300g',                           5.20,  true,  0),
-  ('Biscoito Recheado 130g', 'PRD-029', '7891000290029', 'Biscoito recheado chocolate — linha descontinuada',  3.90,  false, 0),
-  ('Achocolatado 200ml',     'PRD-030', '7891000300030', 'Achocolatado UHT 200ml',                             2.90,  true,  0)
+INSERT INTO product (name, internal_code, barcode, description, tenant_id, version) VALUES
+  ('Coca-Cola 350ml',        'PRD-001', '7891000100103', 'Refrigerante lata 350ml',                            '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Água Mineral 500ml',     'PRD-002', '7891000200204', 'Água sem gás 500ml',                                 '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Salgadinho 50g',         'PRD-003', '7891000300305', 'Salgadinho sabor queijo 50g',                        '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Chocolate 100g',         'PRD-004', '7891000400406', 'Barra de chocolate ao leite 100g',                   '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Biscoito Cream',         'PRD-005', '7891000500507', 'Biscoito cream cracker 200g',                        '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Suco de Laranja',        'PRD-006', '7891000600608', 'Néctar de laranja 1L',                               '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Arroz 5kg',              'PRD-007', '7891000700709', 'Arroz branco tipo 1, 5kg',                          '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Feijão 1kg',             'PRD-008', '7891000800800', 'Feijão carioca 1kg',                                '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Óleo de Soja 900ml',     'PRD-009', '7891000900901', 'Óleo de soja refinado 900ml',                        '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Macarrão 500g',          'PRD-010', '7891001001002', 'Macarrão espaguete 500g',                            '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Leite Integral 1L',      'PRD-011', '7891000110011', 'Leite integral tipo A 1L',                           '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Manteiga 200g',          'PRD-012', '7891000120012', 'Manteiga extra creme sem sal 200g',                  '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Iogurte Natural 170g',   'PRD-013', '7891000130013', 'Iogurte natural integral 170g',                      '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Pão de Forma 500g',      'PRD-014', '7891000140014', 'Pão de forma tradicional 500g',                      '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Café Solúvel 50g',       'PRD-015', '7891000150015', 'Café solúvel instantâneo 50g',                       '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Açúcar Refinado 1kg',    'PRD-016', '7891000160016', 'Açúcar refinado branco 1kg',                         '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Sabonete 90g',           'PRD-017', '7891000170017', 'Sabonete hidratante original 90g',                   '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Shampoo 200ml',          'PRD-018', '7891000180018', 'Shampoo restauração 200ml',                         '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Detergente 500ml',       'PRD-019', '7891000190019', 'Detergente neutro 500ml',                            '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Papel Higiênico 4un',    'PRD-020', '7891000200020', 'Papel higiênico dupla folha 4 rolos',               '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Amaciante 2L',           'PRD-021', '7891000210021', 'Amaciante concentrado 2L',                          '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Desinfetante 1L',        'PRD-022', '7891000220022', 'Desinfetante pinho 1L',                              '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Refrigerante Cola 2L',   'PRD-023', '7891000230023', 'Refrigerante cola 2L',                               '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Suco de Uva 1L',         'PRD-024', '7891000240024', 'Suco de uva integral 1L',                           '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Cereal Matinal 300g',    'PRD-025', '7891000250025', 'Cereal matinal de milho 300g',                       '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Fermento em Pó 100g',    'PRD-026', '7891000260026', 'Fermento químico em pó 100g',                        '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Vinagre 750ml',          'PRD-027', '7891000270027', 'Vinagre de álcool 750ml',                            '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Creme de Leite 300g',    'PRD-028', '7891000280028', 'Creme de leite mesa 300g',                           '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Biscoito Recheado 130g', 'PRD-029', '7891000290029', 'Biscoito recheado chocolate — linha descontinuada',  '123e4567-e89b-12d3-a456-426614174000', 0),
+  ('Achocolatado 200ml',     'PRD-030', '7891000300030', 'Achocolatado UHT 200ml',                             '123e4567-e89b-12d3-a456-426614174000', 0)
 ON CONFLICT (internal_code) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- 3.1. PRODUTOS DA EMPRESA (Preços Locais)
+-- ---------------------------------------------------------------
+INSERT INTO company_product (company_id, product_id, price, active)
+SELECT 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', p.id, v.price, v.active
+FROM product p
+JOIN (VALUES
+  ('PRD-001', 5.50,  true),
+  ('PRD-002', 2.00,  true),
+  ('PRD-003', 3.75,  true),
+  ('PRD-004', 6.90,  true),
+  ('PRD-005', 4.50,  true),
+  ('PRD-006', 7.00,  true),
+  ('PRD-007', 22.90, true),
+  ('PRD-008', 10.50, true),
+  ('PRD-009', 7.80,  true),
+  ('PRD-010', 4.20,  true),
+  ('PRD-011', 4.50,  true),
+  ('PRD-012', 8.90,  true),
+  ('PRD-013', 3.20,  true),
+  ('PRD-014', 7.50,  true),
+  ('PRD-015', 6.80,  true),
+  ('PRD-016', 4.00,  true),
+  ('PRD-017', 3.50,  true),
+  ('PRD-018', 12.90, true),
+  ('PRD-019', 2.50,  true),
+  ('PRD-020', 10.90, true),
+  ('PRD-021', 15.90, true),
+  ('PRD-022', 5.40,  true),
+  ('PRD-023', 8.50,  true),
+  ('PRD-024', 11.00, true),
+  ('PRD-025', 9.90,  true),
+  ('PRD-026', 2.80,  true),
+  ('PRD-027', 3.10,  true),
+  ('PRD-028', 5.20,  true),
+  ('PRD-029', 3.90,  false),
+  ('PRD-030', 2.90,  true)
+) AS v(code, price, active) ON p.internal_code = v.code
+ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 4. DEPÓSITOS
 -- ---------------------------------------------------------------
-INSERT INTO warehouse (name, address, active) VALUES
-  ('Depósito Central',  'Rua das Flores, 100 — Bairro Industrial', true),
-  ('Depósito Auxiliar', 'Av. Brasil, 500 — Galpão 3',             true)
+INSERT INTO warehouse (name, address, active, company_id) VALUES
+  ('Depósito Central',  'Rua das Flores, 100 — Bairro Industrial', true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Depósito Auxiliar', 'Av. Brasil, 500 — Galpão 3',             true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -175,10 +218,10 @@ ON CONFLICT (id) DO NOTHING;
 --    Política antiga (inativa): 50 pts → R$10,00 de desconto.
 --    Política atual  (ativa):  100 pts → R$20,00 de desconto.
 -- ---------------------------------------------------------------
-INSERT INTO fidelity_policy (id, objective_points, configured_discount, value_point, active, created_at)
+INSERT INTO fidelity_policy (id, objective_points, configured_discount, value_point, active, created_at, company_id)
 VALUES
-  ('a1b2c3d4-0001-0001-0001-000000000001'::uuid,  50, 10.00, 1, false, '2025-09-01'),
-  ('a1b2c3d4-0002-0002-0002-000000000002'::uuid, 100, 20.00, 1, true,  '2026-01-01')
+  ('a1b2c3d4-0001-0001-0001-000000000001'::uuid,  50, 10.00, 1, false, '2025-09-01', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('a1b2c3d4-0002-0002-0002-000000000002'::uuid, 100, 20.00, 1, true,  '2026-01-01', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -244,7 +287,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 INSERT INTO sale (id, version, session_token, state, client_id,
                   subtotal, total, amount_due,
-                  fidelity_discount_applied, points_earned)
+                  fidelity_discount_applied, points_earned, company_id)
 SELECT
   v.sale_id::uuid,
   0,
@@ -255,7 +298,8 @@ SELECT
   v.total::numeric(19,2),
   v.amount_due::numeric(19,2),
   v.fid_disc::numeric(19,2),
-  0
+  0,
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
   ('c1000000-0000-0000-0000-000000000001', 'COMPLETED', '153.509.460-56', 24.00, 4.00,  0.00, 20.00),
   ('c1000000-0000-0000-0000-000000000002', 'COMPLETED', '529.982.247-25', 16.50, 16.50, 0.00,  0.00),
@@ -279,7 +323,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 INSERT INTO sale (id, version, session_token, state, client_id,
                   subtotal, total, amount_due,
-                  fidelity_discount_applied, points_earned)
+                  fidelity_discount_applied, points_earned, company_id)
 SELECT
   v.sale_id::uuid,
   0,
@@ -290,7 +334,8 @@ SELECT
   v.total::numeric(19,2),
   v.amount_due::numeric(19,2),
   v.fid_disc::numeric(19,2),
-  0
+  0,
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
   ('c1000000-0000-0000-0000-000000000005', 'COMPLETED', '871.504.977-73', 20.20, 0.20,  0.00, 20.00),
   ('c1000000-0000-0000-0000-000000000006', 'COMPLETED', NULL,             36.40, 36.40, 0.00,  0.00),
@@ -391,7 +436,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 INSERT INTO sale (id, version, session_token, state, client_id,
                   subtotal, total, amount_due,
-                  fidelity_discount_applied, points_earned)
+                  fidelity_discount_applied, points_earned, company_id)
 SELECT
   v.sale_id::uuid,
   0,
@@ -422,7 +467,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 INSERT INTO sale (id, version, session_token, state, client_id,
                   subtotal, total, amount_due,
-                  fidelity_discount_applied, points_earned)
+                  fidelity_discount_applied, points_earned, company_id)
 SELECT
   v.sale_id::uuid,
   0,
@@ -571,93 +616,93 @@ ON CONFLICT (id) DO NOTHING;
 -- subtotal = total para vendas concluídas; amount_due = 0.
 -- Para canceladas: amount_due = subtotal.
 INSERT INTO sale (id, version, session_token, state, client_id,
-                  subtotal, total, amount_due, fidelity_discount_applied, points_earned)
+                  subtotal, total, amount_due, fidelity_discount_applied, points_earned, company_id)
 VALUES
   -- ── b004 · 03/03 · CAIXA-01 · Maria Santos ──────────────────
   -- P: 3×Coca + 2×Salgadinho = 24,00   CASH   25,00 (troco 1,00)
-  ('c1000000-0000-0000-0000-000000000016'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 24.00, 24.00, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000016'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 24.00, 24.00, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Q: Leite + Pão + Manteiga = 20,90   PIX
-  ('c1000000-0000-0000-0000-000000000017'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 20.90, 20.90, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000017'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 20.90, 20.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- R: Arroz + Feijão = 33,40   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000018'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 33.40, 33.40, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000018'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL, 33.40, 33.40, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- S: 2×Água + Biscoito = 8,50   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000019'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL,  8.50,  8.50, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000019'::uuid,0,'b0000000-0000-0000-0000-000000000004','COMPLETED',NULL,  8.50,  8.50, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- T: Chocolate (cancelada)
-  ('c1000000-0000-0000-0000-000000000020'::uuid,0,'b0000000-0000-0000-0000-000000000004','CANCELED', NULL,  6.90,  6.90, 6.90,0.00,0),
+  ('c1000000-0000-0000-0000-000000000020'::uuid,0,'b0000000-0000-0000-0000-000000000004','CANCELED', NULL,  6.90,  6.90, 6.90,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b005 · 03/03 · CAIXA-02 · Isabela Rocha ─────────────────
   -- U: Shampoo + Detergente = 15,40   PIX
-  ('c1000000-0000-0000-0000-000000000021'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 15.40, 15.40, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000021'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 15.40, 15.40, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- V: Papel Higiênico + Amaciante = 26,80   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000022'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 26.80, 26.80, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000022'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 26.80, 26.80, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- W: Cereal + Leite = 14,40   CASH   15,00 (troco 0,60)
-  ('c1000000-0000-0000-0000-000000000023'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 14.40, 14.40, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000023'::uuid,0,'b0000000-0000-0000-0000-000000000005','COMPLETED',NULL, 14.40, 14.40, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b006 · 04/03 · CAIXA-01 · João Silva ────────────────────
   -- X1: 2×Suco Laranja + Chocolate = 20,90   PIX
-  ('c1000000-0000-0000-0000-000000000024'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 20.90, 20.90, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000024'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 20.90, 20.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- X2: Arroz + Óleo = 30,70   CASH   35,00 (troco 4,30)
-  ('c1000000-0000-0000-0000-000000000025'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 30.70, 30.70, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000025'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 30.70, 30.70, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- X3: Sabonete + Detergente + Desinfetante = 11,40   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000026'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 11.40, 11.40, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000026'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 11.40, 11.40, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- X4: 2×Iogurte + Manteiga = 15,30   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000027'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 15.30, 15.30, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000027'::uuid,0,'b0000000-0000-0000-0000-000000000006','COMPLETED',NULL, 15.30, 15.30, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- X5: Amaciante (cancelada)
-  ('c1000000-0000-0000-0000-000000000028'::uuid,0,'b0000000-0000-0000-0000-000000000006','CANCELED', NULL, 15.90, 15.90,15.90,0.00,0),
+  ('c1000000-0000-0000-0000-000000000028'::uuid,0,'b0000000-0000-0000-0000-000000000006','CANCELED', NULL, 15.90, 15.90,15.90,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b007 · 05/03 · CAIXA-03 · Rafael Alves ──────────────────
   -- Y1: Feijão + Macarrão = 14,70   PIX
-  ('c1000000-0000-0000-0000-000000000029'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 14.70, 14.70, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000029'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 14.70, 14.70, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Y2: Leite + Café + Açúcar = 15,30   CASH   20,00 (troco 4,70)
-  ('c1000000-0000-0000-0000-000000000030'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 15.30, 15.30, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000030'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 15.30, 15.30, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Y3: Refrigerante 2L + Suco Uva = 19,50   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000031'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 19.50, 19.50, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000031'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 19.50, 19.50, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Y4: 2×Biscoito + Achocolatado = 11,90   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000032'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 11.90, 11.90, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000032'::uuid,0,'b0000000-0000-0000-0000-000000000007','COMPLETED',NULL, 11.90, 11.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b008 · 07/03 · CAIXA-01 · Pedro Costa — dia de pico ─────
   -- Z1: 2×Arroz + Feijão + Óleo = 64,10   PIX
-  ('c1000000-0000-0000-0000-000000000033'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 64.10, 64.10, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000033'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 64.10, 64.10, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Z2: 3×Coca + 2×Salgadinho + Chocolate = 30,90   CASH   35,00 (troco 4,10)
-  ('c1000000-0000-0000-0000-000000000034'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 30.90, 30.90, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000034'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 30.90, 30.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Z3: Shampoo + Sabonete + Detergente = 18,90   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000035'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 18.90, 18.90, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000035'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 18.90, 18.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Z4: Papel Higiênico + Amaciante + Desinfetante = 32,20   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000036'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 32.20, 32.20, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000036'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 32.20, 32.20, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Z5: 2×Pão + Manteiga + Café = 30,70   PIX
-  ('c1000000-0000-0000-0000-000000000037'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 30.70, 30.70, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000037'::uuid,0,'b0000000-0000-0000-0000-000000000008','COMPLETED',NULL, 30.70, 30.70, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- Z6: Cereal + Leite (cancelada)
-  ('c1000000-0000-0000-0000-000000000038'::uuid,0,'b0000000-0000-0000-0000-000000000008','CANCELED', NULL, 14.40, 14.40,14.40,0.00,0),
+  ('c1000000-0000-0000-0000-000000000038'::uuid,0,'b0000000-0000-0000-0000-000000000008','CANCELED', NULL, 14.40, 14.40,14.40,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b009 · 08/03 · CAIXA-02 · João Silva ────────────────────
   -- AA1: Suco Uva + 2×Achocolatado = 16,80   CASH   20,00 (troco 3,20)
-  ('c1000000-0000-0000-0000-000000000039'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 16.80, 16.80, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000039'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 16.80, 16.80, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- AA2: Macarrão + Creme de Leite + Fermento = 12,20   PIX
-  ('c1000000-0000-0000-0000-000000000040'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 12.20, 12.20, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000040'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 12.20, 12.20, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- AA3: Arroz + Manteiga = 31,80   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000041'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 31.80, 31.80, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000041'::uuid,0,'b0000000-0000-0000-0000-000000000009','COMPLETED',NULL, 31.80, 31.80, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- AA4: Amaciante (cancelada)
-  ('c1000000-0000-0000-0000-000000000042'::uuid,0,'b0000000-0000-0000-0000-000000000009','CANCELED', NULL, 15.90, 15.90,15.90,0.00,0),
+  ('c1000000-0000-0000-0000-000000000042'::uuid,0,'b0000000-0000-0000-0000-000000000009','CANCELED', NULL, 15.90, 15.90,15.90,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b010 · 09/03 · CAIXA-01 · Maria Santos ──────────────────
   -- BB1: 2×Refrigerante 2L + Suco Laranja = 24,00   PIX
-  ('c1000000-0000-0000-0000-000000000043'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 24.00, 24.00, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000043'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 24.00, 24.00, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- BB2: Arroz + Feijão + Óleo + Macarrão = 45,40   CASH   50,00 (troco 4,60)
-  ('c1000000-0000-0000-0000-000000000044'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 45.40, 45.40, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000044'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 45.40, 45.40, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- BB3: Leite + 2×Iogurte + Manteiga = 19,80   CREDIT_CARD
-  ('c1000000-0000-0000-0000-000000000045'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 19.80, 19.80, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000045'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 19.80, 19.80, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- BB4: Shampoo + Papel Higiênico + Sabonete = 27,30   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000046'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 27.30, 27.30, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000046'::uuid,0,'b0000000-0000-0000-0000-000000000010','COMPLETED',NULL, 27.30, 27.30, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- BB5: Chocolate (cancelada)
-  ('c1000000-0000-0000-0000-000000000047'::uuid,0,'b0000000-0000-0000-0000-000000000010','CANCELED', NULL,  6.90,  6.90, 6.90,0.00,0),
+  ('c1000000-0000-0000-0000-000000000047'::uuid,0,'b0000000-0000-0000-0000-000000000010','CANCELED', NULL,  6.90,  6.90, 6.90,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
 
   -- ── b011 · 09/03 · CAIXA-02 · Rafael Alves ──────────────────
   -- CC1: Cereal + Leite + Café = 21,20   PIX
-  ('c1000000-0000-0000-0000-000000000048'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 21.20, 21.20, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000048'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 21.20, 21.20, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- CC2: Vinagre + Creme de Leite + Fermento = 11,10   DEBIT_CARD
-  ('c1000000-0000-0000-0000-000000000049'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 11.10, 11.10, 0.00,0.00,0),
+  ('c1000000-0000-0000-0000-000000000049'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 11.10, 11.10, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid),
   -- CC3: 2×Açúcar + Detergente + Desinfetante = 15,90   CASH   20,00 (troco 4,10)
-  ('c1000000-0000-0000-0000-000000000050'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 15.90, 15.90, 0.00,0.00,0)
+  ('c1000000-0000-0000-0000-000000000050'::uuid,0,'b0000000-0000-0000-0000-000000000011','COMPLETED',NULL, 15.90, 15.90, 0.00,0.00,0,'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid)
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -1008,10 +1053,10 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 
 -- 28. METAS DE FATURAMENTO
-INSERT INTO goals (id, version, target_value, periodicity, start_date, end_date, status)
+INSERT INTO goals (id, version, target_value, periodicity, start_date, end_date, status, company_id)
 VALUES
-  ('a0000000-0000-0000-0000-000000000001'::uuid, 0, 700.00, 'WEEKLY',  '2026-03-03', '2026-03-09', 'CLOSED'),
-  ('a0000000-0000-0000-0000-000000000002'::uuid, 0, 800.00, 'MONTHLY', '2026-03-01', '2026-03-31', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000003'::uuid, 0, 900.00, 'MONTHLY', '2026-04-01', '2026-04-30', 'DRAFT'),
-  ('a0000000-0000-0000-0000-000000000004'::uuid, 0, 300.00, 'MONTHLY', '2026-02-01', '2026-02-28', 'CLOSED')
+  ('a0000000-0000-0000-0000-000000000001'::uuid, 0, 700.00, 'WEEKLY',  '2026-03-03', '2026-03-09', 'CLOSED', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('a0000000-0000-0000-0000-000000000002'::uuid, 0, 800.00, 'MONTHLY', '2026-03-01', '2026-03-31', 'ACTIVE', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('a0000000-0000-0000-0000-000000000003'::uuid, 0, 900.00, 'MONTHLY', '2026-04-01', '2026-04-30', 'DRAFT', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('a0000000-0000-0000-0000-000000000004'::uuid, 0, 300.00, 'MONTHLY', '2026-02-01', '2026-02-28', 'CLOSED', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT (id) DO NOTHING;

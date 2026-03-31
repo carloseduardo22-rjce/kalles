@@ -1,5 +1,7 @@
 package dev.kalles.sale.core.state;
 
+import java.math.BigDecimal;
+
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
 
@@ -18,8 +20,8 @@ public class OnHoldState extends AbstractSaleState {
     }
 
     @Override
-    public void addItem(Sale sale, Product product) {
-        sale.doAddItem(product);
+    public void addItem(Sale sale, Product product, BigDecimal unitPrice) {
+        sale.doAddItem(product, unitPrice);
     }
 
     @Override

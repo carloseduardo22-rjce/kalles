@@ -47,13 +47,12 @@ class StockServiceTest {
         p.setId(id);
         p.setName("Produto Teste");
         p.setInternalCode("PRD-001");
-        p.setPrice(new BigDecimal("10.00"));
-        p.setActive(true);
+        // Product no longer has price or active at this level
         return p;
     }
 
     private Location buildLocation(UUID id) {
-        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", null, true);
+        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", null, true, UUID.randomUUID());
         return new Location(id, wh, "EST-01", null);
     }
 
@@ -136,7 +135,8 @@ class StockServiceTest {
         Stock s2 = new Stock(UUID.randomUUID(), null, product, buildLocation(UUID.randomUUID()), 20);
 
         when(productRepository.existsById(productId)).thenReturn(true);
-        when(stockRepository.findAllByProductIdOrderByQuantityDesc(productId)).thenReturn(List.of(s1, s2));
+        // Mocking with ANY companyId since getCompanyId() will be called internally
+        when(stockRepository.findAllByProductIdOrderByQuantityDesc(eq(productId), any())).thenReturn(List.of(s1, s2));
 
         List<StockResponse> result = stockService.getStockByProduct(productId);
 
@@ -161,7 +161,7 @@ class StockServiceTest {
     void shouldReturnTotalStockSumForProduct() {
         UUID productId = UUID.randomUUID();
         when(productRepository.existsById(productId)).thenReturn(true);
-        when(stockRepository.sumQuantityByProductId(productId)).thenReturn(150);
+        when(stockRepository.sumQuantityByProductId(eq(productId), any())).thenReturn(150);
 
         int total = stockService.getTotalStockByProduct(productId);
 

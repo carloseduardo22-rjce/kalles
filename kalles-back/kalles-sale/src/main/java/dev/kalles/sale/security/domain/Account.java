@@ -27,6 +27,9 @@ public class Account implements UserDetails {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
+    @Column(name = "company_id")
+    private UUID companyId;
+
     @Column(nullable = false)
     private String name;
 
