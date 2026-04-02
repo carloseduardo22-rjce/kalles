@@ -18,18 +18,19 @@ class SaleTest {
 
     private Sale sale;
     private Product product;
+    private BigDecimal productPrice;
     private Operator supervisor;
     private Operator basic;
 
     @BeforeEach
     void setUp() {
+        productPrice = new BigDecimal("25.50");
         product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto Teste");
         product.setInternalCode("PRD-001");
         product.setBarcode("7891234567890");
-        product.setPrice(new BigDecimal("25.50"));
-        product.setActive(true);
+        
 
         sale = Sale.createForSession("session-123");
         sale.setId(UUID.randomUUID());
@@ -52,7 +53,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve remover item existente da venda")
         void deveRemoverItemExistente() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             assertEquals(1, sale.getItems().size());
 
             sale.removeItem(product);
@@ -65,9 +66,9 @@ class SaleTest {
         void naoDeveLancarErroAoRemoverItemInexistente() {
             Product outroProduto = new Product();
             outroProduto.setId(UUID.randomUUID());
-            outroProduto.setPrice(BigDecimal.ONE);
+            BigDecimal outroProdutoPrice = new BigDecimal("10.00");
 
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
 
             assertDoesNotThrow(() -> sale.removeItem(outroProduto));
             assertEquals(1, sale.getItems().size());
@@ -81,7 +82,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve zerar total quando único item é removido")
         void deveZerarTotalQuandoUnicoItemRemovido() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             assertEquals(new BigDecimal("25.50"), sale.getTotal());
 
             sale.removeItem(product);
@@ -96,10 +97,10 @@ class SaleTest {
             Product outroProduto = new Product();
             outroProduto.setId(UUID.randomUUID());
             outroProduto.setName("Outro Produto");
-            outroProduto.setPrice(new BigDecimal("10.00"));
+            BigDecimal outroProdutoPrice = new BigDecimal("10.00");
 
-            sale.addItem(product);
-            sale.addItem(outroProduto);
+            sale.addItem(product, new BigDecimal("25.50"));
+            sale.addItem(outroProduto, outroProdutoPrice);
             assertEquals(new BigDecimal("35.50"), sale.getTotal());
 
             sale.removeItem(product);
@@ -115,7 +116,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir remoção quando venda está cancelada")
         void deveImpedirRemocaoQuandoVendaCancelada() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
             assertThrows(IllegalStateException.class, () -> 
@@ -126,7 +127,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir remoção quando venda está em pagamento")
         void deveImpedirRemocaoQuandoVendaEmPagamento() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
             assertThrows(IllegalStateException.class, () -> 
@@ -137,7 +138,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir remoção quando venda está paga")
         void deveImpedirRemocaoQuandoVendaPaga() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
 
@@ -154,7 +155,7 @@ class SaleTest {
         @Test
         @DisplayName("Cenário 1 — Deve finalizar venda paga com sucesso")
         void deveFinalizarVendaPagaComSucesso() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
             assertEquals("PAID", sale.getStateName());
@@ -167,7 +168,7 @@ class SaleTest {
         @Test
         @DisplayName("Cenário 2 — Deve impedir finalização quando venda está aberta")
         void deveImpedirFinalizacaoQuandoVendaAberta() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
 
             assertThrows(IllegalStateException.class, () -> sale.completeSale());
         }
@@ -175,7 +176,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir finalização quando venda está em pagamento")
         void deveImpedirFinalizacaoQuandoVendaEmPagamento() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
             assertThrows(IllegalStateException.class, () -> sale.completeSale());
@@ -184,7 +185,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir finalização quando venda está cancelada")
         void deveImpedirFinalizacaoQuandoVendaCancelada() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
             assertThrows(IllegalStateException.class, () -> sale.completeSale());
@@ -193,18 +194,18 @@ class SaleTest {
         @Test
         @DisplayName("BR010 — Venda concluída não aceita novos itens")
         void vendaConcluidaNaoAceitaNovosItens() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () -> sale.addItem(product));
+            assertThrows(IllegalStateException.class, () -> sale.addItem(product, new BigDecimal("25.50")));
         }
 
         @Test
         @DisplayName("BR010 — Venda concluída não aceita novos pagamentos")
         void vendaConcluidaNaoAceitaNovoPagamento() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
             sale.completeSale();
@@ -215,7 +216,7 @@ class SaleTest {
         @Test
         @DisplayName("BR010 — Venda concluída não pode ser cancelada")
         void vendaConcluidaNaoPodeSerCancelada() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
             sale.completeSale();
@@ -234,18 +235,18 @@ class SaleTest {
             Product produtoCaro = new Product();
             produtoCaro.setId(UUID.randomUUID());
             produtoCaro.setName("Produto Caro");
-            produtoCaro.setPrice(new BigDecimal("50.00"));
+            BigDecimal produtoCaroPrice = new BigDecimal("100.00");
 
-            sale.addItem(produtoCaro);
+            sale.addItem(produtoCaro, produtoCaroPrice);
             UUID itemId = sale.getItems().iterator().next().getId();
 
             sale.applyItemDiscount(itemId, new BigDecimal("10.00"));
 
             SaleItem item = sale.getItems().iterator().next();
             assertEquals(new BigDecimal("10.00"), item.getDiscount());
-            assertEquals(new BigDecimal("40.00"), item.getSubtotal());
-            assertEquals(new BigDecimal("40.00"), sale.getSubtotal());
-            assertEquals(new BigDecimal("40.00"), sale.getTotal());
+            assertEquals(new BigDecimal("90.00"), item.getSubtotal());
+            assertEquals(new BigDecimal("90.00"), sale.getSubtotal());
+            assertEquals(new BigDecimal("90.00"), sale.getTotal());
         }
 
         @Test
@@ -254,13 +255,13 @@ class SaleTest {
             Product produtoCaro = new Product();
             produtoCaro.setId(UUID.randomUUID());
             produtoCaro.setName("Produto Caro");
-            produtoCaro.setPrice(new BigDecimal("50.00"));
+            BigDecimal produtoCaroPrice = new BigDecimal("100.00");
 
-            sale.addItem(produtoCaro);
+            sale.addItem(produtoCaro, produtoCaroPrice);
             UUID itemId = sale.getItems().iterator().next().getId();
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                sale.applyItemDiscount(itemId, new BigDecimal("60.00"))
+                sale.applyItemDiscount(itemId, new BigDecimal("160.00"))
             );
 
             assertTrue(exception.getMessage().contains("não pode exceder"));
@@ -269,7 +270,7 @@ class SaleTest {
         @Test
         @DisplayName("BR013 — Deve bloquear desconto negativo")
         void deveBloquearDescontoNegativo() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
@@ -285,10 +286,10 @@ class SaleTest {
             Product outroProduto = new Product();
             outroProduto.setId(UUID.randomUUID());
             outroProduto.setName("Outro Produto");
-            outroProduto.setPrice(new BigDecimal("30.00"));
+            BigDecimal outroProdutoPrice = new BigDecimal("10.00");
 
-            sale.addItem(product);     
-            sale.addItem(outroProduto); 
+            sale.addItem(product, new BigDecimal("25.50"));     
+            sale.addItem(outroProduto, outroProdutoPrice); 
             assertEquals(new BigDecimal("55.50"), sale.getTotal());
 
             UUID itemId = sale.getItems().iterator().next().getId();
@@ -301,7 +302,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir desconto quando venda está cancelada")
         void deveImpedirDescontoQuandoVendaCancelada() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.cancel();
 
@@ -313,7 +314,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir desconto quando venda está em pagamento")
         void deveImpedirDescontoQuandoVendaEmPagamento() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
 
@@ -325,7 +326,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve impedir desconto quando venda está paga")
         void deveImpedirDescontoQuandoVendaPaga() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
             sale.finishPayment();
@@ -338,7 +339,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve lançar exceção quando item não encontrado na venda")
         void deveLancarExcecaoQuandoItemNaoEncontrado() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
 
             UUID itemIdInexistente = UUID.randomUUID();
 
@@ -350,7 +351,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve lançar exceção quando venda está completa")
         void deveImpedirDescontoQuandoVendaCompleta() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
             sale.finishPayment();
@@ -370,7 +371,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve aplicar desconto de fidelidade quando venda está aberta")
         void deveAplicarDescontoDeFelidadeQuandoAberta() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.applyFidelityDiscount(new BigDecimal("10.00"));
 
             assertEquals(new BigDecimal("15.50"), sale.getTotal());
@@ -381,7 +382,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve bloquear desconto de fidelidade quando venda está cancelada")
         void deveBloquearDescontoFidelidadeQuandoCancelada() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
             assertThrows(IllegalStateException.class, () ->
@@ -392,7 +393,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve bloquear desconto de fidelidade quando venda está em pagamento")
         void deveBloquearDescontoFidelidadeQuandoEmPagamento() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
             assertThrows(IllegalStateException.class, () ->
@@ -403,7 +404,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve bloquear desconto de fidelidade quando venda está paga")
         void deveBloquearDescontoFidelidadeQuandoPaga() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
 
@@ -415,7 +416,7 @@ class SaleTest {
         @Test
         @DisplayName("Deve bloquear desconto de fidelidade quando venda está concluída")
         void deveBloquearDescontoFidelidadeQuandoConcluida() {
-            sale.addItem(product);
+            sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
             sale.finishPayment();
             sale.completeSale();

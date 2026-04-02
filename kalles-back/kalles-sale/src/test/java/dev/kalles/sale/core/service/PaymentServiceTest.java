@@ -59,12 +59,12 @@ class PaymentServiceTest {
         product.setName("Test Product");
         product.setInternalCode("PRD-001");
         product.setBarcode("7891234567890");
-        product.setPrice(new BigDecimal("50.00"));
-        product.setActive(true);
+
+
 
         sale = Sale.createForSession(SESSION_TOKEN);
         sale.setId(UUID.randomUUID());
-        sale.addItem(product);
+        sale.addItem(product, new BigDecimal("50.00"));
 
         session = mock(Session.class);
         lenient().when(session.isOpen()).thenReturn(true);

@@ -10,6 +10,9 @@ import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.LocationRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.StockRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +45,16 @@ class StockServiceTest {
     @InjectMocks
     private StockService stockService;
 
+    @BeforeEach
+    void setUp() {
+        CompanyContextHolder.setCompanyId(UUID.randomUUID());
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
+    }
+
     private Product buildProduct(UUID id) {
         Product p = new Product();
         p.setId(id);
@@ -52,7 +65,7 @@ class StockServiceTest {
     }
 
     private Location buildLocation(UUID id) {
-        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", null, true, UUID.randomUUID());
+        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", "Endereço A", true);
         return new Location(id, wh, "EST-01", null);
     }
 

@@ -15,3 +15,11 @@ export interface MpPos {
   external_id: string;
   qr_code?: string;
 }
+
+export interface MpTerminal {
+  id: string;
+  posId: string;
+  storeId: string;
+  externalPosId: string;
+  operationMode: string;
+}

@@ -83,12 +83,12 @@ class SaleServiceTest {
         product.setName("Produto Teste");
         product.setInternalCode(INTERNAL_CODE);
         product.setBarcode(BAR_CODE);
-        product.setPrice(BigDecimal.TEN);
-        product.setActive(true);
+
+
 
         sale = Sale.createForSession(SESSION_TOKEN);
         sale.setId(UUID.randomUUID());
-        sale.addItem(product);
+        sale.addItem(product, new BigDecimal("25.50"));
 
         supervisorOperator = new Operator();
         supervisorOperator.setId(UUID.randomUUID());
@@ -433,7 +433,7 @@ class SaleServiceTest {
         void deveFinalizarVendaPagaComSucesso() {
             sale.startPayment();
             Payment payment = new Payment(sale, PaymentMethod.CASH,
-                    BigDecimal.TEN, BigDecimal.ZERO, null, true);
+                    new BigDecimal("25.50"), BigDecimal.ZERO, null, true);
             sale.addPayment(payment);
             assertEquals("PAID", sale.getStateName());
             assertEquals(0, BigDecimal.ZERO.compareTo(sale.getAmountDue()));
@@ -474,7 +474,7 @@ class SaleServiceTest {
             saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"));
 
             assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
-            assertEquals(new BigDecimal("5.00"), sale.getTotal());
+            assertEquals(new BigDecimal("20.50"), sale.getTotal());
             verify(saleRepository).save(sale);
         }
 
