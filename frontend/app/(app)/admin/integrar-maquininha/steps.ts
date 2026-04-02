@@ -23,7 +23,8 @@ export const steps = [
         
         Atenção: Caso você possua mais de uma loja ou caixa, certifique-se de selecionar exatamente a mesma loja e o mesmo caixa que você configurou no Kalles.
         
-        3. O terminal solicitará a criação de uma senha de segurança para uso diário.
+        3. O terminal solicitará a criação de uma senha de segurança para uso diário. Anote essa senha. Você pode usar a funcionalidade de Bloco de Notas do próprio Kalles para você anotar artefatos importantes relacionados ao seu negócio. A ferramenta lhe explicará a forma correta de você usar ela. 
+        
         4. Ao finalizar, a maquininha exibirá a mensagem: "Pronto! Já pode cobrar com seu Point".`,
   },
   {
@@ -35,6 +36,6 @@ export const steps = [
         
         Para identificarmos a sua maquininha, por favor, insira o Número de Série (serial) que se encontra na etiqueta traseira física do próprio terminal e clique em "Começar configuração".
         
-        Nós faremos o restante do trabalho, incluindo a ativação do modo PDV no terminal e a liberação das funções de pagamento, cancelamento e reembolso pelas transações no Kalles.`,
+        Nós faremos o restante do trabalho, incluindo a ativação do modo PDV no terminal e a liberação das funções de pagamento, cancelamento e reembolso por cartão no Kalles.`,
   },
 ];

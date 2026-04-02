@@ -21,7 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Terminal, Loader2, Lock, List, PlusCircle, Link as LinkIcon } from "lucide-react";
+import {
+  Store,
+  Terminal,
+  Loader2,
+  Lock,
+  List,
+  PlusCircle,
+  Link as LinkIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -76,9 +84,9 @@ const BRAZILIAN_STATES = [
 
 export default function PaymentSettingsPage() {
   const [activeTab, setActiveTab] = useState<"listar" | "criar">("listar");
-  const [newIntegrationStep, setNewIntegrationStep] = useState<"oauth" | "store" | "pos">(
-    "oauth",
-  );
+  const [newIntegrationStep, setNewIntegrationStep] = useState<
+    "oauth" | "store" | "pos"
+  >("oauth");
 
   // Em produção, isso viraria de variáveis de ambiente (.env)
   const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
@@ -291,7 +299,8 @@ export default function PaymentSettingsPage() {
 
       <p className="text-white/90 w-full mb-8 font-medium">
         Gerencie as suas integrações com o Mercado Pago para aceitar pagamentos
-        via Pix (QrCode Dinâmico). Você pode visualizar as lojas configuradas ou
+        via Pix (QrCode Dinâmico) e Cartões (Crédito, Débito e Vouchers -
+        Alimentação/Refeição). Você pode visualizar as lojas configuradas ou
         criar novas integrações.
       </p>
 
@@ -322,7 +331,9 @@ export default function PaymentSettingsPage() {
             {isLoadingData ? (
               <div className="flex flex-col items-center justify-center p-12 text-center text-white">
                 <LoadingSpinner />
-                <p className="mt-4">Buscando lojas e caixas no Mercado Pago...</p>
+                <p className="mt-4">
+                  Buscando lojas e caixas no Mercado Pago...
+                </p>
               </div>
             ) : integrationStores.length === 0 ? (
               <Card className="border-0 shadow-md">
@@ -398,7 +409,8 @@ export default function PaymentSettingsPage() {
                     )}
                   </CardContent>
                 </Card>
-              )))}
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -407,20 +419,22 @@ export default function PaymentSettingsPage() {
           <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
             <button
               onClick={() => setNewIntegrationStep("oauth")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "oauth"
-                ? "border-white text-white drop-shadow-md"
-                : "border-transparent text-white/70 hover:text-white"
-                }`}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                newIntegrationStep === "oauth"
+                  ? "border-white text-white drop-shadow-md"
+                  : "border-transparent text-white/70 hover:text-white"
+              }`}
             >
               <LinkIcon className="h-4 w-4" />
               <span>1. Conectar Conta</span>
             </button>
             <button
               onClick={() => setNewIntegrationStep("store")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "store"
-                ? "border-white text-white drop-shadow-md"
-                : "border-transparent text-white/70 hover:text-white"
-                }`}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                newIntegrationStep === "store"
+                  ? "border-white text-white drop-shadow-md"
+                  : "border-transparent text-white/70 hover:text-white"
+              }`}
             >
               <Store className="h-4 w-4" />
               <span>2. Estabelecimento</span>
@@ -430,10 +444,11 @@ export default function PaymentSettingsPage() {
                 if (storeConfigured) setNewIntegrationStep("pos");
               }}
               disabled={!storeConfigured}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "pos"
-                ? "border-white text-white drop-shadow-md"
-                : "border-transparent text-white/50"
-                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                newIntegrationStep === "pos"
+                  ? "border-white text-white drop-shadow-md"
+                  : "border-transparent text-white/50"
+              } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
             >
               <Terminal className="h-4 w-4" />
               <span>3. Terminais (Caixas)</span>
@@ -447,8 +462,8 @@ export default function PaymentSettingsPage() {
                 <CardHeader>
                   <CardTitle>Conectar Conta Mercado Pago</CardTitle>
                   <CardDescription>
-                    Vincule sua conta do Mercado Pago para receber pagamentos de suas
-                    vendas e criar seus caixas.
+                    Vincule sua conta do Mercado Pago para receber pagamentos de
+                    suas vendas e criar seus caixas.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

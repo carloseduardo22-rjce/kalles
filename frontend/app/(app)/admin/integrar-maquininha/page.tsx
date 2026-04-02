@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { steps } from "./steps";
 import { useQuery } from "@tanstack/react-query";
 import { mercadopagoService } from "@/features/admin/services/mercadopago.service";
@@ -22,34 +23,15 @@ export default function IntegrarMaquininhaPage() {
   const [configuringState, setConfiguringState] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
 
-  const mockedStores: MpStore[] = [
-    {
-      id: 123456,
-      name: "Loja Teste (Mock)",
-      external_id: "store_123",
-      date_creation: "2024-01-01",
-      terminals: [
-        {
-          id: 987654,
-          name: "Caixa Frontal (Mock)",
-          fixed_amount: true,
-          store_id: 123456,
-          external_store_id: "store_123",
-          external_id: "ext_123",
-        },
-      ],
-    },
-  ];
-
-  const stores = mockedStores;
-
-  // TODO: Remover o const stores = mockedStores e descomentar isso depois de testar
-  /*
-  const { data: stores = [] } = useQuery({
+  const { data: stores = [], isLoading } = useQuery({
     queryKey: ["mp-stores"],
     queryFn: mercadopagoService.listStores,
   });
-  */
+
+  const hasStoresWithPos = stores.some(
+    (store: MpStore) => store.terminals && store.terminals.length > 0,
+  );
+  const isBlocked = !isLoading && !hasStoresWithPos;
 
   const handleConfigure = async () => {
     if (!selectedStore || !selectedPos || !serial) return;
@@ -81,7 +63,7 @@ export default function IntegrarMaquininhaPage() {
 
         <ul className="space-y-2">
           {steps.map((s) => {
-            const isDisabled = s.id === 3 && stores.length === 0;
+            const isDisabled = isBlocked;
 
             return (
               <Tooltip key={s.id}>
@@ -105,9 +87,15 @@ export default function IntegrarMaquininhaPage() {
 
                 {isDisabled && (
                   <TooltipContent side="right" className="max-w-[200px]">
-                    Não existe lojas e caixas configurados por favor navegue até
-                    'Configurar pagamentos' para configurar a loja e os caixas
-                    anexadas a ela.
+                    Não existem lojas e caixas configurados, por favor navegue
+                    até{" "}
+                    <Link
+                      href="/admin/pagamentos"
+                      className="text-blue-400 font-bold hover:underline"
+                    >
+                      Criar lojas e PDV
+                    </Link>{" "}
+                    para configurar.
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -116,144 +104,158 @@ export default function IntegrarMaquininhaPage() {
         </ul>
       </div>
 
-      <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-4">{step?.title}</h1>
-
-        <p className="mb-6 text-gray-700 whitespace-pre-line">
-          {step?.content}
-        </p>
-
-        {currentStep === 3 && stores.length > 0 && (
-          <div className="mb-6 space-y-4 max-w-sm">
-            {isConfigured ? (
-              <div className="p-6 bg-green-50 border border-green-200 text-green-900 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white text-xl shadow-sm">
-                    âœ“
-                  </div>
-                  <h3 className="font-bold text-xl">
-                    Tudo configurado e pronto!
-                  </h3>
-                </div>
-                <p className="text-sm leading-relaxed mb-6">
-                  Sua maquininha foi ativada com sucesso em{" "}
-                  <strong>Modo PDV</strong> e o processamento de pagamentos
-                  direto no terminal foi ativado. As notificações webhooks estão
-                  configuradas corretamente e a maquininha já estão totalmente
-                  integrada ao nosso sistema, pronta para operar e transacionar
-                  na tele de PDV.
-                </p>
-                <button
-                  className="bg-green-600 text-white font-semibold py-2 px-4 rounded w-full hover:bg-green-700 transition shadow-sm"
-                  onClick={() => {
-                    setIsConfigured(false);
-                    setSerial("");
-                  }}
-                >
-                  Configurar outra maquininha
-                </button>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Selecione a Loja
-                  </label>
-                  <select
-                    className="w-full border rounded p-2"
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                  >
-                    <option value="">-- Selecione --</option>
-                    {stores.map((store: MpStore) => (
-                      <option key={store.id} value={store.id}>
-                        {store.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Selecione o Caixa
-                  </label>
-                  <select
-                    className="w-full border rounded p-2"
-                    disabled={!selectedStore}
-                    value={selectedPos}
-                    onChange={(e) => setSelectedPos(e.target.value)}
-                  >
-                    <option value="">-- Selecione --</option>
-                    {stores
-                      .find((s: MpStore) => String(s.id) === selectedStore)
-                      ?.terminals?.map((pos: MpPos) => (
-                        <option key={pos.id} value={pos.id}>
-                          {pos.name}
-                        </option>
-                      )) || []}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Número de Série da Maquininha
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full border rounded p-2"
-                    placeholder="Ex: N950NCB801293324"
-                    value={serial}
-                    onChange={(e) => setSerial(e.target.value)}
-                  />
-                </div>
-                <button
-                  onClick={handleConfigure}
-                  disabled={
-                    !selectedStore ||
-                    !selectedPos ||
-                    !serial ||
-                    !!configuringState
-                  }
-                  className="bg-green-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
-                >
-                  {configuringState || "Começar configuração"}
-                </button>
-              </>
-            )}
+      <div className="flex-1 p-8 relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
+            <span className="text-gray-500 font-medium">Carregando...</span>
           </div>
         )}
 
-        <div className="flex gap-4">
-          <button
-            disabled={currentStep === 1}
-            onClick={() => setCurrentStep((prev) => prev - 1)}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            Voltar
-          </button>
+        {isBlocked && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600 font-medium">
+              Atenção: Não foi possível encontrar lojas e caixas associadas à
+              sua conta do Mercado Pago.
+            </p>
+            <p className="text-red-500 mt-2 text-sm">
+              A integração da maquininha só pode ser realizada após a criação de
+              pelo menos uma loja e um caixa. Por favor, navegue até{" "}
+              <Link
+                href="/admin/pagamentos"
+                className="text-blue-600 font-bold hover:underline"
+              >
+                Criar lojas e PDV
+              </Link>{" "}
+              no menu lateral.
+            </p>
+          </div>
+        )}
 
-          <div className="flex gap-2">
+        <div className={isBlocked ? "opacity-50 pointer-events-none" : ""}>
+          <h1 className="text-2xl font-bold mb-4">{step?.title}</h1>
+
+          <p className="mb-6 text-gray-700 whitespace-pre-line">
+            {step?.content}
+          </p>
+
+          {currentStep === 3 && stores.length > 0 && (
+            <div className="mb-6 space-y-4 max-w-sm">
+              {isConfigured ? (
+                <div className="p-6 bg-green-50 border border-green-200 text-green-900 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white text-xl shadow-sm">
+                      âœ“
+                    </div>
+                    <h3 className="font-bold text-xl">
+                      Tudo configurado e pronto!
+                    </h3>
+                  </div>
+                  <p className="text-sm leading-relaxed mb-6">
+                    Sua maquininha foi ativada com sucesso em{" "}
+                    <strong>Modo PDV</strong> e o processamento de pagamentos
+                    direto no terminal foi ativado. As notificações webhooks
+                    estão configuradas corretamente e a maquininha já estão
+                    totalmente integrada ao nosso sistema, pronta para operar e
+                    transacionar na tele de PDV.
+                  </p>
+                  <button
+                    className="bg-green-600 text-white font-semibold py-2 px-4 rounded w-full hover:bg-green-700 transition shadow-sm"
+                    onClick={() => {
+                      setIsConfigured(false);
+                      setSerial("");
+                    }}
+                  >
+                    Configurar outra maquininha
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Selecione a Loja
+                    </label>
+                    <select
+                      className="w-full border rounded p-2"
+                      value={selectedStore}
+                      onChange={(e) => setSelectedStore(e.target.value)}
+                    >
+                      <option value="">-- Selecione --</option>
+                      {stores.map((store: MpStore) => (
+                        <option key={store.id} value={store.id}>
+                          {store.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Selecione o Caixa
+                    </label>
+                    <select
+                      className="w-full border rounded p-2"
+                      disabled={!selectedStore}
+                      value={selectedPos}
+                      onChange={(e) => setSelectedPos(e.target.value)}
+                    >
+                      <option value="">-- Selecione --</option>
+                      {stores
+                        .find((s: MpStore) => String(s.id) === selectedStore)
+                        ?.terminals?.map((pos: MpPos) => (
+                          <option key={pos.id} value={pos.id}>
+                            {pos.name}
+                          </option>
+                        )) || []}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Número de Série da Maquininha
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border rounded p-2"
+                      placeholder="Ex: N950NCB801293324"
+                      value={serial}
+                      onChange={(e) => setSerial(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={handleConfigure}
+                    disabled={
+                      !selectedStore ||
+                      !selectedPos ||
+                      !serial ||
+                      !!configuringState
+                    }
+                    className="bg-green-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
+                  >
+                    {configuringState || "Começar configuração"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-4">
             <button
-              disabled={
-                currentStep === steps.length ||
-                (currentStep === 2 && stores.length === 0)
-              }
-              onClick={() => setCurrentStep((prev) => prev + 1)}
-              className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+              disabled={currentStep === 1}
+              onClick={() => setCurrentStep((prev) => prev - 1)}
+              className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
             >
-              Próximo
+              Voltar
             </button>
+
+            <div className="flex gap-2">
+              <button
+                disabled={currentStep === steps.length || isBlocked}
+                onClick={() => setCurrentStep((prev) => prev + 1)}
+                className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+              >
+                Próximo
+              </button>
+            </div>
           </div>
         </div>
-        {currentStep === 2 && stores.length === 0 && (
-          <p className="text-red-500 mt-5 ">
-            Não foi possível encontrar lojas e caixas associadas à sua conta do
-            Mercado Pago. Por favor, verifique se você tem lojas e caixas
-            criadas no Mercado Pago. Para isso, navegue até{" "}
-            <span className="font-bold text-blue-500">
-              'Configurar pagamentos'
-            </span>{" "}
-            no menu lateral.
-          </p>
-        )}
       </div>
     </div>
   );

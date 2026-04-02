@@ -24,7 +24,7 @@ import {
   LifeBuoy,
   Ticket,
   Target,
-  SmartphoneNfc
+  SmartphoneNfc,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -304,27 +304,38 @@ function SidebarInner() {
           >
             Metas
           </NavLink>
-          <NavLink
-            href="/admin/pagamentos"
+          {/* ── Configurar pagamentos ── */}
+          <NavGroup
             icon={<CreditCard className="h-4 w-4" />}
-            active={pathname === "/admin/configurar-pagamentos"}
-            sub
+            label="Configurar pagamentos"
+            defaultOpen={
+              pathname.includes("/admin/pagamentos") ||
+              pathname.includes("/admin/integrar-maquininha")
+            }
           >
-            Configurar pagamentos
-          </NavLink>
-          <NavLink
-            href="/admin/integrar-maquininha"
-            icon={<SmartphoneNfc className="h-4 w-4" />}
-            active={pathname === "/admin/integrar-maquininha"}
-            sub
-          >
-            Integrar maquininha
-          </NavLink>
+            <NavLink
+              href="/admin/pagamentos"
+              icon={<Store className="h-4 w-4" />}
+              active={pathname === "/admin/pagamentos"}
+              sub
+            >
+              Criar lojas e PDV
+            </NavLink>
+            <NavLink
+              href="/admin/integrar-maquininha"
+              icon={<SmartphoneNfc className="h-4 w-4" />}
+              active={pathname === "/admin/integrar-maquininha"}
+              sub
+            >
+              Integrar maquininha a PDV
+            </NavLink>
+          </NavGroup>
+
+          {/* ── Configuracoes ── */}
           <NavLink
             href="/admin/configuracoes"
             icon={<Settings className="h-4 w-4" />}
             active={pathname === "/admin/configuracoes"}
-            sub
           >
             Configurações
           </NavLink>
