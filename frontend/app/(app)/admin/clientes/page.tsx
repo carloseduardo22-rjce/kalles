@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Users,
   Plus,
@@ -46,6 +46,14 @@ import type {
   ClientResponse,
   FidelityResponse,
 } from "@/features/admin/types";
+import {
+  formatBrazilianCellphone,
+  formatCpf,
+  isValidBrazilianCellphone,
+  isValidCpf,
+  normalizeClientRequest,
+  onlyDigits,
+} from "@/features/admin/utils/client-validation";
 
 /* ─── Form ─────────────────────────────────────────────────────────────── */
 function ClientForm({
@@ -63,18 +71,43 @@ function ClientForm({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ClientRequest>({ defaultValues: defaultValues ?? {} });
+  } = useForm<ClientRequest>({
+    defaultValues: defaultValues
+      ? {
+          ...defaultValues,
+          cpf: formatCpf(defaultValues.cpf),
+          cellphone: formatBrazilianCellphone(defaultValues.cellphone),
+        }
+      : {},
+  });
+
+  const nameField = register("name", {
+    required: "Nome é obrigatório",
+    validate: (value) =>
+      value.trim().length >= 3 || "Nome deve ter ao menos 3 caracteres",
+  });
+
+  const cpfField = register("cpf", {
+    required: "CPF é obrigatório",
+    validate: (value) => isValidCpf(value) || "CPF inválido",
+  });
+
+  const cellphoneField = register("cellphone", {
+    validate: (value) =>
+      !value ||
+      isValidBrazilianCellphone(value) ||
+      "Celular inválido. Use um número brasileiro com 11 dígitos",
+  });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form
+      onSubmit={handleSubmit((data) => onSubmit(normalizeClientRequest(data)))}
+      className="space-y-4"
+    >
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="name">Nome *</Label>
-          <Input
-            id="name"
-            {...register("name", { required: "Nome é obrigatório" })}
-            placeholder="Nome completo"
-          />
+          <Input id="name" {...nameField} placeholder="Nome completo" />
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
@@ -84,7 +117,13 @@ function ClientForm({
           <Label htmlFor="cpf">CPF *</Label>
           <Input
             id="cpf"
-            {...register("cpf", { required: "CPF é obrigatório" })}
+            inputMode="numeric"
+            maxLength={14}
+            {...cpfField}
+            onChange={(event) => {
+              event.target.value = formatCpf(event.target.value);
+              cpfField.onChange(event);
+            }}
             placeholder="000.000.000-00"
           />
           {errors.cpf && (
@@ -94,16 +133,32 @@ function ClientForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="birthDate">Data de Nascimento</Label>
-          <Input id="birthDate" type="date" {...register("birthDate")} />
+          <Input
+            id="birthDate"
+            type="date"
+            max={new Date().toISOString().split("T")[0]}
+            {...register("birthDate")}
+          />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="cellphone">Celular</Label>
           <Input
             id="cellphone"
-            {...register("cellphone")}
+            inputMode="numeric"
+            maxLength={15}
+            {...cellphoneField}
+            onChange={(event) => {
+              event.target.value = formatBrazilianCellphone(event.target.value);
+              cellphoneField.onChange(event);
+            }}
             placeholder="(00) 00000-0000"
           />
+          {errors.cellphone && (
+            <p className="text-xs text-destructive">
+              {errors.cellphone.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -138,7 +193,7 @@ function ClientForm({
           <Textarea
             id="observations"
             {...register("observations")}
-            placeholder="Informações adicionais…"
+            placeholder="Informações adicionais..."
             rows={3}
           />
         </div>
@@ -246,10 +301,11 @@ export default function ClientesPage() {
   const filtered = search.trim()
     ? clients.filter((c) => {
         const q = search.toLowerCase();
+        const digits = onlyDigits(search);
         return (
           c.name.toLowerCase().includes(q) ||
-          c.cpf.includes(q) ||
-          (c.cellphone ?? "").includes(q)
+          (!!digits && onlyDigits(c.cpf).includes(digits)) ||
+          (!!digits && onlyDigits(c.cellphone).includes(digits))
         );
       })
     : clients;
@@ -263,7 +319,7 @@ export default function ClientesPage() {
           <h1 className="text-sm font-semibold leading-none">Clientes</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {isLoading
-              ? "Carregando…"
+              ? "Carregando..."
               : `${clients.length} cliente(s) cadastrado(s)`}
           </p>
         </div>
@@ -293,7 +349,7 @@ export default function ClientesPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, CPF ou celular…"
+            placeholder="Buscar por nome, CPF ou celular..."
             className="bg-background pl-9"
           />
         </div>
@@ -303,7 +359,7 @@ export default function ClientesPage() {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
-            <LoadingSpinner size="lg" label="Carregando clientes…" />
+            <LoadingSpinner size="lg" label="Carregando clientes..." />
           </div>
         ) : error ? (
           <ErrorAlert error={error} title="Erro ao carregar clientes" />
@@ -343,17 +399,21 @@ export default function ClientesPage() {
                 >
                   <td className="px-4 py-3 font-medium">{client.name}</td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {client.cpf}
+                    {formatCpf(client.cpf)}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {client.cellphone ?? <span className="opacity-40">—</span>}
+                    {client.cellphone ? (
+                      formatBrazilianCellphone(client.cellphone)
+                    ) : (
+                      <span className="opacity-40">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {(() => {
                       if (!fidelityMap.has(client.id)) {
                         return (
                           <span className="text-xs text-muted-foreground opacity-40">
-                            —
+                            -
                           </span>
                         );
                       }

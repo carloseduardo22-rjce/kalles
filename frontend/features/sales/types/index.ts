@@ -19,6 +19,7 @@ export interface ProductResponse {
   internalCode: string;
   barcode: string | null;
   price: number;
+  costPrice: number;
 }
 
 export interface SaleItemResponse {

@@ -2,13 +2,16 @@ package dev.kalles.sale.core.service;
 
 import dev.kalles.sale.core.dto.StockRequest;
 import dev.kalles.sale.core.dto.StockResponse;
+import dev.kalles.sale.core.entity.CompanyProduct;
 import dev.kalles.sale.core.entity.Location;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Stock;
 import dev.kalles.sale.core.entity.Warehouse;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.core.repository.CompanyProductRepository;
 import dev.kalles.sale.core.repository.LocationRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
+import dev.kalles.sale.core.repository.StockEntryRepository;
 import dev.kalles.sale.core.repository.StockRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -27,14 +30,18 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("StockService - Serviço de Estoque")
+@DisplayName("StockService - Servico de Estoque")
 class StockServiceTest {
 
     @Mock
     private StockRepository stockRepository;
+
+    @Mock
+    private StockEntryRepository stockEntryRepository;
 
     @Mock
     private ProductRepository productRepository;
@@ -42,12 +49,18 @@ class StockServiceTest {
     @Mock
     private LocationRepository locationRepository;
 
+    @Mock
+    private CompanyProductRepository companyProductRepository;
+
     @InjectMocks
     private StockService stockService;
 
+    private UUID companyId;
+
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(UUID.randomUUID());
+        companyId = UUID.randomUUID();
+        CompanyContextHolder.setCompanyId(companyId);
     }
 
     @AfterEach
@@ -60,29 +73,30 @@ class StockServiceTest {
         p.setId(id);
         p.setName("Produto Teste");
         p.setInternalCode("PRD-001");
-        // Product no longer has price or active at this level
         return p;
     }
 
     private Location buildLocation(UUID id) {
-        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", "Endereço A", true);
+        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", "Endereco A", true);
         return new Location(id, wh, "EST-01", null);
     }
 
     @Test
-    @DisplayName("Deve criar nova entrada de estoque quando não existe")
+    @DisplayName("Deve criar nova entrada de estoque quando nao existe")
     void shouldCreateNewStockEntryWhenNoneExists() {
         UUID productId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
         Product product = buildProduct(productId);
         Location location = buildLocation(locationId);
-        StockRequest request = new StockRequest(productId, locationId, 50);
+        StockRequest request = new StockRequest(productId, locationId, 50, new BigDecimal("12.50"));
         Stock saved = new Stock(UUID.randomUUID(), null, product, location, 50);
+        CompanyProduct companyProduct = new CompanyProduct();
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.empty());
         when(stockRepository.save(any(Stock.class))).thenReturn(saved);
+        when(companyProductRepository.findByCompanyIdAndProductId(companyId, productId)).thenReturn(Optional.of(companyProduct));
 
         StockResponse response = stockService.setStock(request);
 
@@ -90,7 +104,9 @@ class StockServiceTest {
         assertEquals(50, response.quantity());
         assertEquals(productId, response.productId());
         assertEquals(locationId, response.locationId());
-        verify(stockRepository).save(any(Stock.class));
+        verify(stockEntryRepository).save(any());
+        verify(companyProductRepository).save(companyProduct);
+        assertEquals(new BigDecimal("12.50"), companyProduct.getCostPrice());
     }
 
     @Test
@@ -100,34 +116,77 @@ class StockServiceTest {
         UUID locationId = UUID.randomUUID();
         Product product = buildProduct(productId);
         Location location = buildLocation(locationId);
-        StockRequest request = new StockRequest(productId, locationId, 80);
+        StockRequest request = new StockRequest(productId, locationId, 80, new BigDecimal("9.90"));
         Stock existing = new Stock(UUID.randomUUID(), null, product, location, 30);
         Stock updated = new Stock(existing.getId(), null, product, location, 80);
+        CompanyProduct companyProduct = new CompanyProduct();
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
         when(stockRepository.save(existing)).thenReturn(updated);
+        when(companyProductRepository.findByCompanyIdAndProductId(companyId, productId)).thenReturn(Optional.of(companyProduct));
 
         StockResponse response = stockService.setStock(request);
 
         assertEquals(80, response.quantity());
+        verify(stockEntryRepository).save(any());
         verify(stockRepository).save(existing);
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando produto não encontrado ao definir estoque")
+    @DisplayName("Deve exigir custo quando houver entrada de mercadoria")
+    void shouldRequireUnitCostWhenIncreasingStock() {
+        UUID productId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        Product product = buildProduct(productId);
+        Location location = buildLocation(locationId);
+        Stock existing = new Stock(UUID.randomUUID(), null, product, location, 30);
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> stockService.setStock(new StockRequest(productId, locationId, 40, null)));
+
+        assertTrue(error.getMessage().contains("custo"));
+        verify(stockRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Nao deve exigir custo quando nao houver acrescimo de estoque")
+    void shouldNotRequireUnitCostWhenNotIncreasingStock() {
+        UUID productId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        Product product = buildProduct(productId);
+        Location location = buildLocation(locationId);
+        Stock existing = new Stock(UUID.randomUUID(), null, product, location, 30);
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
+        when(stockRepository.save(existing)).thenReturn(existing);
+
+        StockResponse response = stockService.setStock(new StockRequest(productId, locationId, 20, null));
+
+        assertEquals(20, response.quantity());
+        verify(stockEntryRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve lancar excecao quando produto nao encontrado ao definir estoque")
     void shouldThrowNotFoundWhenProductNotFoundOnSetStock() {
         UUID productId = UUID.randomUUID();
         when(productRepository.findById(productId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
-                () -> stockService.setStock(new StockRequest(productId, UUID.randomUUID(), 10)));
+                () -> stockService.setStock(new StockRequest(productId, UUID.randomUUID(), 10, new BigDecimal("5.00"))));
         verifyNoInteractions(locationRepository, stockRepository);
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando localização não encontrada ao definir estoque")
+    @DisplayName("Deve lancar excecao quando localizacao nao encontrada ao definir estoque")
     void shouldThrowNotFoundWhenLocationNotFoundOnSetStock() {
         UUID productId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
@@ -135,7 +194,7 @@ class StockServiceTest {
         when(locationRepository.findById(locationId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
-                () -> stockService.setStock(new StockRequest(productId, locationId, 10)));
+                () -> stockService.setStock(new StockRequest(productId, locationId, 10, new BigDecimal("5.00"))));
         verifyNoInteractions(stockRepository);
     }
 
@@ -148,7 +207,6 @@ class StockServiceTest {
         Stock s2 = new Stock(UUID.randomUUID(), null, product, buildLocation(UUID.randomUUID()), 20);
 
         when(productRepository.existsById(productId)).thenReturn(true);
-        // Mocking with ANY companyId since getCompanyId() will be called internally
         when(stockRepository.findAllByProductIdOrderByQuantityDesc(eq(productId), any())).thenReturn(List.of(s1, s2));
 
         List<StockResponse> result = stockService.getStockByProduct(productId);
@@ -159,7 +217,7 @@ class StockServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando produto não encontrado ao consultar estoque")
+    @DisplayName("Deve lancar excecao quando produto nao encontrado ao consultar estoque")
     void shouldThrowNotFoundWhenProductNotFoundOnGetStockByProduct() {
         UUID productId = UUID.randomUUID();
         when(productRepository.existsById(productId)).thenReturn(false);
@@ -182,7 +240,7 @@ class StockServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando produto não encontrado ao consultar total de estoque")
+    @DisplayName("Deve lancar excecao quando produto nao encontrado ao consultar total de estoque")
     void shouldThrowNotFoundWhenProductNotFoundOnGetTotalStock() {
         UUID productId = UUID.randomUUID();
         when(productRepository.existsById(productId)).thenReturn(false);
@@ -193,7 +251,7 @@ class StockServiceTest {
     }
 
     @Test
-    @DisplayName("Deve retornar todas as entradas de estoque para uma localização")
+    @DisplayName("Deve retornar todas as entradas de estoque para uma localizacao")
     void shouldReturnAllStockEntriesForLocation() {
         UUID locationId = UUID.randomUUID();
         Location location = buildLocation(locationId);
@@ -210,7 +268,7 @@ class StockServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando localização não encontrada ao consultar estoque")
+    @DisplayName("Deve lancar excecao quando localizacao nao encontrada ao consultar estoque")
     void shouldThrowNotFoundWhenLocationNotFoundOnGetStockByLocation() {
         UUID locationId = UUID.randomUUID();
         when(locationRepository.existsById(locationId)).thenReturn(false);

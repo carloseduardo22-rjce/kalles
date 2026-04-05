@@ -15,14 +15,14 @@ INSERT INTO mercadopago_company (id, name, external_id, tenant_id) VALUES ('e28a
 -- 1. OPERADORES
 --    Linkando Operadores à Empresa Matriz
 -- ---------------------------------------------------------------
-INSERT INTO operators (name, code, permission_level, company_id) VALUES
-  ('João Silva',           'OP-001',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Maria Santos',         'OP-002',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Pedro Costa',          'OP-003',   'MANAGER',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Administrador Kalles', 'ADMIN-001','ADMIN',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Lucas Oliveira',       'OP-004',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Isabela Rocha',        'OP-005',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Rafael Alves',         'OP-006',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
+INSERT INTO operators (name, code, permission_level) VALUES
+  ('João Silva',           'OP-001',   'BASIC'),
+  ('Maria Santos',         'OP-002',   'SUPERVISOR'),
+  ('Pedro Costa',          'OP-003',   'MANAGER'),
+  ('Administrador Kalles', 'ADMIN-001','ADMIN'),
+  ('Lucas Oliveira',       'OP-004',   'BASIC'),
+  ('Isabela Rocha',        'OP-005',   'BASIC'),
+  ('Rafael Alves',         'OP-006',   'SUPERVISOR')
 ON CONFLICT (code) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -73,41 +73,41 @@ ON CONFLICT (internal_code) DO NOTHING;
 -- ---------------------------------------------------------------
 -- 3.1. PRODUTOS DA EMPRESA (Preços Locais)
 -- ---------------------------------------------------------------
-INSERT INTO company_product (company_id, product_id, price, active)
-SELECT 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', p.id, v.price, v.active
+INSERT INTO company_product (company_id, product_id, price, active, cost_price)
+SELECT 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', p.id, v.price, v.active, v.cost_price
 FROM product p
 JOIN (VALUES
-  ('PRD-001', 5.50,  true),
-  ('PRD-002', 2.00,  true),
-  ('PRD-003', 3.75,  true),
-  ('PRD-004', 6.90,  true),
-  ('PRD-005', 4.50,  true),
-  ('PRD-006', 7.00,  true),
-  ('PRD-007', 22.90, true),
-  ('PRD-008', 10.50, true),
-  ('PRD-009', 7.80,  true),
-  ('PRD-010', 4.20,  true),
-  ('PRD-011', 4.50,  true),
-  ('PRD-012', 8.90,  true),
-  ('PRD-013', 3.20,  true),
-  ('PRD-014', 7.50,  true),
-  ('PRD-015', 6.80,  true),
-  ('PRD-016', 4.00,  true),
-  ('PRD-017', 3.50,  true),
-  ('PRD-018', 12.90, true),
-  ('PRD-019', 2.50,  true),
-  ('PRD-020', 10.90, true),
-  ('PRD-021', 15.90, true),
-  ('PRD-022', 5.40,  true),
-  ('PRD-023', 8.50,  true),
-  ('PRD-024', 11.00, true),
-  ('PRD-025', 9.90,  true),
-  ('PRD-026', 2.80,  true),
-  ('PRD-027', 3.10,  true),
-  ('PRD-028', 5.20,  true),
-  ('PRD-029', 3.90,  false),
-  ('PRD-030', 2.90,  true)
-) AS v(code, price, active) ON p.internal_code = v.code
+  ('PRD-001', 5.50,  true, 3.85),
+  ('PRD-002', 2.00,  true, 1.40),
+  ('PRD-003', 3.75,  true, 2.63),
+  ('PRD-004', 6.90,  true, 4.83),
+  ('PRD-005', 4.50,  true, 3.15),
+  ('PRD-006', 7.00,  true, 4.90),
+  ('PRD-007', 22.90, true, 16.03),
+  ('PRD-008', 10.50, true, 7.35),
+  ('PRD-009', 7.80,  true, 5.46),
+  ('PRD-010', 4.20,  true, 2.94),
+  ('PRD-011', 4.50,  true, 3.15),
+  ('PRD-012', 8.90,  true, 6.23),
+  ('PRD-013', 3.20,  true, 2.24),
+  ('PRD-014', 7.50,  true, 5.25),
+  ('PRD-015', 6.80,  true, 4.76),
+  ('PRD-016', 4.00,  true, 2.80),
+  ('PRD-017', 3.50,  true, 2.45),
+  ('PRD-018', 12.90, true, 9.03),
+  ('PRD-019', 2.50,  true, 1.75),
+  ('PRD-020', 10.90, true, 7.63),
+  ('PRD-021', 15.90, true, 11.13),
+  ('PRD-022', 5.40,  true, 3.78),
+  ('PRD-023', 8.50,  true, 5.95),
+  ('PRD-024', 11.00, true, 7.70),
+  ('PRD-025', 9.90,  true, 6.93),
+  ('PRD-026', 2.80,  true, 1.96),
+  ('PRD-027', 3.10,  true, 2.17),
+  ('PRD-028', 5.20,  true, 3.64),
+  ('PRD-029', 3.90,  false, 2.73),
+  ('PRD-030', 2.90,  true, 2.03)
+) AS v(code, price, active, cost_price) ON p.internal_code = v.code
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -447,7 +447,8 @@ SELECT
   v.total::numeric(19,2),
   0.00,
   0.00,
-  0
+  0,
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
   ('c1000000-0000-0000-0000-000000000008', '168.995.350-09', 22.90, 22.90),
   ('c1000000-0000-0000-0000-000000000009', NULL,             14.00, 14.00),
@@ -478,7 +479,8 @@ SELECT
   v.total::numeric(19,2),
   v.amount_due::numeric(19,2),
   0.00,
-  0
+  0,
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
   ('c1000000-0000-0000-0000-000000000012', 'COMPLETED', NULL,             33.40, 33.40, 0.00),
   ('c1000000-0000-0000-0000-000000000013', 'COMPLETED', '862.073.580-01', 15.00, 15.00, 0.00),
@@ -851,6 +853,19 @@ VALUES
   ('e2000000-0000-0000-0000-000000000030','c1000000-0000-0000-0000-000000000050'::uuid,'CASH',        20.00, 4.10, NULL,           true,'2026-03-09 16:00:00','2026-03-09 16:00:00')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------
+-- 24.1 CONTAS WEB DE TESTE
+--     Senha para todas as contas abaixo: 123456
+--     Observação: para facilitar os testes do fluxo web de suporte,
+--     as contas já entram verificadas.
+-- ---------------------------------------------------------------
+INSERT INTO account (id, tenant_id, company_id, name, email, password_hash, role, verified, created_at)
+VALUES
+  ('d1000000-0000-0000-0000-000000000001'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'Administrador', 'admin@sistema.local', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:00:00'),
+  ('d1000000-0000-0000-0000-000000000002'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'João Silva', 'joao.silva@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:05:00'),
+  ('d1000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'Pedro Costa', 'pedro.costa@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:10:00')
+ON CONFLICT (email) DO NOTHING;
+
 -- ===============================================================
 -- BLOCO III — SUPORTE: AGENTES, USUÁRIOS E CHAMADOS
 -- ---------------------------------------------------------------
@@ -951,7 +966,19 @@ FROM (VALUES
    'Sistema com lentidão no horário de pico (12h–14h)',
    'Todos os dias entre 12h e 14h o sistema fica muito lento no PDV. O carregamento dos produtos demora mais de 5 segundos.',
    'CLOSED','MEDIUM','pedro.costa@empresa.com','AGT-003','System','Performance',
-   false,'2026-02-20 09:00:00','2026-02-20 09:00:00','2026-03-01 10:00:00')
+   false,'2026-02-20 09:00:00','2026-02-20 09:00:00','2026-03-01 10:00:00'),
+  -- IN_PROGRESS · General/Question · última mensagem pública do cliente
+  ('f3000000-0000-0000-0000-000000000009',
+   'Confirmação de uso do atalho de fechamento',
+   'Depois da atualização mais recente, quero confirmar se o atalho Ctrl+Shift+F continua sendo a forma correta de abrir o fechamento de caixa no desktop.',
+   'IN_PROGRESS','MEDIUM','joao.silva@empresa.com','AGT-002','General','Question',
+   true,'2026-03-10 09:00:00','2026-03-10 09:00:00','2026-03-10 10:20:00'),
+  -- RESOLVED · General/Feedback · última mensagem pública do atendente
+  ('f3000000-0000-0000-0000-000000000010',
+   'Sugestão de atalho para reimprimir comprovante',
+   'Seria ótimo ter um atalho direto no teclado para reimpressão do comprovante de venda sem precisar abrir o menu de contexto.',
+   'RESOLVED','LOW','pedro.costa@empresa.com','AGT-001','General','Feedback',
+   false,'2026-03-10 11:00:00','2026-03-10 11:00:00','2026-03-10 12:15:00')
 ) AS t(ticket_id, title, description, status, priority,
        user_email, agent_employee_id,
        category_name, category_subcategory,
@@ -1023,6 +1050,35 @@ VALUES
    'CUSTOMER_MESSAGE','2026-03-06 08:30:00'),
 
   -- Ticket 8 (CLOSED · Performance)
+  ('f4000000-0000-0000-0000-000000000015'::uuid,
+   'f3000000-0000-0000-0000-000000000007'::uuid,
+   'Seria muito útil poder exportar os relatórios de fechamento de caixa em PDF para arquivamento mensal.',
+   'CUSTOMER_MESSAGE','2026-03-03 11:00:00'),
+  ('f4000000-0000-0000-0000-000000000016'::uuid,
+   'f3000000-0000-0000-0000-000000000007'::uuid,
+   'Registramos sua sugestão no backlog do produto como item de média prioridade. Se quiser, posso encerrar este chamado por enquanto.',
+   'AGENT_MESSAGE','2026-03-04 15:00:00'),
+  ('f4000000-0000-0000-0000-000000000017'::uuid,
+   'f3000000-0000-0000-0000-000000000009'::uuid,
+   'O atalho Ctrl+Shift+F continua disponível depois da atualização ou o caminho correto mudou?',
+   'CUSTOMER_MESSAGE','2026-03-10 09:00:00'),
+  ('f4000000-0000-0000-0000-000000000018'::uuid,
+   'f3000000-0000-0000-0000-000000000009'::uuid,
+   'Sim, ele continua disponível na versão atual. Se preferir, também pode acessar Operação → Fechamento direto pela barra superior.',
+   'AGENT_MESSAGE','2026-03-10 09:40:00'),
+  ('f4000000-0000-0000-0000-000000000019'::uuid,
+   'f3000000-0000-0000-0000-000000000009'::uuid,
+   'Perfeito. Consegui localizar aqui e queria só confirmar porque o operador novo ficou em dúvida.',
+   'CUSTOMER_MESSAGE','2026-03-10 10:20:00'),
+  ('f4000000-0000-0000-0000-000000000020'::uuid,
+   'f3000000-0000-0000-0000-000000000010'::uuid,
+   'Gostaria de sugerir um atalho direto para reimprimir o comprovante de uma venda sem entrar no menu.',
+   'CUSTOMER_MESSAGE','2026-03-10 11:00:00'),
+  ('f4000000-0000-0000-0000-000000000021'::uuid,
+   'f3000000-0000-0000-0000-000000000010'::uuid,
+   'Obrigado pela sugestão. Já registramos a melhoria para avaliação da equipe de produto. Se estiver tudo certo, me responda e então poderemos encerrar o chamado.',
+   'AGENT_MESSAGE','2026-03-10 12:15:00'),
+
   ('f4000000-0000-0000-0000-000000000012'::uuid,
    'f3000000-0000-0000-0000-000000000008'::uuid,
    'Sistema travando no horário de almoço, todo dia entre 12h e 14h.',
@@ -1060,3 +1116,6 @@ VALUES
   ('a0000000-0000-0000-0000-000000000003'::uuid, 0, 900.00, 'MONTHLY', '2026-04-01', '2026-04-30', 'DRAFT', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
   ('a0000000-0000-0000-0000-000000000004'::uuid, 0, 300.00, 'MONTHLY', '2026-02-01', '2026-02-28', 'CLOSED', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
 ON CONFLICT (id) DO NOTHING;
+
+
+

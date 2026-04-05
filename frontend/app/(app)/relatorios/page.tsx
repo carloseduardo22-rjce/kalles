@@ -13,11 +13,15 @@ import {
   Loader2,
   Store,
   CalendarIcon,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -42,6 +46,7 @@ import {
 } from "recharts";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import type { SessionSummaryResponse } from "@/features/cash-register/types";
+import { financialReportService } from "@/features/reports/services/financial-report.service";
 import {
   formatCurrency,
   formatDate,
@@ -78,6 +83,28 @@ function shortDate(d: Date): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function monthInputValue(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthRange(value: string): { startDate: string; endDate: string } {
+  const [year, month] = value.split("-").map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+  return {
+    startDate: toIsoDate(start),
+    endDate: toIsoDate(end),
+  };
+}
+
+function formatMonthLabel(value: string): string {
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, 1));
 }
 
 /* ─── Colors ─── */
@@ -317,6 +344,16 @@ function SessionCard({ item }: { item: SessionItem }) {
         <p className="text-[10px] text-muted-foreground/50">
           Fundo inicial: {formatCurrency(item.initialAmount)}
         </p>
+        <p className="text-[10px] text-muted-foreground/50">
+          Saldo esperado em caixa:{" "}
+          {formatCurrency(item.report.saldoEsperadoEmCaixa)}
+        </p>
+        {item.report.diferencaEmCaixa !== null && (
+          <p className="text-[10px] text-muted-foreground/50">
+            Diferença de caixa:{" "}
+            {formatCurrency(item.report.diferencaEmCaixa)}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -424,6 +461,9 @@ function RelatoriosContent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
   });
+  const [selectedMonth, setSelectedMonth] = useState<string>(() =>
+    monthInputValue(new Date()),
+  );
 
   /* ── Active mode ── */
   const { data: cashRegisters = [], isLoading: loadingRegisters } = useQuery({
@@ -469,6 +509,25 @@ function RelatoriosContent() {
     queryFn: () =>
       cashRegisterService.listSessionsByDateRange(rangeStart!, rangeEnd!),
     enabled: filterMode !== "active" && !!rangeStart && !!rangeEnd,
+    staleTime: 60_000,
+  });
+
+  const supplierExpenseRange = getMonthRange(selectedMonth);
+  const {
+    data: supplierExpenseReport,
+    isLoading: loadingSupplierExpenseReport,
+  } = useQuery({
+    queryKey: [
+      "profit-vs-supplier-expenses",
+      supplierExpenseRange.startDate,
+      supplierExpenseRange.endDate,
+    ],
+    queryFn: () =>
+      financialReportService.getProfitVsSupplierExpenses(
+        supplierExpenseRange.startDate,
+        supplierExpenseRange.endDate,
+      ),
+    enabled: tab === "lucro-fornecedores",
     staleTime: 60_000,
   });
 
@@ -846,6 +905,176 @@ function RelatoriosContent() {
   }
 
   /* ══ Tab: Por Produto ══ */
+  if (tab === "lucro-fornecedores") {
+    const monthLabel = formatMonthLabel(selectedMonth);
+    const purchasedProducts = supplierExpenseReport?.purchasedProducts ?? [];
+    const positiveProfit = (supplierExpenseReport?.estimatedProfit ?? 0) >= 0;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">
+              Lucro x Gastos com Fornecedores
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Relatorio mensal automatico cruzando vendas concluidas com o custo
+              das mercadorias recebidas no periodo.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Mes
+            </span>
+            <Input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-[180px]"
+            />
+          </div>
+        </div>
+
+        {loadingSupplierExpenseReport ? (
+          loadingNode
+        ) : !supplierExpenseReport ? (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Nao foi possivel gerar o relatorio financeiro deste mes.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                label={`Vendas em ${monthLabel}`}
+                value={formatCurrency(supplierExpenseReport.totalSales)}
+                icon={<TrendingUp className="h-8 w-8" />}
+                accent="primary"
+              />
+              <StatCard
+                label="Gastos com fornecedores"
+                value={formatCurrency(
+                  supplierExpenseReport.totalSupplierExpenses,
+                )}
+                icon={<TrendingDown className="h-8 w-8" />}
+                accent="destructive"
+              />
+              <StatCard
+                label="Lucro estimado"
+                value={formatCurrency(supplierExpenseReport.estimatedProfit)}
+                icon={<Wallet className="h-8 w-8" />}
+                accent={positiveProfit ? "primary" : "destructive"}
+              />
+              <StatCard
+                label="Margem estimada"
+                value={`${supplierExpenseReport.marginPercentage.toFixed(2)}%`}
+                icon={<Banknote className="h-8 w-8" />}
+                accent={positiveProfit ? "primary" : "destructive"}
+              />
+            </div>
+
+            <Card
+              className={
+                positiveProfit
+                  ? "border-emerald-200 bg-emerald-50/60"
+                  : "border-red-200 bg-red-50/60"
+              }
+            >
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {positiveProfit
+                      ? "O periodo fechou com lucro estimado positivo."
+                      : "Atencao: o periodo fechou com custo acima das vendas."}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Periodo analisado:{" "}
+                    {formatDate(`${supplierExpenseReport.startDate}T00:00:00`)}{" "}
+                    ate {formatDate(`${supplierExpenseReport.endDate}T23:59:59`)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Ultima geracao
+                  </p>
+                  <p className="text-sm font-medium">
+                    {formatDate(supplierExpenseReport.generatedAt)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Mercadorias compradas no periodo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {purchasedProducts.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                    Nenhuma entrada de mercadoria com custo registrado neste
+                    periodo.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead className="border-b bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Produto
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Codigo
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Quantidade
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Custo medio
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Gasto total
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {purchasedProducts.map((item, index) => (
+                          <tr
+                            key={item.productId}
+                            className={
+                              index % 2 !== 0 ? "border-t bg-muted/20" : "border-t"
+                            }
+                          >
+                            <td className="px-4 py-3 font-medium">
+                              {item.productName}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                              {item.productInternalCode}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {item.totalQuantity}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {formatCurrency(item.averageUnitCost)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                              {formatCurrency(item.totalCost)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+    );
+  }
+
   if (tab === "por-produto") {
     return (
       <ComingSoon

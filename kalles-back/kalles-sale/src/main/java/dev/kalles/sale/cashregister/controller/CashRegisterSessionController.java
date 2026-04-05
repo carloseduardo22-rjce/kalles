@@ -1,6 +1,7 @@
 package dev.kalles.sale.cashregister.controller;
 
 import dev.kalles.sale.cashregister.dto.CloseSessionResponse;
+import dev.kalles.sale.cashregister.dto.CloseSessionRequest;
 import dev.kalles.sale.cashregister.dto.OpenSessionRequest;
 import dev.kalles.sale.cashregister.dto.SessionResponse;
 import dev.kalles.sale.cashregister.dto.SessionSummaryResponse;
@@ -54,9 +55,23 @@ public class CashRegisterSessionController {
         @ApiResponse(responseCode = "404", description = "Sessão não encontrada", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "409", description = "Sessão já está fechada", content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<CloseSessionResponse> closeSession(@PathVariable UUID sessionId) {
-        CloseSessionResponse response = closeSessionUseCase.execute(sessionId);
+    public ResponseEntity<CloseSessionResponse> closeSession(
+            @PathVariable UUID sessionId,
+            @Valid @RequestBody CloseSessionRequest request
+    ) {
+        CloseSessionResponse response = closeSessionUseCase.execute(sessionId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{sessionId}")
+    @Operation(summary = "Consultar detalhes da sessao",
+            description = "Retorna os dados completos da sessao e, quando houver, o fechamento persistido.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sessao retornada com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Sessao nao encontrada", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<CloseSessionResponse> getSessionDetails(@PathVariable UUID sessionId) {
+        return ResponseEntity.ok(closeSessionUseCase.getSessionDetails(sessionId));
     }
 
     @GetMapping("/{sessionId}/report")

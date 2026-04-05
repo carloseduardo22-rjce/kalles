@@ -21,7 +21,11 @@ import { cashRegisterService } from "../services/cash-register.service";
 interface CloseSessionAuthorizedDialogProps {
   isLoading: boolean;
   error: string | null;
-  onConfirm: () => Promise<void>;
+  initialAmount: number;
+  onConfirm: (payload: {
+    authorizedOperatorCode: string;
+    countedCashAmount: number;
+  }) => Promise<void>;
 }
 
 const AUTHORIZED_LEVELS = ["SUPERVISOR", "MANAGER", "ADMIN"];
@@ -29,10 +33,12 @@ const AUTHORIZED_LEVELS = ["SUPERVISOR", "MANAGER", "ADMIN"];
 export function CloseSessionAuthorizedDialog({
   isLoading,
   error,
+  initialAmount,
   onConfirm,
 }: CloseSessionAuthorizedDialogProps) {
   const [open, setOpen] = useState(false);
   const [operatorCode, setOperatorCode] = useState("");
+  const [countedCashAmount, setCountedCashAmount] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -40,6 +46,7 @@ export function CloseSessionAuthorizedDialog({
     setOpen(value);
     if (!value) {
       setOperatorCode("");
+      setCountedCashAmount("");
       setAuthError(null);
     }
   }
@@ -47,6 +54,11 @@ export function CloseSessionAuthorizedDialog({
   async function handleConfirm() {
     if (!operatorCode.trim()) {
       setAuthError("Insira o código do operador autorizado.");
+      return;
+    }
+    const countedValue = Number(countedCashAmount.replace(",", "."));
+    if (!countedCashAmount.trim() || Number.isNaN(countedValue) || countedValue < 0) {
+      setAuthError("Informe o valor contado em caixa.");
       return;
     }
     setChecking(true);
@@ -64,7 +76,10 @@ export function CloseSessionAuthorizedDialog({
         );
         return;
       }
-      await onConfirm();
+      await onConfirm({
+        authorizedOperatorCode: operatorCode.trim(),
+        countedCashAmount: countedValue,
+      });
       setOpen(false);
     } catch {
       setAuthError("Erro ao verificar autorização. Tente novamente.");
@@ -111,6 +126,23 @@ export function CloseSessionAuthorizedDialog({
               autoComplete="off"
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="counted-cash">Valor contado em dinheiro</Label>
+            <Input
+              id="counted-cash"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder={initialAmount.toFixed(2)}
+              value={countedCashAmount}
+              onChange={(e) => {
+                setCountedCashAmount(e.target.value);
+                setAuthError(null);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && !busy && handleConfirm()}
+              autoComplete="off"
+            />
+          </div>
           {(authError || error) && (
             <ErrorAlert error={authError ?? error} className="text-sm" />
           )}
@@ -127,7 +159,7 @@ export function CloseSessionAuthorizedDialog({
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={busy || !operatorCode.trim()}
+            disabled={busy || !operatorCode.trim() || !countedCashAmount.trim()}
           >
             {busy ? (
               <LoadingSpinner size="sm" className="mr-2" />

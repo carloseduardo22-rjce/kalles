@@ -74,6 +74,7 @@ public class ProductService {
         cp.setCompanyId(getCompanyId());
         cp.setProduct(product);
         cp.setPrice(request.price());
+        cp.setCostPrice(request.costPrice());
         cp.setActive(true);
         companyProductRepository.save(cp);
 
@@ -113,6 +114,7 @@ public class ProductService {
                     return newCp;
                 });
         cp.setPrice(request.price());
+        cp.setCostPrice(request.costPrice());
         companyProductRepository.save(cp);
 
         return findById(id);

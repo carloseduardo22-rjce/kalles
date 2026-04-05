@@ -14,10 +14,10 @@ import dev.kalles.sale.core.entity.Product;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 	Optional<Product> findByInternalCode(String internalCode);
 	Optional<Product> findByBarcode(String barcode);
-	List<Product> findByDescriptionContainingIgnoreCaseAndActiveTrue(String description);
+	List<Product> findByDescriptionContainingIgnoreCase(String description);
 
 	@Query("SELECT new dev.kalles.sale.core.dto.ProductResponse(" +
-		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), p.description, COALESCE(cp.active, false), " +
+		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), COALESCE(cp.costPrice, 0.0), p.description, COALESCE(cp.active, false), " +
 		"SUM(s.quantity), " +
 		"MAX(w.name), " +
 		"MAX(l.code)) " +
@@ -32,7 +32,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 	List<ProductResponse> findAllActiveWithStock(@Param("companyId") UUID companyId);
 
 	@Query("SELECT new dev.kalles.sale.core.dto.ProductResponse(" +
-		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), p.description, COALESCE(cp.active, false), " +
+		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), COALESCE(cp.costPrice, 0.0), p.description, COALESCE(cp.active, false), " +
 		"SUM(s.quantity), " +
 		"MAX(w.name), " +
 		"MAX(l.code)) " +
@@ -46,7 +46,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 	List<ProductResponse> findAllWithStock(@Param("companyId") UUID companyId);
 
 	@Query("SELECT new dev.kalles.sale.core.dto.ProductResponse(" +
-		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), p.description, COALESCE(cp.active, false), " +
+		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), COALESCE(cp.costPrice, 0.0), p.description, COALESCE(cp.active, false), " +
 		"SUM(s.quantity), " +
 		"MAX(w.name), " +
 		"MAX(l.code)) " +
@@ -64,7 +64,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 		"ORDER BY p.name ASC")
 	List<ProductResponse> searchActiveProductsWithStock(@Param("q") String q, @Param("companyId") UUID companyId);
 	@Query("SELECT new dev.kalles.sale.core.dto.ProductResponse(" +
-		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), p.description, COALESCE(cp.active, false), " +
+		"p.id, p.name, p.internalCode, p.barcode, COALESCE(cp.price, 0.0), COALESCE(cp.costPrice, 0.0), p.description, COALESCE(cp.active, false), " +
 		"SUM(s.quantity), " +
 		"MAX(w.name), " +
 		"MAX(l.code)) " +

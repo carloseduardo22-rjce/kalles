@@ -204,6 +204,14 @@ function SidebarInner() {
             Meios de Pagamento
           </NavLink>
           <NavLink
+            href="/relatorios?tab=lucro-fornecedores"
+            icon={<TrendingDown className="h-4 w-4" />}
+            active={isRelatorios && tab === "lucro-fornecedores"}
+            sub
+          >
+            Lucro x Fornecedor
+          </NavLink>
+          <NavLink
             href="/relatorios?tab=por-produto"
             icon={<ShoppingBag className="h-4 w-4" />}
             active={isRelatorios && tab === "por-produto"}
@@ -303,6 +311,14 @@ function SidebarInner() {
             sub
           >
             Metas
+          </NavLink>
+          <NavLink
+            href="/admin/notas"
+            icon={<Ticket className="h-4 w-4" />}
+            active={pathname === "/admin/notas"}
+            sub
+          >
+            Bloco de Notas
           </NavLink>
           {/* ── Configurar pagamentos ── */}
           <NavGroup

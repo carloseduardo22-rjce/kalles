@@ -14,11 +14,21 @@ public interface TicketRepository extends JpaRepository<TicketEntity, UUID> {
     @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
     Optional<TicketEntity> findWithDetailsById(UUID id);
 
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
     List<TicketEntity> findAllByStatusOrderByCreatedAtDesc(TicketStatus status);
 
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
     List<TicketEntity> findAllByOrderByCreatedAtDesc();
 
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
     List<TicketEntity> findAllByAgentIdOrderByCreatedAtDesc(UUID agentId);
 
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
     List<TicketEntity> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
+    List<TicketEntity> findAllByUserEmailOrderByCreatedAtDesc(String email);
+
+    @EntityGraph(attributePaths = {"user", "agent", "category", "interactions"})
+    List<TicketEntity> findAllByUserEmailAndStatusOrderByCreatedAtDesc(String email, TicketStatus status);
 }

@@ -1,5 +1,8 @@
 import { api } from "@/shared/services/api";
 import type {
+  AgentMessageRequest,
+  AuthMeResponse,
+  CustomerMessageRequest,
   OpenTicketRequest,
   TicketResponse,
   TicketStatus,
@@ -16,9 +19,35 @@ export const ticketService = {
   findById: (id: string): Promise<TicketResponse> =>
     api.get<TicketResponse>(`${BASE}/${id}`),
 
-  listByUser: (userId: string): Promise<TicketResponse[]> =>
-    api.get<TicketResponse[]>(`${BASE}/user/${userId}`),
-
   open: (data: OpenTicketRequest): Promise<TicketResponse> =>
-    api.post<TicketResponse>(BASE, data),
+    api.post<TicketResponse>(BASE, {
+      title: data.title,
+      description: data.description,
+      categoryId: data.categoryId,
+    }),
+
+  sendCustomerMessage: (
+    id: string,
+    data: CustomerMessageRequest,
+  ): Promise<TicketResponse> => api.post<TicketResponse>(`${BASE}/${id}/customer-message`, data),
+
+  editCustomerMessage: (
+    id: string,
+    data: CustomerMessageRequest,
+  ): Promise<TicketResponse> => api.patch<TicketResponse>(`${BASE}/${id}/customer-message`, data),
+
+  sendAgentMessage: (
+    id: string,
+    data: AgentMessageRequest,
+  ): Promise<TicketResponse> => api.post<TicketResponse>(`${BASE}/${id}/agent-message`, data),
+
+  editAgentMessage: (
+    id: string,
+    data: CustomerMessageRequest,
+  ): Promise<TicketResponse> => api.patch<TicketResponse>(`${BASE}/${id}/agent-message`, data),
+
+  close: (id: string): Promise<TicketResponse> =>
+    api.patch<TicketResponse>(`${BASE}/${id}/close`),
+
+  me: (): Promise<AuthMeResponse> => api.get<AuthMeResponse>("/api/auth/me"),
 };

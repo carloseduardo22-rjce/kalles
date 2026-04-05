@@ -92,7 +92,7 @@ export default function PaymentSettingsPage() {
   const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
   const REDIRECT_URI =
     process.env.NEXT_PUBLIC_MP_REDIRECT_URI ||
-    "https://08e8-2804-1494-dbb-aa00-f8ed-896b-5037-a22f.ngrok-free.app/admin/pagamentos/mp-callback";
+    "https://65a2-2804-1494-dbb-aa00-d9d3-cb87-6fd4-2d94.ngrok-free.app/admin/pagamentos/mp-callback";
 
   // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
   const [tenantId, setTenantId] = useState<string>("");

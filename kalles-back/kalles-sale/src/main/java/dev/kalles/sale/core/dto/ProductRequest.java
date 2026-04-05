@@ -10,22 +10,26 @@ import java.math.BigDecimal;
 
 public record ProductRequest(
 
-    @Schema(description = "Nome do produto", example = "Café Expresso")
+    @Schema(description = "Nome do produto", example = "Cafe Expresso")
     @NotBlank @Size(max = 150)
     String name,
 
-    @Schema(description = "Código interno único do produto", example = "CAFE-001")
+    @Schema(description = "Codigo interno unico do produto", example = "CAFE-001")
     @NotBlank @Size(max = 50)
     String internalCode,
 
-    @Schema(description = "Código de barras", example = "7891234560017")
+    @Schema(description = "Codigo de barras", example = "7891234560017")
     @Size(max = 50)
     String barcode,
 
-    @Schema(description = "Descrição detalhada do produto")
+    @Schema(description = "Descricao detalhada do produto")
     String description,
 
-    @Schema(description = "Preço unitário de venda", example = "5.90")
-    @NotNull @DecimalMin(value = "0.01", message = "Preço deve ser maior que zero")
-    BigDecimal price
+    @Schema(description = "Preco unitario de venda", example = "5.90")
+    @NotNull @DecimalMin(value = "0.01", message = "Preco deve ser maior que zero")
+    BigDecimal price,
+
+    @Schema(description = "Custo unitario da mercadoria", example = "3.40")
+    @NotNull @DecimalMin(value = "0.01", message = "Custo deve ser maior que zero")
+    BigDecimal costPrice
 ) {}

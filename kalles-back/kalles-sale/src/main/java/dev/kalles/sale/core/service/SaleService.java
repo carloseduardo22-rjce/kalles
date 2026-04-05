@@ -252,7 +252,7 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public List<Product> searchProducts(String description) {
-        return productRepository.findByDescriptionContainingIgnoreCaseAndActiveTrue(description);
+        return productRepository.findByDescriptionContainingIgnoreCase(description);
     }
 
     @Transactional

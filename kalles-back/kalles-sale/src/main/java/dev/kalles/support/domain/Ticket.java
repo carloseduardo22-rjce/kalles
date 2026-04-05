@@ -1,29 +1,17 @@
 package dev.kalles.support.domain;
 
+import dev.kalles.support.domain.exception.InvalidStateTransitionException;
 import dev.kalles.support.domain.exception.TicketDomainException;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Root aggregate of the Support domain.
- * <p>
- * All state mutations are delegated to the current {@link TicketState} object,
- * which implements the State Pattern to enforce that only valid transitions
- * of the state machine can be executed.
- * <p>
- * Invariants enforced by this class:
- * <ul>
- *   <li>Title, description and category are mandatory when opening a ticket.</li>
- *   <li>Priority is automatically derived from the Category.</li>
- *   <li>Initial status is always OPEN.</li>
- *   <li>The SLA is automatically started upon opening.</li>
- *   <li>Internal mutations are package-private (accessible to state classes only).</li>
- * </ul>
- */
 @Getter
 public class Ticket {
 
@@ -41,20 +29,12 @@ public class Ticket {
     private TicketState state;
 
     @Getter(lombok.AccessLevel.NONE)
-    private List<Interaction> interactions;
+    private final List<Interaction> interactions;
 
     private Ticket() {
         this.interactions = new ArrayList<>();
     }
 
-    // ---------------------------------------------------------------
-    // Factory Methods
-    // ---------------------------------------------------------------
-
-    /**
-     * Opens a new Ticket, enforcing all business invariants.
-     * Priority is automatically derived from the provided {@link Category}.
-     */
     public static Ticket open(String title, String description, User user, Category category) {
         requireNonBlank(title, "Ticket title is required");
         requireNonBlank(description, "Ticket description is required");
@@ -73,14 +53,18 @@ public class Ticket {
         return ticket;
     }
 
-    /**
-     * Reconstitutes a Ticket from persisted data including its interactions.
-     * No business validation is applied — data was validated at creation time.
-     */
-    public static Ticket reconstitute(String id, String title, String description,
-                                      TicketStatus status, Priority priority,
-                                      User user, Agent agent, Category category,
-                                      Sla sla, List<Interaction> interactions) {
+    public static Ticket reconstitute(
+            String id,
+            String title,
+            String description,
+            TicketStatus status,
+            Priority priority,
+            User user,
+            Agent agent,
+            Category category,
+            Sla sla,
+            List<Interaction> interactions
+    ) {
         Ticket ticket = new Ticket();
         ticket.id = id;
         ticket.title = title;
@@ -96,14 +80,16 @@ public class Ticket {
         return ticket;
     }
 
-    /**
-     * Reconstitutes a Ticket from persisted data.
-     * No business validation is applied — data was validated at creation time.
-     * The state object is resolved from the given status.
-     */
-    public static Ticket reconstitute(String id, String title, String description,
-                                      TicketStatus status, Priority priority,
-                                      User user, Agent agent, Category category) {
+    public static Ticket reconstitute(
+            String id,
+            String title,
+            String description,
+            TicketStatus status,
+            Priority priority,
+            User user,
+            Agent agent,
+            Category category
+    ) {
         Ticket ticket = new Ticket();
         ticket.id = id;
         ticket.title = title;
@@ -113,34 +99,38 @@ public class Ticket {
         ticket.user = user;
         ticket.agent = agent;
         ticket.category = category;
-        ticket.sla = resolveSlа(status);
+        ticket.sla = resolveSla(status);
         ticket.state = resolveState(status);
         return ticket;
     }
 
-    // ---------------------------------------------------------------
-    // Behaviours / Commands
-    // ---------------------------------------------------------------
-
-    /**
-     * An Agent takes responsibility for this Ticket.
-     * Delegates to the current state to validate the transition.
-     */
     public void assign(Agent agent) {
         this.state.assign(this, agent);
     }
 
-    // ---------------------------------------------------------------
-    // Getter — returns an unmodifiable view of interactions
-    // ---------------------------------------------------------------
+    public void addCustomerMessage(String content) {
+        this.state.addCustomerMessage(this, content);
+    }
+
+    public void editLastCustomerMessage(String content) {
+        this.state.editLastCustomerMessage(this, content);
+    }
+
+    public void addAgentMessage(String content, boolean markAsResolved) {
+        this.state.addAgentMessage(this, content, markAsResolved);
+    }
+
+    public void editLastAgentMessage(String content) {
+        this.state.editLastAgentMessage(this, content);
+    }
+
+    public void close() {
+        this.state.close(this);
+    }
 
     public List<Interaction> getInteractions() {
         return Collections.unmodifiableList(interactions);
     }
-
-    // ---------------------------------------------------------------
-    // Package-private mutations — used exclusively by state classes
-    // ---------------------------------------------------------------
 
     void applyStatus(TicketStatus newStatus) {
         this.status = newStatus;
@@ -154,13 +144,79 @@ public class Ticket {
         this.interactions.add(interaction);
     }
 
+    void replaceInteraction(Interaction updatedInteraction) {
+        for (int index = interactions.size() - 1; index >= 0; index--) {
+            Interaction current = interactions.get(index);
+            if (Objects.equals(current.getId(), updatedInteraction.getId())) {
+                interactions.set(index, updatedInteraction);
+                return;
+            }
+        }
+        throw new TicketDomainException("Latest interaction could not be updated");
+    }
+
     void applyState(TicketState newState) {
         this.state = newState;
     }
 
-    // ---------------------------------------------------------------
-    // Private validation helpers
-    // ---------------------------------------------------------------
+    void appendConversationMessage(String content, InteractionType expectedType) {
+        requireNonBlank(content, "Message content is required");
+        ensureCanAppendConversationMessage(expectedType);
+        applyInteraction(new Interaction(content.strip(), expectedType));
+    }
+
+    void editLatestConversationMessage(String content, InteractionType expectedType) {
+        requireNonBlank(content, "Message content is required");
+        Interaction latest = latestConversationInteraction()
+                .orElseThrow(() -> new TicketDomainException("There is no message available to edit"));
+
+        if (latest.getType() != expectedType) {
+            throw new TicketDomainException("Only the latest message from the same author can be edited");
+        }
+
+        replaceInteraction(Interaction.reconstitute(
+                latest.getId(),
+                content.strip(),
+                latest.getType(),
+                latest.getCreatedAt()
+        ));
+    }
+
+    void ensureLatestConversationMessageFrom(InteractionType expectedType, String message) {
+        Interaction latest = latestConversationInteraction()
+                .orElseThrow(() -> new InvalidStateTransitionException(message));
+        if (latest.getType() != expectedType) {
+            throw new InvalidStateTransitionException(message);
+        }
+    }
+
+    void ensureAssignedAgent() {
+        if (agent == null) {
+            throw agentReplyRequiresAssignment();
+        }
+    }
+
+    InvalidStateTransitionException invalidTransition(String message) {
+        return new InvalidStateTransitionException(message);
+    }
+
+    TicketDomainException agentReplyRequiresAssignment() {
+        return new TicketDomainException("The ticket must be assigned before an agent can reply");
+    }
+
+    private void ensureCanAppendConversationMessage(InteractionType type) {
+        latestConversationInteraction().ifPresent(latest -> {
+            if (latest.getType() == type) {
+                throw new TicketDomainException("You must edit your latest message before sending another one");
+            }
+        });
+    }
+
+    private Optional<Interaction> latestConversationInteraction() {
+        return interactions.stream()
+                .filter(interaction -> interaction.getType() != InteractionType.INTERNAL_NOTE)
+                .max(Comparator.comparing(Interaction::getCreatedAt));
+    }
 
     private static void requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
@@ -184,7 +240,7 @@ public class Ticket {
         };
     }
 
-    private static Sla resolveSlа(TicketStatus status) {
+    private static Sla resolveSla(TicketStatus status) {
         return (status == TicketStatus.OPEN || status == TicketStatus.IN_PROGRESS)
                 ? Sla.start()
                 : Sla.inactive();

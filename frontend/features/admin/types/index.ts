@@ -1,4 +1,4 @@
-// ─── Clients ───────────────────────────────────────────────────────────────
+// Clients
 
 export interface ClientRequest {
   name: string;
@@ -27,7 +27,7 @@ export interface ClientResponse {
   observations: string | null;
 }
 
-// ─── Products (Admin) ──────────────────────────────────────────────────────
+// Products (Admin)
 
 export interface ProductRequest {
   name: string;
@@ -35,6 +35,7 @@ export interface ProductRequest {
   barcode?: string | null;
   description?: string | null;
   price: number;
+  costPrice: number;
   active: boolean;
 }
 
@@ -45,13 +46,14 @@ export interface ProductAdminResponse {
   barcode: string | null;
   description: string | null;
   price: number;
+  costPrice: number;
   active: boolean;
   stockQuantity?: number;
   warehouse?: string;
   location?: string;
 }
 
-// ─── Operators ─────────────────────────────────────────────────────────────
+// Operators
 
 export type PermissionLevel = "BASIC" | "SUPERVISOR" | "MANAGER" | "ADMIN";
 
@@ -68,7 +70,7 @@ export interface OperatorAdminResponse {
   permissionLevel: PermissionLevel | null;
 }
 
-// ─── Warehouses ────────────────────────────────────────────────────────────
+// Warehouses
 
 export interface WarehouseRequest {
   name: string;
@@ -82,7 +84,7 @@ export interface WarehouseResponse {
   active: boolean;
 }
 
-// ─── Locations ────────────────────────────────────────────────────────────
+// Locations
 
 export interface LocationRequest {
   code: string;
@@ -97,7 +99,7 @@ export interface LocationResponse {
   description: string | null;
 }
 
-// ─── Fidelity ─────────────────────────────────────────────────────────────
+// Fidelity
 
 export interface FidelityPolicyRequest {
   objectivePoints: number;
@@ -123,7 +125,7 @@ export interface FidelityResponse {
   expired: boolean;
 }
 
-// ─── Goals ───────────────────────────────────────────────────────────────────
+// Goals
 
 export type GoalStatus = "DRAFT" | "ACTIVE" | "CLOSED";
 export type Periodicity = "WEEKLY" | "MONTHLY";
@@ -149,12 +151,13 @@ export interface GoalAssessmentResult {
   gap: number;
 }
 
-// ─── Stock ────────────────────────────────────────────────────────────────
+// Stock
 
 export interface StockRequest {
   productId: string;
   locationId: string;
   quantity: number;
+  unitCost?: number | null;
 }
 
 export interface StockResponse {

@@ -1,5 +1,3 @@
-// ─── Enums ──────────────────────────────────────────────────────────────────
-
 export type TicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
@@ -14,7 +12,7 @@ export type InteractionType =
   | "AGENT_MESSAGE"
   | "INTERNAL_NOTE";
 
-// ─── Requests ────────────────────────────────────────────────────────────────
+export type AccountRole = "ADMIN" | "OPERATOR";
 
 export interface OpenTicketRequest {
   title: string;
@@ -28,7 +26,14 @@ export interface UserRequest {
   name: string;
 }
 
-// ─── Responses ───────────────────────────────────────────────────────────────
+export interface CustomerMessageRequest {
+  content: string;
+}
+
+export interface AgentMessageRequest {
+  content: string;
+  markAsResolved: boolean;
+}
 
 export interface AgentResponse {
   employeeId: string;
@@ -51,10 +56,11 @@ export interface UserResponse {
 
 export interface SlaResponse {
   active: boolean;
-  startedAt: string;
+  startedAt: string | null;
 }
 
 export interface InteractionResponse {
+  id: string;
   content: string;
   type: InteractionType;
   createdAt: string;
@@ -71,4 +77,13 @@ export interface TicketResponse {
   category: { name: string; subcategory: string; defaultPriority: Priority };
   sla: SlaResponse;
   interactions: InteractionResponse[];
+}
+
+export interface AuthMeResponse {
+  accountId: string;
+  tenantId: string;
+  companyId: string | null;
+  email: string;
+  name: string;
+  role: AccountRole;
 }

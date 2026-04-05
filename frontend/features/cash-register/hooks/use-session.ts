@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ActiveSession, CloseSessionResponse } from "../types";
+import type {
+  ActiveSession,
+  CloseSessionRequest,
+  CloseSessionResponse,
+} from "../types";
 import { cashRegisterService } from "../services/cash-register.service";
 import { ApiError } from "@/shared/services/api";
 
@@ -34,7 +38,9 @@ interface UseSessionReturn {
     operatorCode: string,
     initialAmount: number,
   ) => Promise<void>;
-  closeSession: () => Promise<CloseSessionResponse | null>;
+  closeSession: (
+    request: CloseSessionRequest,
+  ) => Promise<CloseSessionResponse | null>;
   clearError: () => void;
 }
 
@@ -86,15 +92,13 @@ export function useSession(): UseSessionReturn {
     [],
   );
 
-  const closeSession =
-    useCallback(async (): Promise<CloseSessionResponse | null> => {
+  const closeSession = useCallback(
+    async (request: CloseSessionRequest): Promise<CloseSessionResponse | null> => {
       if (!session) return null;
       setIsLoading(true);
       setError(null);
       try {
-        const result = await cashRegisterService.closeSession(
-          session.sessionId,
-        );
+        const result = await cashRegisterService.closeSession(session.sessionId, request);
         clearSession();
         setSession(null);
         return result;
@@ -106,7 +110,9 @@ export function useSession(): UseSessionReturn {
       } finally {
         setIsLoading(false);
       }
-    }, [session]);
+    },
+    [session],
+  );
 
   const clearError = useCallback(() => setError(null), []);
 

@@ -35,6 +35,7 @@ public class TicketMapper {
 
     public InteractionEntity toInteractionEntity(Interaction interaction, TicketEntity ticketEntity) {
         InteractionEntity entity = new InteractionEntity();
+        entity.setId(UUID.fromString(interaction.getId()));
         entity.setTicket(ticketEntity);
         entity.setContent(interaction.getContent());
         entity.setType(interaction.getType());
@@ -84,6 +85,11 @@ public class TicketMapper {
     }
 
     public Interaction toDomainInteraction(InteractionEntity entity) {
-        return Interaction.reconstitute(entity.getContent(), entity.getType(), entity.getCreatedAt());
+        return Interaction.reconstitute(
+                entity.getId().toString(),
+                entity.getContent(),
+                entity.getType(),
+                entity.getCreatedAt()
+        );
     }
 }

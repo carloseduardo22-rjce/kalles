@@ -39,6 +39,9 @@ public class CompanyProduct {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "cost_price", nullable = false, precision = 19, scale = 2)
+    private BigDecimal costPrice;
+
     @Column(nullable = false)
     private boolean active = true;
 

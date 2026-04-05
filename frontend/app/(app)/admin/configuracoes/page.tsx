@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
-import { Settings, ImageIcon, Trash2, Palette, Upload } from "lucide-react";
+import { ImageIcon, Palette, Settings, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  useAppearance,
+  type PaletteTheme,
+} from "@/components/appearance-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 
-const themes = [
+const legacyThemeOptions = [
   { name: "Padrão (Azul/Branco)", value: "light", color: "bg-blue-600" },
   { name: "Esmeralda", value: "theme-emerald", color: "bg-emerald-600" },
   { name: "Âmbar", value: "theme-amber", color: "bg-amber-600" },
@@ -18,12 +22,33 @@ const themes = [
   { name: "Escuro (Dark)", value: "dark", color: "bg-black" },
 ];
 
+const paletteOptions: Array<{
+  name: string;
+  value: PaletteTheme;
+  color: string;
+}> = [
+  { name: "Padrao (Azul/Branco)", value: "light", color: "bg-blue-600" },
+  { name: "Esmeralda", value: "theme-emerald", color: "bg-emerald-600" },
+  { name: "Ambar", value: "theme-amber", color: "bg-amber-600" },
+  { name: "Rosa", value: "theme-rose", color: "bg-rose-600" },
+  { name: "Ardosia", value: "theme-slate", color: "bg-slate-800" },
+];
+
+const modeOptions = legacyThemeOptions
+  .filter((option) => option.value === "light" || option.value === "dark")
+  .map((option) => ({
+    name: option.value === "light" ? "Claro" : option.name,
+    value: option.value as "light" | "dark",
+    color: option.value === "light" ? "bg-white border" : option.color,
+  }));
+
 export default function ConfiguracoesPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [savedLogo, setSavedLogo] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
 
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { paletteTheme, setPaletteTheme } = useAppearance();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,23 +124,60 @@ export default function ConfiguracoesPage() {
               Selecione o template de cores padrão para os usuários do sistema.
             </p>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {themes.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => setTheme(t.value)}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-md border p-3 transition-colors hover:bg-muted ${
-                    theme === t.value
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                      : "border-border"
-                  }`}
-                >
-                  <div
-                    className={`h-6 w-6 rounded-full shadow-sm border border-white/10 ${t.color}`}
-                  />
-                  <span className="text-xs font-medium">{t.name}</span>
-                </button>
-              ))}
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Modo de exibicao
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {modeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTheme(option.value)}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-md border p-3 transition-colors hover:bg-muted ${
+                        resolvedTheme === option.value
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border"
+                      }`}
+                    >
+                      <div
+                        className={`h-6 w-6 rounded-full shadow-sm border border-white/10 ${option.color}`}
+                      />
+                      <span className="text-xs font-medium">
+                        {option.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Paleta de cores
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {paletteOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setPaletteTheme(option.value)}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-md border p-3 transition-colors hover:bg-muted ${
+                        paletteTheme === option.value
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border"
+                      }`}
+                    >
+                      <div
+                        className={`h-6 w-6 rounded-full shadow-sm border border-white/10 ${option.color}`}
+                      />
+                      <span className="text-xs font-medium">
+                        {option.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -21,17 +21,28 @@ export interface SessionSummaryResponse {
   vendasCanceladas: number;
   totalVendido: number;
   totalPorMetodoPagamento: Record<string, number>;
+  totalEmDinheiro: number;
+  saldoEsperadoEmCaixa: number;
+  valorInformadoEmCaixa: number | null;
+  diferencaEmCaixa: number | null;
 }
 
 export interface CloseSessionResponse {
   sessionId: string;
   codigoCaixa: string;
   nomeOperador: string;
+  codigoOperadorAutorizador: string | null;
+  nomeOperadorAutorizador: string | null;
   valorInicial: number;
   abertura: string;
   fechamento: string;
   status: SessionStatus;
   resumo: SessionSummaryResponse;
+}
+
+export interface CloseSessionRequest {
+  authorizedOperatorCode: string;
+  countedCashAmount: number;
 }
 
 /** Persisted in localStorage */

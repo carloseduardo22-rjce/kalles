@@ -2,11 +2,13 @@ package dev.kalles.sale.core.service;
 
 import dev.kalles.sale.core.entity.Goal;
 import dev.kalles.sale.core.repository.SaleRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +24,11 @@ public class GoalAssessmentService {
     public GoalAssessmentResult autoAssess(Goal goal) {
         LocalDateTime start = goal.getStartDate().atStartOfDay();
         LocalDateTime end = goal.getEndDate().plusDays(1).atStartOfDay();
-        BigDecimal totalSold = saleRepository.sumCompletedTotalsBetween(start, end);
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
+        }
+        BigDecimal totalSold = saleRepository.sumCompletedTotalsBetween(companyId, start, end);
         return assess(goal, totalSold);
     }
 }

@@ -1,18 +1,25 @@
 package dev.kalles.sale.security.controller;
 
+import dev.kalles.sale.security.dto.AuthMeResponse;
 import dev.kalles.sale.security.dto.LoginRequest;
 import dev.kalles.sale.security.dto.RegisterRequest;
 import dev.kalles.sale.security.dto.VerifyCodeRequest;
 import dev.kalles.sale.security.filter.JwtAuthenticationFilter;
+import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.sale.security.service.AuthService;
-import dev.kalles.sale.security.context.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 
@@ -22,21 +29,24 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccountRepository accountRepository;
 
     @GetMapping("/me")
-    public ResponseEntity<java.util.Map<String, String>> me() {
-        java.util.UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
+    public ResponseEntity<AuthMeResponse> me(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(java.util.Map.of("tenantId", tenantId.toString()));
+
+        return accountRepository.findByEmail(authentication.getName())
+                .map(account -> ResponseEntity.ok(AuthMeResponse.from(account)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(
             @Valid @RequestBody LoginRequest request,
             @CookieValue(value = "kalles_pos_token", required = false) String posToken) {
-        
+
         String token = authService.authenticate(request, posToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, createAuthCookie(token).toString())
@@ -46,7 +56,6 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        // The token is not sent here. User needs to verify through email.
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -68,7 +77,7 @@ public class AuthController {
     public ResponseEntity<Void> logout() {
         ResponseCookie cookie = ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(false) // Mude para true em prod usando HTTPS
+                .secure(false)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
@@ -82,7 +91,7 @@ public class AuthController {
     private ResponseCookie createAuthCookie(String token) {
         return ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, token)
                 .httpOnly(true)
-                .secure(false) // Mude para true em produção (assumindo que no local roda por http)
+                .secure(false)
                 .path("/")
                 .maxAge(Duration.ofHours(12))
                 .sameSite("Lax")

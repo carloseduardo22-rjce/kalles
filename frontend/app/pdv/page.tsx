@@ -34,6 +34,7 @@ import { companySettingsService } from "@/shared/services/company-settings.servi
 import type { ActiveSession } from "@/features/cash-register/types";
 import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
+import type { ProductSearchHandle } from "@/features/sales/components/product-search";
 
 const STORAGE_KEY = "kalles:active-session";
 const LAYOUT_STORAGE_KEY = "kalles:pdv-layout";
@@ -45,8 +46,30 @@ const MAX_LEFT_WIDTH = 80;
 const MIN_BOTTOM_HEIGHT = 15;
 const MAX_BOTTOM_HEIGHT = 50;
 
+const INTERACTIVE_FOCUS_SELECTOR = [
+  "input",
+  "textarea",
+  "select",
+  "button",
+  "a[href]",
+  "label",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='dialog']",
+  "[role='menu']",
+  "[role='listbox']",
+  "[role='option']",
+  "[role='tab']",
+  "[role='switch']",
+  "[role='checkbox']",
+  "[role='radio']",
+  "[data-state='open']",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
 export default function PdvPage() {
   const router = useRouter();
+  const productSearchRef = useRef<ProductSearchHandle | null>(null);
 
   // Layout Management State
   const containerRef = useRef<HTMLDivElement>(null);
@@ -136,6 +159,8 @@ export default function PdvPage() {
     null,
   );
   const [lookupOpen, setLookupOpen] = useState(false);
+  const hasSecondaryOverlay =
+    lookupOpen || !!removalItem || cancelOpen || !!discountItem;
 
   const {
     closeSession,
@@ -225,6 +250,37 @@ export default function PdvPage() {
     }
   }, [hydrated, sessionToken, sale, saleError, createSale]);
 
+  const focusProductSearch = useCallback(() => {
+    if (isEditingLayout || hasSecondaryOverlay) return;
+    productSearchRef.current?.focus();
+  }, [hasSecondaryOverlay, isEditingLayout]);
+
+  useEffect(() => {
+    if (!hydrated || isEditingLayout || hasSecondaryOverlay) return;
+    const frameId = window.requestAnimationFrame(() => {
+      focusProductSearch();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [focusProductSearch, hasSecondaryOverlay, hydrated, isEditingLayout]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (isEditingLayout || hasSecondaryOverlay) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(INTERACTIVE_FOCUS_SELECTOR)) return;
+
+      window.requestAnimationFrame(() => {
+        focusProductSearch();
+      });
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [focusProductSearch, hasSecondaryOverlay, isEditingLayout]);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "F2") {
@@ -253,8 +309,11 @@ export default function PdvPage() {
     );
   }
 
-  async function handleCloseSession() {
-    const result = await closeSession();
+  async function handleCloseSessionWithPayload(payload: {
+    authorizedOperatorCode: string;
+    countedCashAmount: number;
+  }) {
+    const result = await closeSession(payload);
     if (result) {
       sessionStorage.setItem(
         `kalles:report:${result.sessionId}`,
@@ -331,7 +390,8 @@ export default function PdvPage() {
               <CloseSessionAuthorizedDialog
                 isLoading={sessionLoading}
                 error={sessionError}
-                onConfirm={handleCloseSession}
+                initialAmount={sessionData.initialAmount}
+                onConfirm={handleCloseSessionWithPayload}
               />
             </>
           ) : (
@@ -389,7 +449,11 @@ export default function PdvPage() {
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
             {/* Add item */}
             {(!sale || sale.state === "OPEN") && (
-              <ProductSearch isLoading={isLoading} onAddItem={addItem} />
+              <ProductSearch
+                ref={productSearchRef}
+                isLoading={isLoading}
+                onAddItem={addItem}
+              />
             )}
 
             {saleError && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Package,
   Plus,
@@ -21,10 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -45,7 +45,6 @@ import type {
   ProductRequest,
 } from "@/features/admin/types";
 
-/* ─── Form ──────────────────────────────────────────────────────────────── */
 function ProductForm({
   defaultValues,
   onSubmit,
@@ -72,7 +71,7 @@ function ProductForm({
           <Label htmlFor="name">Nome *</Label>
           <Input
             id="name"
-            {...register("name", { required: "Nome é obrigatório" })}
+            {...register("name", { required: "Nome e obrigatorio" })}
             placeholder="Nome do produto"
           />
           {errors.name && (
@@ -81,11 +80,11 @@ function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="internalCode">Código Interno *</Label>
+          <Label htmlFor="internalCode">Codigo Interno *</Label>
           <Input
             id="internalCode"
             {...register("internalCode", {
-              required: "Código interno é obrigatório",
+              required: "Codigo interno e obrigatorio",
             })}
             placeholder="Ex: PROD-001"
             className="font-mono"
@@ -98,7 +97,7 @@ function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="barcode">Código de Barras</Label>
+          <Label htmlFor="barcode">Codigo de Barras</Label>
           <Input
             id="barcode"
             {...register("barcode")}
@@ -108,15 +107,15 @@ function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="price">Preço *</Label>
+          <Label htmlFor="price">Preco de Venda *</Label>
           <Input
             id="price"
             type="number"
             step="0.01"
             min="0.01"
             {...register("price", {
-              required: "Preço é obrigatório",
-              min: { value: 0.01, message: "Preço deve ser maior que zero" },
+              required: "Preco e obrigatorio",
+              min: { value: 0.01, message: "Preco deve ser maior que zero" },
               valueAsNumber: true,
             })}
             placeholder="0,00"
@@ -126,12 +125,33 @@ function ProductForm({
           )}
         </div>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="costPrice">Custo da Mercadoria *</Label>
+          <Input
+            id="costPrice"
+            type="number"
+            step="0.01"
+            min="0.01"
+            {...register("costPrice", {
+              required: "Custo e obrigatorio",
+              min: { value: 0.01, message: "Custo deve ser maior que zero" },
+              valueAsNumber: true,
+            })}
+            placeholder="0,00"
+          />
+          {errors.costPrice && (
+            <p className="text-xs text-destructive">
+              {errors.costPrice.message}
+            </p>
+          )}
+        </div>
+
         <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="description">Descrição</Label>
+          <Label htmlFor="description">Descricao</Label>
           <Textarea
             id="description"
             {...register("description")}
-            placeholder="Descrição detalhada do produto…"
+            placeholder="Descricao detalhada do produto..."
             rows={3}
           />
         </div>
@@ -154,7 +174,6 @@ function ProductForm({
   );
 }
 
-/* ─── Page ──────────────────────────────────────────────────────────────── */
 export default function AdminProdutosPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -235,7 +254,6 @@ export default function AdminProdutosPage() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* ─── Header ─── */}
       <header className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm">
         <Package className="h-5 w-5 text-primary" />
         <div>
@@ -243,7 +261,7 @@ export default function AdminProdutosPage() {
             Cadastro de Produtos
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {isLoading ? "Carregando…" : `${products.length} produto(s)`}
+            {isLoading ? "Carregando..." : `${products.length} produto(s)`}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -265,24 +283,22 @@ export default function AdminProdutosPage() {
         </div>
       </header>
 
-      {/* ─── Search ─── */}
       <div className="border-b bg-muted/30 px-4 py-3">
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, código interno ou código de barras…"
+            placeholder="Buscar por nome, codigo interno ou codigo de barras..."
             className="bg-background pl-9"
           />
         </div>
       </div>
 
-      {/* ─── Content ─── */}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
-            <LoadingSpinner size="lg" label="Carregando produtos…" />
+            <LoadingSpinner size="lg" label="Carregando produtos..." />
           </div>
         ) : error ? (
           <ErrorAlert error={error} title="Erro ao carregar produtos" />
@@ -300,10 +316,10 @@ export default function AdminProdutosPage() {
             <thead className="border-b bg-muted/50">
               <tr>
                 <th className="w-28 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Cód. Interno
+                  Cod. Interno
                 </th>
                 <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Cód. Barras
+                  Cod. Barras
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Nome
@@ -315,7 +331,10 @@ export default function AdminProdutosPage() {
                   Estoque / Local
                 </th>
                 <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Preço
+                  Venda
+                </th>
+                <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Custo
                 </th>
                 <th className="w-20 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Status
@@ -333,13 +352,11 @@ export default function AdminProdutosPage() {
                     {product.internalCode}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {product.barcode ?? <span className="opacity-40">—</span>}
+                    {product.barcode ?? <span className="opacity-40">-</span>}
                   </td>
                   <td className="px-4 py-3 font-medium">{product.name}</td>
                   <td className="px-4 py-3 text-center font-medium">
-                    {product.stockQuantity ?? (
-                      <span className="opacity-40">0</span>
-                    )}
+                    {product.stockQuantity ?? <span className="opacity-40">0</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {product.warehouse ? (
@@ -350,11 +367,14 @@ export default function AdminProdutosPage() {
                         <span>{product.location}</span>
                       </span>
                     ) : (
-                      <span className="opacity-40">—</span>
+                      <span className="opacity-40">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
                     {formatCurrency(product.price)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-amber-700">
+                    {formatCurrency(product.costPrice)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge
@@ -399,26 +419,22 @@ export default function AdminProdutosPage() {
         )}
       </div>
 
-      {/* ─── Create Dialog ─── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo Produto</DialogTitle>
             <DialogDescription>
-              Campos marcados com * são obrigatórios.
+              Campos marcados com * sao obrigatorios.
             </DialogDescription>
           </DialogHeader>
           <ProductForm
-            onSubmit={(data) =>
-              createMutation.mutate({ ...data, active: true })
-            }
+            onSubmit={(data) => createMutation.mutate({ ...data, active: true })}
             isPending={createMutation.isPending}
             onCancel={() => setCreateOpen(false)}
           />
         </DialogContent>
       </Dialog>
 
-      {/* ─── Edit Dialog ─── */}
       <Dialog
         open={!!editTarget}
         onOpenChange={(o) => !o && setEditTarget(null)}
@@ -444,7 +460,6 @@ export default function AdminProdutosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Deactivate Dialog ─── */}
       <AlertDialog
         open={!!deactivateTarget}
         onOpenChange={(o) => !o && setDeactivateTarget(null)}
@@ -453,8 +468,8 @@ export default function AdminProdutosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar produto?</AlertDialogTitle>
             <AlertDialogDescription>
-              O produto <strong>{deactivateTarget?.name}</strong> será marcado
-              como inativo e não aparecerá mais nas buscas do PDV.
+              O produto <strong>{deactivateTarget?.name}</strong> sera marcado
+              como inativo e nao aparecera mais nas buscas do PDV.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

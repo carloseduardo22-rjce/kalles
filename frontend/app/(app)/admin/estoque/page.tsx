@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Layers, Search, Plus, RefreshCw, Package, MapPin } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Layers, Search, Plus, Package, MapPin } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -12,10 +12,10 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -25,14 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
-import { ErrorAlert } from "@/shared/components/error-alert";
 import { stockService } from "@/features/admin/services/stock.service";
 import { warehouseService } from "@/features/admin/services/warehouse.service";
 import { productService } from "@/features/sales/services/product.service";
+import { formatCurrency } from "@/shared/utils/formatters";
 import type { StockRequest, StockResponse } from "@/features/admin/types";
 import type { ProductResponse } from "@/features/sales/types";
 
-/* ─── Stock Form ─────────────────────────────────────────────────────────── */
 function StockForm({
   products,
   onSubmit,
@@ -65,13 +64,23 @@ function StockForm({
     formState: { errors },
   } = useForm<StockRequest>();
 
+  const selectedProductId = watch("productId");
   const locationId = watch("locationId");
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
         <Label>Produto *</Label>
-        <Select onValueChange={(v) => setValue("productId", v)}>
+        <Select
+          onValueChange={(value) => {
+            setValue("productId", value, { shouldValidate: true });
+            const product = products.find((item) => item.id === value);
+            if (product?.costPrice) {
+              setValue("unitCost", product.costPrice, { shouldValidate: true });
+            }
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecione um produto" />
           </SelectTrigger>
@@ -81,7 +90,7 @@ function StockForm({
                 <span className="font-mono text-xs text-muted-foreground">
                   {p.internalCode}
                 </span>
-                {" — "}
+                {" - "}
                 {p.name}
               </SelectItem>
             ))}
@@ -93,15 +102,15 @@ function StockForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Depósito *</Label>
+        <Label>Deposito *</Label>
         <Select
-          onValueChange={(v) => {
-            setSelectedWarehouseId(v);
+          onValueChange={(value) => {
+            setSelectedWarehouseId(value);
             setValue("locationId", "");
           }}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Selecione um depósito" />
+            <SelectValue placeholder="Selecione um deposito" />
           </SelectTrigger>
           <SelectContent>
             {warehouses.map((wh) => (
@@ -114,20 +123,22 @@ function StockForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Localização *</Label>
+        <Label>Localizacao *</Label>
         <Select
           disabled={!selectedWarehouseId || locations.length === 0}
-          onValueChange={(v) => setValue("locationId", v)}
+          onValueChange={(value) =>
+            setValue("locationId", value, { shouldValidate: true })
+          }
           value={locationId}
         >
           <SelectTrigger>
             <SelectValue
               placeholder={
                 !selectedWarehouseId
-                  ? "Selecione um depósito primeiro"
+                  ? "Selecione um deposito primeiro"
                   : locations.length === 0
-                    ? "Sem localizações cadastradas"
-                    : "Selecione uma localização"
+                    ? "Sem localizacoes cadastradas"
+                    : "Selecione uma localizacao"
               }
             />
           </SelectTrigger>
@@ -137,7 +148,7 @@ function StockForm({
                 <span className="font-mono">{loc.code}</span>
                 {loc.description && (
                   <span className="ml-1.5 text-muted-foreground">
-                    — {loc.description}
+                    - {loc.description}
                   </span>
                 )}
               </SelectItem>
@@ -152,14 +163,14 @@ function StockForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="quantity">Quantidade *</Label>
+        <Label htmlFor="quantity">Quantidade Total *</Label>
         <Input
           id="quantity"
           type="number"
           min="0"
           {...register("quantity", {
-            required: "Quantidade é obrigatória",
-            min: { value: 0, message: "Quantidade não pode ser negativa" },
+            required: "Quantidade e obrigatoria",
+            min: { value: 0, message: "Quantidade nao pode ser negativa" },
             valueAsNumber: true,
           })}
           placeholder="0"
@@ -169,9 +180,32 @@ function StockForm({
         )}
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="unitCost">Custo Unitario da Entrada *</Label>
+        <Input
+          id="unitCost"
+          type="number"
+          step="0.01"
+          min="0.01"
+          {...register("unitCost", {
+            required: "Custo e obrigatorio para entrada de mercadoria",
+            min: { value: 0.01, message: "Custo deve ser maior que zero" },
+            valueAsNumber: true,
+          })}
+          placeholder="0,00"
+        />
+        {errors.unitCost && (
+          <p className="text-xs text-destructive">{errors.unitCost.message}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {selectedProduct
+            ? `Ultimo custo registrado para ${selectedProduct.name}: ${formatCurrency(selectedProduct.costPrice ?? 0)}`
+            : "Informe o custo pago nesta entrada para alimentar o relatorio mensal."}
+        </p>
+      </div>
+
       <p className="text-xs text-muted-foreground">
-        Se já existir um registro para este produto nesta localização, a
-        quantidade será atualizada.
+        Quando a nova quantidade for maior que a atual, o sistema registra esta diferenca como entrada de mercadoria e soma o gasto com fornecedor no relatorio mensal.
       </p>
 
       <DialogFooter>
@@ -191,18 +225,13 @@ function StockForm({
   );
 }
 
-/* ─── Page ──────────────────────────────────────────────────────────────── */
-type ViewMode = "by-product" | "by-location";
-
 export default function EstoquePage() {
   const queryClient = useQueryClient();
-  const [viewMode] = useState<ViewMode>("by-product");
   const [search, setSearch] = useState("");
   const [setStockOpen, setSetStockOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     null,
   );
-  const [stockDetail, setStockDetail] = useState<StockResponse[] | null>(null);
   const [detailProductName, setDetailProductName] = useState<string>("");
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
@@ -215,6 +244,9 @@ export default function EstoquePage() {
     mutationFn: (data: StockRequest) => stockService.setStock(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-by-product"] });
+      queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["profit-vs-supplier-expenses"] });
       setSetStockOpen(false);
       toast.success("Estoque atualizado com sucesso.");
     },
@@ -246,12 +278,8 @@ export default function EstoquePage() {
     setDetailProductName(productName);
   };
 
-  // Update stockDetail whenever productStock changes
-  const displayStock = selectedProductId ? productStock : stockDetail;
-
   return (
     <div className="flex h-full overflow-hidden">
-      {/* ─── Left: Product list ─── */}
       <div className="flex w-72 shrink-0 flex-col border-r">
         <div className="flex items-center gap-2 border-b bg-card px-3 py-3">
           <Package className="h-4 w-4 text-primary" />
@@ -261,7 +289,7 @@ export default function EstoquePage() {
             size="icon"
             className="ml-auto h-7 w-7"
             onClick={() => setSetStockOpen(true)}
-            title="Definir estoque"
+            title="Registrar entrada"
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>
@@ -273,7 +301,7 @@ export default function EstoquePage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto…"
+              placeholder="Buscar produto..."
               className="h-8 bg-background pl-8 text-xs"
             />
           </div>
@@ -293,9 +321,12 @@ export default function EstoquePage() {
                   selectedProductId === p.id ? "bg-primary/10 text-primary" : ""
                 }`}
               >
-                <p className="font-medium truncate">{p.name}</p>
+                <p className="truncate font-medium">{p.name}</p>
                 <p className="font-mono text-muted-foreground">
                   {p.internalCode}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Custo atual: {formatCurrency(p.costPrice ?? 0)}
                 </p>
               </button>
             ))
@@ -303,13 +334,12 @@ export default function EstoquePage() {
         </div>
       </div>
 
-      {/* ─── Right: Stock detail ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center gap-2 border-b bg-card px-4 py-3 shadow-sm">
           <Layers className="h-5 w-5 text-primary" />
           <div>
             <h1 className="text-sm font-semibold leading-none">
-              Gestão de Estoque
+              Gestao de Estoque
             </h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {selectedProductId
@@ -317,13 +347,9 @@ export default function EstoquePage() {
                 : "Selecione um produto para ver o estoque"}
             </p>
           </div>
-          <Button
-            size="sm"
-            className="ml-auto"
-            onClick={() => setSetStockOpen(true)}
-          >
+          <Button size="sm" className="ml-auto" onClick={() => setSetStockOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
-            Definir Estoque
+            Registrar Entrada
           </Button>
         </header>
 
@@ -332,13 +358,12 @@ export default function EstoquePage() {
             <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
               <Layers className="h-12 w-12 opacity-20" />
               <p className="text-sm">
-                Selecione um produto na lista para ver e gerenciar o estoque por
-                localização.
+                Selecione um produto na lista para ver e gerenciar o estoque por localizacao.
               </p>
             </div>
           ) : fetchingStock ? (
             <div className="flex h-40 items-center justify-center">
-              <LoadingSpinner size="lg" label="Carregando estoque…" />
+              <LoadingSpinner size="lg" label="Carregando estoque..." />
             </div>
           ) : productStock.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -352,29 +377,29 @@ export default function EstoquePage() {
                 onClick={() => setSetStockOpen(true)}
               >
                 <Plus className="mr-1.5 h-4 w-4" />
-                Definir Estoque
+                Registrar Entrada
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>
-                  Total disponível:{" "}
+                  Total disponivel:{" "}
                   <strong className="text-foreground">
                     {productStock.reduce((s, r) => s + r.quantity, 0)} unidades
                   </strong>
                 </span>
-                <span>em {productStock.length} localização(ões)</span>
+                <span>em {productStock.length} localizacao(oes)</span>
               </div>
               <div className="rounded-md border">
                 <table className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Depósito
+                        Deposito
                       </th>
                       <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Localização
+                        Localizacao
                       </th>
                       <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Quantidade
@@ -411,14 +436,12 @@ export default function EstoquePage() {
         </div>
       </div>
 
-      {/* ─── Set Stock Dialog ─── */}
       <Dialog open={setStockOpen} onOpenChange={setSetStockOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Definir Estoque</DialogTitle>
+            <DialogTitle>Registrar Entrada de Mercadoria</DialogTitle>
             <DialogDescription>
-              Informe o produto, a localização e a quantidade. Se já existir um
-              registro para esse produto nessa localização, ele será atualizado.
+              Informe produto, localizacao, quantidade total e custo unitario para alimentar o relatorio mensal de lucro x gastos com fornecedores.
             </DialogDescription>
           </DialogHeader>
           <StockForm

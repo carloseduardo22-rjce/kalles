@@ -1,6 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { Barcode, Hash, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +20,103 @@ interface ProductSearchProps {
   onAddItem: (type: ProductCodeType, code: string) => Promise<void>;
 }
 
-export function ProductSearch({ isLoading, onAddItem }: ProductSearchProps) {
+export interface ProductSearchHandle {
+  focus: () => void;
+}
+
+const BARCODE_SETTLE_MS = 80;
+
+function isValidBarcode(value: string) {
+  return /^\d{8,14}$/.test(value);
+}
+
+function normalizeCode(value: string, type: ProductCodeType) {
+  const trimmed = value.trim();
+  if (type === "BAR_CODE") {
+    return trimmed.replace(/\s+/g, "");
+  }
+  return trimmed.toUpperCase();
+}
+
+export const ProductSearch = forwardRef<ProductSearchHandle, ProductSearchProps>(
+  function ProductSearch({ isLoading, onAddItem }, ref) {
   const [code, setCode] = useState("");
   const [type, setType] = useState<ProductCodeType>("INTERNAL_CODE");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const autoSubmitTimeoutRef = useRef<number | null>(null);
+  const isSubmittingRef = useRef(false);
+
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: focusInput,
+    }),
+    [focusInput],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimeoutRef.current !== null) {
+        window.clearTimeout(autoSubmitTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const submitCode = useCallback(
+    async (rawCode: string, forcedType?: ProductCodeType) => {
+      if (isSubmittingRef.current) return;
+
+      const detectedType =
+        forcedType ??
+        (isValidBarcode(rawCode.trim().replace(/\s+/g, ""))
+          ? "BAR_CODE"
+          : type);
+      const normalizedCode = normalizeCode(rawCode, detectedType);
+
+      if (!normalizedCode) return;
+
+      isSubmittingRef.current = true;
+      try {
+        await onAddItem(detectedType, normalizedCode);
+        setCode("");
+      } finally {
+        isSubmittingRef.current = false;
+        focusInput();
+      }
+    },
+    [focusInput, onAddItem, type],
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = code.trim().toUpperCase();
-    if (!trimmed) return;
-    await onAddItem(type, trimmed);
-    setCode("");
+    await submitCode(code);
+  }
+
+  function handleChange(nextValue: string) {
+    setCode(nextValue);
+
+    const sanitized = nextValue.trim().replace(/\s+/g, "");
+    const looksLikeBarcode = isValidBarcode(sanitized);
+
+    if (looksLikeBarcode) {
+      setType("BAR_CODE");
+    }
+
+    if (autoSubmitTimeoutRef.current !== null) {
+      window.clearTimeout(autoSubmitTimeoutRef.current);
+    }
+
+    if (!looksLikeBarcode || isLoading) {
+      return;
+    }
+
+    autoSubmitTimeoutRef.current = window.setTimeout(() => {
+      void submitCode(sanitized, "BAR_CODE");
+    }, BARCODE_SETTLE_MS);
   }
 
   return (
@@ -46,8 +140,14 @@ export function ProductSearch({ isLoading, onAddItem }: ProductSearchProps) {
 
       <div className="flex gap-2">
         <Input
+          ref={inputRef}
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
+          onBlur={() => {
+            if (autoSubmitTimeoutRef.current !== null) {
+              window.clearTimeout(autoSubmitTimeoutRef.current);
+            }
+          }}
           placeholder={
             type === "INTERNAL_CODE" ? "ex: PRD-001" : "ex: 7891234567890"
           }
@@ -65,4 +165,5 @@ export function ProductSearch({ isLoading, onAddItem }: ProductSearchProps) {
       </div>
     </form>
   );
-}
+  },
+);

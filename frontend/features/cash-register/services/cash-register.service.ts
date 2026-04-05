@@ -1,5 +1,6 @@
 import { api } from "@/shared/services/api";
 import type {
+  CloseSessionRequest,
   CashRegisterStatusResponse,
   CloseSessionResponse,
   OpenSessionRequest,
@@ -15,11 +16,17 @@ export const cashRegisterService = {
   openSession: (body: OpenSessionRequest): Promise<SessionResponse> =>
     api.post<SessionResponse>(`${BASE}/open`, body),
 
-  closeSession: (sessionId: string): Promise<CloseSessionResponse> =>
-    api.post<CloseSessionResponse>(`${BASE}/${sessionId}/close`),
+  closeSession: (
+    sessionId: string,
+    body: CloseSessionRequest,
+  ): Promise<CloseSessionResponse> =>
+    api.post<CloseSessionResponse>(`${BASE}/${sessionId}/close`, body),
 
   getReport: (sessionId: string): Promise<SessionSummaryResponse> =>
     api.get<SessionSummaryResponse>(`${BASE}/${sessionId}/report`),
+
+  getSessionDetails: (sessionId: string): Promise<CloseSessionResponse> =>
+    api.get<CloseSessionResponse>(`${BASE}/${sessionId}`),
 
   /** Lista caixas ativos com status da sessão corrente (tela do ADMIN). */
   listCashRegisters: (): Promise<CashRegisterStatusResponse[]> =>

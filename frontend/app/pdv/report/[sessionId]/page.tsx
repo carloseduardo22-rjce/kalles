@@ -34,17 +34,21 @@ export default function ReportPage() {
 
     // Fallback: load report from API
     cashRegisterService
-      .getReport(sessionId)
+      .getSessionDetails(sessionId)
       .then((summary) => {
+        setData(summary);
+        return;
         setData({
           sessionId,
           codigoCaixa: "—",
           nomeOperador: "—",
-          valorInicial: 0,
-          abertura: new Date().toISOString(),
-          fechamento: new Date().toISOString(),
-          status: "CLOSED",
-          resumo: summary,
+          codigoOperadorAutorizador: summary.codigoOperadorAutorizador,
+          nomeOperadorAutorizador: summary.nomeOperadorAutorizador,
+          valorInicial: summary.valorInicial,
+          abertura: summary.abertura,
+          fechamento: summary.fechamento,
+          status: summary.status,
+          resumo: summary.resumo,
         });
       })
       .catch((err) =>

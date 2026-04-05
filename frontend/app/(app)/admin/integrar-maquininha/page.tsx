@@ -134,9 +134,7 @@ export default function IntegrarMaquininhaPage() {
         <div className={isBlocked ? "opacity-50 pointer-events-none" : ""}>
           <h1 className="text-2xl font-bold mb-4">{step?.title}</h1>
 
-          <p className="mb-6 text-gray-700 whitespace-pre-line">
-            {step?.content}
-          </p>
+          <div className="mb-6 text-gray-700">{step?.content}</div>
 
           {currentStep === 3 && stores.length > 0 && (
             <div className="mb-6 space-y-4 max-w-sm">

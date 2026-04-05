@@ -91,9 +91,47 @@ export function SessionSummary({ data }: SessionSummaryProps) {
         )}
 
         {/* Initial amount */}
-        <div className="flex justify-between border-t pt-3 text-sm text-muted-foreground">
-          <span>Fundo de caixa inicial</span>
-          <span>{formatCurrency(data.valorInicial)}</span>
+        <div className="space-y-2 border-t pt-3 text-sm text-muted-foreground">
+          <div className="flex justify-between">
+            <span>Fundo de caixa inicial</span>
+            <span>{formatCurrency(data.valorInicial)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total em dinheiro</span>
+            <span>{formatCurrency(resumo.totalEmDinheiro)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Saldo esperado em caixa</span>
+            <span>{formatCurrency(resumo.saldoEsperadoEmCaixa)}</span>
+          </div>
+          {resumo.valorInformadoEmCaixa !== null && (
+            <div className="flex justify-between">
+              <span>Valor informado no fechamento</span>
+              <span>{formatCurrency(resumo.valorInformadoEmCaixa)}</span>
+            </div>
+          )}
+          {resumo.diferencaEmCaixa !== null && (
+            <div className="flex justify-between">
+              <span>Diferença de caixa</span>
+              <span
+                className={
+                  resumo.diferencaEmCaixa === 0
+                    ? ""
+                    : resumo.diferencaEmCaixa > 0
+                      ? "text-emerald-600"
+                      : "text-destructive"
+                }
+              >
+                {formatCurrency(resumo.diferencaEmCaixa)}
+              </span>
+            </div>
+          )}
+          {data.nomeOperadorAutorizador && (
+            <div className="flex justify-between">
+              <span>Fechamento autorizado por</span>
+              <span>{data.nomeOperadorAutorizador}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

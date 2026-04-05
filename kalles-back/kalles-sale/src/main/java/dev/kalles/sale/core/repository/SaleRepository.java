@@ -59,10 +59,12 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			FROM sale s
 			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
 			WHERE s.state = 'COMPLETED'
+			  AND s.company_id = :companyId
 			  AND crs.opened_at >= :start
 			  AND crs.opened_at < :end
 			""", nativeQuery = true)
 	BigDecimal sumCompletedTotalsBetween(
+			@Param("companyId") UUID companyId,
 			@Param("start") LocalDateTime start,
 			@Param("end") LocalDateTime end);
 }

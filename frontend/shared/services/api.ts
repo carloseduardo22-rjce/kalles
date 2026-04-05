@@ -17,7 +17,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       const errorData = await response.json();
       errorMessage =
-        errorData.message ?? errorData.error ?? errorData.title ?? errorMessage;
+        errorData.detail ??
+        errorData.message ??
+        errorData.error ??
+        errorData.title ??
+        errorMessage;
     } catch {
       // ignore parse error
     }

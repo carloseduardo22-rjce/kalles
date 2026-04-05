@@ -2,6 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { AppearanceProvider } from "@/components/appearance-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -44,16 +45,14 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          themes={[
-            "light",
-            "theme-emerald",
-            "theme-amber",
-            "theme-rose",
-            "theme-slate",
-          ]}
+          enableSystem={false}
+          storageKey="kalles:color-mode"
+          themes={["light", "dark"]}
         >
-          <QueryProvider>{children}</QueryProvider>
-          <Toaster richColors position="top-right" />
+          <AppearanceProvider>
+            <QueryProvider>{children}</QueryProvider>
+            <Toaster richColors position="top-right" />
+          </AppearanceProvider>
         </ThemeProvider>
         <Analytics />
       </body>

@@ -13,4 +13,14 @@ package dev.kalles.support.domain;
 interface TicketState {
 
     void assign(Ticket ticket, Agent agent);
+
+    void addCustomerMessage(Ticket ticket, String content);
+
+    void editLastCustomerMessage(Ticket ticket, String content);
+
+    void addAgentMessage(Ticket ticket, String content, boolean markAsResolved);
+
+    void editLastAgentMessage(Ticket ticket, String content);
+
+    void close(Ticket ticket);
 }

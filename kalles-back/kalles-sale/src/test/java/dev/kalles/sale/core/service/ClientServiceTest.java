@@ -53,9 +53,9 @@ class ClientServiceTest {
     void shouldCreateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
-        Client saved = buildClient(id, cpf);
+        Client saved = buildClient(id, "52998224725");
 
-        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.empty());
+        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.empty());
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
 
         ClientResponse response = clientService.create(buildRequest(cpf));
@@ -70,9 +70,9 @@ class ClientServiceTest {
     @DisplayName("Deve lançar exceção ao criar cliente com CPF duplicado")
     void shouldThrowWhenCreatingClientWithDuplicateCpf() {
         String cpf = "529.982.247-25";
-        Client existing = buildClient(UUID.randomUUID(), cpf);
+        Client existing = buildClient(UUID.randomUUID(), "52998224725");
 
-        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(existing));
 
         assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
@@ -147,12 +147,12 @@ class ClientServiceTest {
     void shouldUpdateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
-        Client existing = buildClient(id, cpf);
-        Client updated = buildClient(id, cpf);
+        Client existing = buildClient(id, "52998224725");
+        Client updated = buildClient(id, "52998224725");
         updated.setName("Nome Atualizado");
 
         when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(existing));
         when(clientRepository.save(any(Client.class))).thenReturn(updated);
 
         ClientRequest request = new ClientRequest("Nome Atualizado", null, null,
@@ -170,10 +170,10 @@ class ClientServiceTest {
         String cpf = "529.982.247-25";
 
         Client existing = buildClient(id, "outro-cpf");
-        Client other = buildClient(otherId, cpf);
+        Client other = buildClient(otherId, "52998224725");
 
         when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpf(cpf)).thenReturn(Optional.of(other));
+        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(other));
 
         ClientRequest request = new ClientRequest("X", null, null,
                 cpf, null, null, null, null, null, null);
@@ -211,5 +211,61 @@ class ClientServiceTest {
 
         assertThrows(NotFoundException.class, () -> clientService.delete(id));
         verify(clientRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("Deve normalizar CPF e celular antes de salvar")
+    void shouldNormalizeCpfAndCellphoneBeforeSaving() {
+        UUID id = UUID.randomUUID();
+        Client saved = buildClient(id, "52998224725");
+
+        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.empty());
+        when(clientRepository.save(any(Client.class))).thenReturn(saved);
+
+        ClientRequest request = new ClientRequest(
+                "  João da Silva  ",
+                LocalDate.of(1990, 5, 20),
+                'M',
+                "529.982.247-25",
+                "55",
+                "(11) 99999-9999",
+                "1234567",
+                null,
+                null,
+                "  Observação  "
+        );
+
+        clientService.create(request);
+
+        verify(clientRepository).save(argThat(client ->
+                "João da Silva".equals(client.getName())
+                        && "52998224725".equals(client.getCpf())
+                        && "11999999999".equals(client.getCellphone())
+                        && "+55".equals(client.getCodeCountry())
+                        && "Observação".equals(client.getObservations())
+        ));
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar celular brasileiro inválido")
+    void shouldRejectInvalidBrazilianCellphone() {
+        ClientRequest request = new ClientRequest(
+                "João da Silva",
+                LocalDate.of(1990, 5, 20),
+                'M',
+                "529.982.247-25",
+                "+55",
+                "119999999999",
+                null,
+                null,
+                null,
+                null
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> clientService.create(request));
+
+        assertEquals("Celular deve ser um número brasileiro válido com 11 dígitos.", exception.getMessage());
+        verify(clientRepository, never()).save(any());
     }
 }
