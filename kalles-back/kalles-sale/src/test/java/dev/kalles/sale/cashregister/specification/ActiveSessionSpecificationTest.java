@@ -31,7 +31,7 @@ class ActiveSessionSpecificationTest {
     @DisplayName("Deve retornar verdadeiro quando existe sessão ativa")
     void shouldReturnTrueWhenActiveSessionExists() {
         // Given
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
 
         when(sessionRepository.existsByCashRegisterAndStatus(cashRegister, SessionStatus.OPEN))
             .thenReturn(true);
@@ -48,7 +48,7 @@ class ActiveSessionSpecificationTest {
     @DisplayName("Deve retornar falso quando não existe sessão ativa")
     void shouldReturnFalseWhenNoActiveSessionExists() {
         // Given
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
 
         when(sessionRepository.existsByCashRegisterAndStatus(cashRegister, SessionStatus.OPEN))
             .thenReturn(false);

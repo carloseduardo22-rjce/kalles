@@ -13,7 +13,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve criar sessão usando o método de fábrica")
     void shouldCreateSessionUsingFactoryMethod() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         BigDecimal initialAmount = new BigDecimal("100.00");
 
@@ -45,7 +45,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve lançar exceção quando operador é nulo")
     void shouldThrowExceptionWhenOperatorIsNull() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         BigDecimal initialAmount = new BigDecimal("100.00");
 
         NullPointerException exception = assertThrows(
@@ -59,7 +59,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve lançar exceção quando valor inicial é nulo")
     void shouldThrowExceptionWhenInitialAmountIsNull() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
 
         assertThrows(
@@ -71,7 +71,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve lançar exceção quando valor inicial é negativo")
     void shouldThrowExceptionWhenInitialAmountIsNegative() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         BigDecimal initialAmount = new BigDecimal("-50.00");
 
@@ -84,7 +84,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve fechar sessão com sucesso")
     void shouldCloseSessionSuccessfully() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
 
@@ -97,7 +97,7 @@ class CashRegisterSessionTest {
     @Test
     @DisplayName("Deve lançar exceção ao fechar sessão já fechada")
     void shouldThrowExceptionWhenClosingAlreadyClosedSession() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
         session.close();

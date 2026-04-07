@@ -29,6 +29,17 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { companySettingsService } from "@/shared/services/company-settings.service";
+import { useCompany } from "@/shared/contexts/company-context";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { UserCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 
 /* ─── Individual nav link ─── */
 interface NavLinkProps {
@@ -119,19 +130,31 @@ function SidebarInner() {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "resumo";
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [hasIntegrationPrereqs, setHasIntegrationPrereqs] = useState(true);
+
+  const { activeCompanyId, companies, setActiveCompany } = useCompany();
 
   useEffect(() => {
     setLogoUrl(companySettingsService.getLogo());
-  }, []);
+
+    async function checkPrereqs() {
+      if (companies && companies.length === 0) {
+        setHasIntegrationPrereqs(false);
+        return;
+      }
+      try {
+        const registers = await cashRegisterService.listCashRegisters();
+        setHasIntegrationPrereqs(registers.length > 0);
+      } catch {
+        setHasIntegrationPrereqs(false);
+      }
+    }
+    checkPrereqs();
+  }, [companies]);
 
   const isRelatorios = pathname === "/relatorios";
 
-  const isPdvSection =
-    ["/caixas", "/pdv", "/produtos"].includes(pathname) || isRelatorios;
-
   const isAdminSection = pathname.startsWith("/admin");
-
-  const isSupportSection = pathname.startsWith("/suporte");
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-card">
@@ -151,6 +174,31 @@ function SidebarInner() {
         )}
         <span className="text-sm font-semibold">Kalles ERP</span>
       </Link>
+
+      {/* Seletor de Filial (Apenas para Admin em rotas administrativas) */}
+      {isAdminSection && (
+        <div className="px-4 py-3 border-b">
+          <Select
+            value={activeCompanyId || ""}
+            onValueChange={(val) => setActiveCompany(val)}
+          >
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue placeholder="Selecione a Filial" />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.map((company) => (
+                <SelectItem
+                  key={company.id}
+                  value={company.id}
+                  className="text-xs"
+                >
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
@@ -257,6 +305,14 @@ function SidebarInner() {
           defaultOpen={true}
         >
           <NavLink
+            href="/admin/lojas"
+            icon={<Store className="h-4 w-4" />}
+            active={pathname === "/admin/lojas"}
+            sub
+          >
+            Lojas
+          </NavLink>
+          <NavLink
             href="/admin/operadores"
             icon={<UserCog className="h-4 w-4" />}
             active={pathname === "/admin/operadores"}
@@ -326,18 +382,44 @@ function SidebarInner() {
             label="Configurar pagamentos"
             defaultOpen={
               pathname.includes("/admin/pagamentos") ||
+              pathname.includes("/admin/assinatura") ||
               pathname.includes("/admin/integrar-maquininha")
             }
           >
-            <NavLink
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={!hasIntegrationPrereqs ? "opacity-50 pointer-events-none" : ""}>
+                    <NavLink
               href="/admin/pagamentos"
               icon={<Store className="h-4 w-4" />}
               active={pathname === "/admin/pagamentos"}
               sub
             >
-              Criar lojas e PDV
+              Mercado Pago e PDV
             </NavLink>
+                  </div>
+                </TooltipTrigger>
+                {!hasIntegrationPrereqs && (
+                  <TooltipContent side="right">
+                    <p>Necessário criar Lojas e Caixas primeiramente.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
             <NavLink
+              href="/admin/assinatura"
+              icon={<CreditCard className="h-4 w-4" />}
+              active={pathname.startsWith("/admin/assinatura")}
+              sub
+            >
+              Assinatura do ERP
+            </NavLink>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={!hasIntegrationPrereqs ? "opacity-50 pointer-events-none" : ""}>
+                    <NavLink
               href="/admin/integrar-maquininha"
               icon={<SmartphoneNfc className="h-4 w-4" />}
               active={pathname === "/admin/integrar-maquininha"}
@@ -345,6 +427,15 @@ function SidebarInner() {
             >
               Integrar maquininha a PDV
             </NavLink>
+                  </div>
+                </TooltipTrigger>
+                {!hasIntegrationPrereqs && (
+                  <TooltipContent side="right">
+                    <p>Necessário criar Lojas e Caixas primeiramente.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </NavGroup>
 
           {/* ── Configuracoes ── */}
@@ -374,9 +465,30 @@ function SidebarInner() {
         </NavGroup>
       </nav>
 
+      {/* Conta e Perfil */}
+      <div className="border-t p-3">
+        <Link
+          href="/admin/perfil"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            pathname === "/admin/perfil"
+              ? "bg-muted font-medium text-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <UserCircle className="h-5 w-5" />
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <span className="truncate leading-tight">Minha Conta</span>
+            <span className="text-[10px] text-muted-foreground/70 truncate">
+              Ver Perfil
+            </span>
+          </div>
+        </Link>
+      </div>
+
       {/* Footer */}
       <div className="border-t px-4 py-3 text-[11px] text-muted-foreground/60">
-        Kalles ERP v1.0
+        Kalles ERP
       </div>
     </aside>
   );

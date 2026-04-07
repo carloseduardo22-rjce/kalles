@@ -1,6 +1,6 @@
 package dev.kalles.sale.mercadopago.application.service;
 
-import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
+import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoTenantConfigEntity;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataTenantRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +29,9 @@ public class TenantCredentialEncryptionMigration implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        List<TenantEntity> updatedTenants = new ArrayList<>();
+        List<MercadoPagoTenantConfigEntity> updatedTenants = new ArrayList<>();
 
-        for (TenantEntity tenant : tenantRepository.findAll()) {
+        for (MercadoPagoTenantConfigEntity tenant : tenantRepository.findAll()) {
             String encryptedAccessToken = cipherService.encrypt(tenant.getMpAccessToken());
             String encryptedRefreshToken = cipherService.encrypt(tenant.getMpRefreshToken());
             String encryptedUserId = cipherService.encrypt(tenant.getMpUserId());

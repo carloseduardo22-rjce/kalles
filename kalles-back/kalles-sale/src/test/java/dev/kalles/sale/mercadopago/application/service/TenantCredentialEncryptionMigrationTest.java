@@ -1,6 +1,6 @@
 package dev.kalles.sale.mercadopago.application.service;
 
-import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
+import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoTenantConfigEntity; 
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataTenantRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,15 +17,14 @@ import static org.mockito.Mockito.*;
 class TenantCredentialEncryptionMigrationTest {
 
     @Test
-    @DisplayName("Encrypts legacy tenant credentials persisted in plain text")
+    @DisplayName("Encrypts legacy tenant credentials persisted in plain text")  
     void encryptsLegacyTenantCredentialsPersistedInPlainText() {
         SpringDataTenantRepository tenantRepository = mock(SpringDataTenantRepository.class);
         TenantCredentialCipherService cipherService = spy(
                 new TenantCredentialCipherService(new dev.kalles.sale.note.adapter.out.crypto.AesCryptoAdapter(), "test-secret"));
 
-        TenantEntity tenant = new TenantEntity(
+        MercadoPagoTenantConfigEntity tenant = new MercadoPagoTenantConfigEntity(
                 UUID.randomUUID(),
-                "Tenant Teste",
                 "plain-access-token",
                 "plain-refresh-token",
                 "plain-user-id");

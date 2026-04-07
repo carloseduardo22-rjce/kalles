@@ -27,8 +27,8 @@ public class MercadoPagoCaixaEntity {
     @Column(unique = true, nullable = false, length = 60)
     private String externalId;
 
-    private String name;
-    private String companyId;
+    @Column(name = "cash_register_id", nullable = false)
+    private UUID cashRegisterId;
 
     private Long mpPosId;
 }

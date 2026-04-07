@@ -5,8 +5,7 @@ import java.util.UUID;
 public record Caixa(
         UUID id,
         String externalId,
-        String name,
-        String companyId,
+        UUID cashRegisterId,
         Long mpPosId
 ) {
     public boolean hasPosRegistered() {
@@ -14,6 +13,6 @@ public record Caixa(
     }
 
     public Caixa withPosId(Long posId) {
-        return new Caixa(id, externalId, name, companyId, posId);
+        return new Caixa(id, externalId, cashRegisterId, posId);
     }
 }

@@ -56,10 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 TenantContextHolder.setTenantId(UUID.fromString(tenantId));
                 
                 // Set Specific Store Context if present
-                if (companyId != null) {
+                if (companyId != null && !companyId.trim().isEmpty()) {
                     CompanyContextHolder.setCompanyId(UUID.fromString(companyId));
+                } else if ("ADMIN".equals(role)) {
+                    String headerCompanyId = request.getHeader("x-company-id");
+                    if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
+                        CompanyContextHolder.setCompanyId(UUID.fromString(headerCompanyId));
+                    }
                 }
-                if (posId != null) {
+                
+                if (posId != null && !posId.trim().isEmpty()) {
                     PosContextHolder.setPosId(UUID.fromString(posId));
                 }
             }

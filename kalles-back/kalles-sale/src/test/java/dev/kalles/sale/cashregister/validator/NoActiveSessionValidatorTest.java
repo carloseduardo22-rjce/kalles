@@ -47,7 +47,7 @@ class NoActiveSessionValidatorTest {
             new BigDecimal("100.00")
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal");
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.of(cashRegister));
@@ -72,7 +72,7 @@ class NoActiveSessionValidatorTest {
             new BigDecimal("100.00")
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal");
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.of(cashRegister));

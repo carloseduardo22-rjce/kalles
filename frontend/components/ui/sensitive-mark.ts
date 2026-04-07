@@ -8,18 +8,22 @@ export const SensitiveInfo = Mark.create({
       token: {
         default: null,
       },
+      label: {
+        default: "Informa��o sens�vel",
+      },
     };
   },
 
   renderHTML({ HTMLAttributes }) {
-    // Aplicamos classes do Tailwind para o desfoque
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
         class:
-          "sensitive-info bg-slate-800 text-transparent hover:text-slate-100 transition-all cursor-pointer rounded px-2 py-0.5 select-none blur-[4px] hover:blur-none",
-        title: "Informação sensível (Clique e insira a senha para visualizar)",
+          "sensitive-info inline-flex cursor-pointer select-none items-center rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold tracking-wide text-amber-950 shadow-sm transition-colors hover:bg-amber-100",
+        title: "Informa��o sens�vel. Clique para informar o segredo e visualizar.",
         "data-sensitive": "true",
+        "data-sensitive-token": HTMLAttributes.token,
+        "data-sensitive-label": HTMLAttributes.label,
       }),
       0,
     ];
@@ -28,10 +32,10 @@ export const SensitiveInfo = Mark.create({
   addCommands() {
     return {
       toggleSensitive:
-        (options?: { token: string }) =>
-        ({ commands }) => {
+        (options?: { token: string; label?: string }): any =>
+        ({ commands }: { commands: any }) => {
           return commands.toggleMark(this.name, options);
         },
-    };
+    } as any;
   },
 });

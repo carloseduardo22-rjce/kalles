@@ -17,6 +17,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.UUID;
+import dev.kalles.sale.cashregister.entity.CashRegister;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,18 +46,21 @@ class MercadoPagoPosAdapterTest {
     private Company companyWithoutStore;
     private Caixa   caixaWithoutPos;
     private Caixa   caixaWithPos;
+    private CashRegister cashRegister;
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(tenantRepository.findById(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.of(new dev.kalles.sale.mercadopago.domain.Tenant(java.util.UUID.randomUUID(), "mock-token", "device", "client", "refresh")));
         adapter = new MercadoPagoPosAdapter(httpClient, "mock-token", tenantRepository);
+        cashRegister = new CashRegister("CAIXA-ERP-001", "Caixa 01", COMPANY_ID);
         companyWithStore = new Company(
-                COMPANY_ID, "EXT-LOJ001", "Kalles Matriz", "Street", "1", "City", "ST", -23.0, -46.0, STORE_ID_MP, null
+                COMPANY_ID, java.util.UUID.randomUUID(), "Kalles Matriz", STORE_ID_MP
         );
         companyWithoutStore = new Company(
-                java.util.UUID.randomUUID(), "EXT-LOJ002", "Orphan Corp", "X", "1", "City", "ST", 0.0, 0.0, null, null
+                java.util.UUID.randomUUID(), java.util.UUID.randomUUID(), "Orphan Corp", null
         );
-        caixaWithoutPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", null);
-        caixaWithPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, CAIXA_NAME, "EXT-LOJ001", POS_ID_MP);
+        caixaWithoutPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, COMPANY_ID, null);
+        caixaWithPos = new Caixa(java.util.UUID.randomUUID(), CAIXA_ID, COMPANY_ID, POS_ID_MP);
     }
 
     @Nested
@@ -72,7 +77,7 @@ class MercadoPagoPosAdapterTest {
             when(mockResponse.body()).thenReturn("{\"id\":" + POS_ID_MP + "}");
             when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponseSearch, mockResponse);
 
-            adapter.createPos(caixaWithoutPos, companyWithStore);
+            adapter.createPos(caixaWithoutPos, companyWithStore, cashRegister);
 
             ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
             verify(httpClient, atLeastOnce()).send(captor.capture(), any());
@@ -89,7 +94,7 @@ class MercadoPagoPosAdapterTest {
             when(mockResponse.body()).thenReturn("{\"id\":" + POS_ID_MP + "}");
             when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponseSearch, mockResponse);
 
-            Long result = adapter.createPos(caixaWithoutPos, companyWithStore);
+            Long result = adapter.createPos(caixaWithoutPos, companyWithStore, cashRegister);
 
             assertEquals(POS_ID_MP, result);
         }
@@ -102,7 +107,7 @@ class MercadoPagoPosAdapterTest {
         @Test
         @DisplayName("Should not invoke SDK if Caixa already has pos_id")
         void shouldNotInvokeSdkIfCaixaHasPosId() throws Exception {
-            Long result = adapter.createPos(caixaWithPos, companyWithStore);
+            Long result = adapter.createPos(caixaWithPos, companyWithStore, cashRegister);
 
             verify(httpClient, never()).send(any(HttpRequest.class), any());
             assertEquals(POS_ID_MP, result);
@@ -116,9 +121,9 @@ class MercadoPagoPosAdapterTest {
         @Test
         @DisplayName("Should throw IllegalStateException if Company lacks store_id")
         void shouldThrowExceptionIfNoStoreId() throws Exception {
-            Caixa orphanCaixa = new Caixa(java.util.UUID.randomUUID(), "C999", "Orphan", "COMP-NO-STORE", null);
+            Caixa orphanCaixa = new Caixa(java.util.UUID.randomUUID(), "C999", java.util.UUID.randomUUID(), null);
             IllegalStateException ex = assertThrows(IllegalStateException.class,
-                    () -> adapter.createPos(orphanCaixa, companyWithoutStore));
+                    () -> adapter.createPos(orphanCaixa, companyWithoutStore, cashRegister));
             assertTrue(ex.getMessage().toLowerCase().contains("store"));
             verify(httpClient, never()).send(any(HttpRequest.class), any());
         }
@@ -138,7 +143,7 @@ class MercadoPagoPosAdapterTest {
                 .thenThrow(new java.io.IOException("Comm fail"));
 
             assertThrows(MercadoPagoIntegrationException.class,
-                    () -> adapter.createPos(caixaWithoutPos, companyWithStore));
+                    () -> adapter.createPos(caixaWithoutPos, companyWithStore, cashRegister));
         }
     }
 }

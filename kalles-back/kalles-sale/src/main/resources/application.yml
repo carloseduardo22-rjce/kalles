@@ -41,3 +41,12 @@ spring:
 security:
   encryption:
     tenant-credentials-secret: ${TENANT_CREDENTIALS_SECRET}
+
+billing:
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    monthly-price-id: ${STRIPE_MONTHLY_PRICE_ID:}
+    portal-configuration-id: ${STRIPE_PORTAL_CONFIGURATION_ID:}
+    default-plan-code: monthly-default

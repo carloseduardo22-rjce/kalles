@@ -29,6 +29,7 @@ import {
   List,
   PlusCircle,
   Link as LinkIcon,
+  Repeat,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -92,7 +93,7 @@ export default function PaymentSettingsPage() {
   const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
   const REDIRECT_URI =
     process.env.NEXT_PUBLIC_MP_REDIRECT_URI ||
-    "https://65a2-2804-1494-dbb-aa00-d9d3-cb87-6fd4-2d94.ngrok-free.app/admin/pagamentos/mp-callback";
+    "https://2dbd-2804-1494-dbb-aa00-ad55-f249-5eaf-70fa.ngrok-free.app/admin/pagamentos/mp-callback";
 
   // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
   const [tenantId, setTenantId] = useState<string>("");
@@ -304,6 +305,31 @@ export default function PaymentSettingsPage() {
         criar novas integrações.
       </p>
 
+      <Card className="mb-8 border-0 bg-white/95 shadow-md">
+        <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-900">
+              Assinatura recorrente do ERP
+            </p>
+            <p className="text-sm text-slate-600">
+              A cobranca mensal do Kalles via Stripe agora fica em uma area
+              dedicada, com checkout embutido e portal do cliente.
+            </p>
+          </div>
+
+          <Button
+            asChild
+            variant="outline"
+            className="border-sky-200 text-sky-700 hover:bg-sky-50"
+          >
+            <Link href="/admin/assinatura">
+              <Repeat className="mr-2 h-4 w-4" />
+              Abrir assinatura Stripe
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Tabs
         value={activeTab}
         onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
@@ -419,22 +445,20 @@ export default function PaymentSettingsPage() {
           <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
             <button
               onClick={() => setNewIntegrationStep("oauth")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                newIntegrationStep === "oauth"
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "oauth"
                   ? "border-white text-white drop-shadow-md"
                   : "border-transparent text-white/70 hover:text-white"
-              }`}
+                }`}
             >
               <LinkIcon className="h-4 w-4" />
               <span>1. Conectar Conta</span>
             </button>
             <button
               onClick={() => setNewIntegrationStep("store")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                newIntegrationStep === "store"
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "store"
                   ? "border-white text-white drop-shadow-md"
                   : "border-transparent text-white/70 hover:text-white"
-              }`}
+                }`}
             >
               <Store className="h-4 w-4" />
               <span>2. Estabelecimento</span>
@@ -444,11 +468,10 @@ export default function PaymentSettingsPage() {
                 if (storeConfigured) setNewIntegrationStep("pos");
               }}
               disabled={!storeConfigured}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
-                newIntegrationStep === "pos"
+              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "pos"
                   ? "border-white text-white drop-shadow-md"
                   : "border-transparent text-white/50"
-              } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
+                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
             >
               <Terminal className="h-4 w-4" />
               <span>3. Terminais (Caixas)</span>

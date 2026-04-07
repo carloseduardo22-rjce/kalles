@@ -7,13 +7,16 @@ export interface MpStore {
 }
 
 export interface MpPos {
-  id: number;
+  id: number | string;
   name: string;
-  fixed_amount: boolean;
+  fixed_amount?: boolean;
   store_id: number | string;
-  external_store_id: string;
-  external_id: string;
+  external_store_id?: string;
+  external_id?: string;
   qr_code?: string;
+  status?: string;
+  date_created?: string;
+  date_last_updated?: string;
 }
 
 export interface MpTerminal {

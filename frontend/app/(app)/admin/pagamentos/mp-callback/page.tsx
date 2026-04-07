@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -12,7 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
-export default function MpCallbackPage() {
+
+function MpCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -68,57 +69,65 @@ export default function MpCallbackPage() {
   }, [searchParams]);
 
   return (
+    <Card className="w-full max-w-md text-center">
+      <CardHeader>
+        <CardTitle>Integração Mercado Pago</CardTitle>
+        <CardDescription>Processando sua vinculação de conta</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center space-y-4 py-8">
+        {status === "loading" && (
+          <>
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-gray-500">
+              Trocando códigos e finalizando a conexão com sua conta.
+              Aguarde...
+            </p>
+          </>
+        )}
+
+        {status === "success" && (
+          <>
+            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <p className="text-sm text-gray-500">
+              Conta do Mercado Pago vinculada com sucesso! Você já pode
+              processar pagamentos.
+            </p>
+            <Button
+              onClick={() => router.push("/admin/pagamentos")}
+              className="mt-4"
+            >
+              Voltar para Configuração de Pagamento
+            </Button>
+          </>
+        )}
+
+        {status === "error" && (
+          <>
+            <XCircle className="h-12 w-12 text-red-500" />
+            <p className="text-sm text-red-500 font-semibold">
+              Falha na integração
+            </p>
+            <p className="text-sm text-gray-500">{errorMessage}</p>
+            <Button
+              onClick={() => router.push("/admin/pagamentos")}
+              variant="outline"
+              className="mt-4"
+            >
+              Tentar Novamente
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function MpCallbackPage() {
+  return (
     <div className="flex h-full w-full items-center justify-center p-6">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <CardTitle>Integração Mercado Pago</CardTitle>
-          <CardDescription>Processando sua vinculação de conta</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center space-y-4 py-8">
-          {status === "loading" && (
-            <>
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm text-gray-500">
-                Trocando códigos e finalizando a conexão com sua conta.
-                Aguarde...
-              </p>
-            </>
-          )}
-
-          {status === "success" && (
-            <>
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-              <p className="text-sm text-gray-500">
-                Conta do Mercado Pago vinculada com sucesso! Você já pode
-                processar pagamentos.
-              </p>
-              <Button
-                onClick={() => router.push("/admin/pagamentos")}
-                className="mt-4"
-              >
-                Voltar para Configuração de Pagamento
-              </Button>
-            </>
-          )}
-
-          {status === "error" && (
-            <>
-              <XCircle className="h-12 w-12 text-red-500" />
-              <p className="text-sm text-red-500 font-semibold">
-                Falha na integração
-              </p>
-              <p className="text-sm text-gray-500">{errorMessage}</p>
-              <Button
-                onClick={() => router.push("/admin/pagamentos")}
-                variant="outline"
-                className="mt-4"
-              >
-                Tentar Novamente
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <Suspense fallback={<div>Carregando...</div>}>
+         <MpCallbackContent />
+      </Suspense>
     </div>
   );
 }

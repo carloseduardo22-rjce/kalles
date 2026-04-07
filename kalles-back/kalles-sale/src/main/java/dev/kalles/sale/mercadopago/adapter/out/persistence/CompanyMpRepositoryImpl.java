@@ -30,22 +30,18 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
 
     @Override
     public Optional<Company> findByTenantId(UUID tenantId) {
-        return repository.findByTenantId(tenantId).map(this::toDomain);
+        // Find configuration given a tenantId isn't straightforward now
+        // considering that tenant to company relation belongs to the core.
+        // Assuming we need this method to find a linked company. For now, throw logic exception or implement accordingly.
+        throw new UnsupportedOperationException("Tenant relation was moved to Core. Use CompanyRepository to fetch core companies by tenant.");
     }
 
     private Company toDomain(MercadoPagoCompanyEntity entity) {
         return new Company(
                 entity.getId(),
+                entity.getCompanyId(),
                 entity.getExternalId(),
-                entity.getName(),
-                entity.getStreetName(),
-                entity.getStreetNumber(),
-                entity.getCityName(),
-                entity.getStateName(),
-                entity.getLatitude() != null ? entity.getLatitude() : 0.0,
-                entity.getLongitude() != null ? entity.getLongitude() : 0.0,
-                entity.getMpStoreId(),
-                entity.getTenantId());
+                entity.getMpStoreId());
     }
 
     @Override
@@ -55,16 +51,9 @@ public class CompanyMpRepositoryImpl implements CompanyMpRepository {
                 new MercadoPagoCompanyEntity();
 
         entity.setId(company.id());
+        entity.setCompanyId(company.companyId());
         entity.setExternalId(company.externalId());
-        entity.setName(company.name());
-        entity.setStreetName(company.streetName());
-        entity.setStreetNumber(company.streetNumber());
-        entity.setCityName(company.cityName());
-        entity.setStateName(company.stateName());
-        entity.setLatitude(company.latitude());
-        entity.setLongitude(company.longitude());
         entity.setMpStoreId(company.mpStoreId());
-        entity.setTenantId(company.tenantId());
         
         repository.save(entity);
     }

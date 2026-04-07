@@ -28,7 +28,11 @@ public class MercadoPagoPosController {
 
     @PostMapping
     public ResponseEntity<CreatePosResponse> createPos(@RequestBody CreatePosRequest request) {
-        Caixa caixa = new Caixa(null, request.caixaId(), request.name(), request.companyId(), null);
+        Caixa caixa = new Caixa(
+                null,
+                request.cashRegisterId().toString(), // Use the core ID as the external ID
+                request.cashRegisterId(),
+                null);
         Long posId = createMercadoPagoPosUseCase.execute(caixa);
         return ResponseEntity.ok(new CreatePosResponse(posId));
     }
@@ -38,7 +42,7 @@ public class MercadoPagoPosController {
         return ResponseEntity.ok(fetchMercadoPagoPosUseCase.execute());
     }
 
-    public record CreatePosRequest(String caixaId, String name, String companyId) {
+    public record CreatePosRequest(java.util.UUID cashRegisterId) {
     }
 
     public record CreatePosResponse(Long posId) {

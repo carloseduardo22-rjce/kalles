@@ -48,7 +48,7 @@ interface PaymentPanelProps {
   sale: SaleResponse;
   isLoading: boolean;
   error: string | null;
-  cashRegisterCode?: string; // ← Add this for MercadoPago integration
+  cashRegisterCode?: string; // â† Add this for PIX integration
   onAddPayment: (method: PaymentMethod, amount: number) => Promise<void>;
   onCompleteSale: () => Promise<void>;
   onRefreshSale?: () => Promise<void>;
@@ -94,7 +94,7 @@ export function PaymentPanel({
 }: PaymentPanelProps) {
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 
-  // MercadoPago PIX QR Code variables
+    // Dynamic PIX QR Code variables
   const [qrData, setQrData] = useState<string | null>(null);
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
@@ -178,7 +178,7 @@ export function PaymentPanel({
 
   async function handlePixPayment(amount: number) {
     if (cashRegisterCode) {
-      // Generate dynamic QR Code for MercadoPago
+        // Generate dynamic QR Code via configured Integration
       setPixPaymentStatus("pending");
       setIsGeneratingQr(true);
       try {

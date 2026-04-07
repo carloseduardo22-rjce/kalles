@@ -50,18 +50,20 @@ class MercadoPagoStoreAdapterTest {
 
     private Company companyWithoutStore;
     private Company companyWithStore;
+    private dev.kalles.sale.core.entity.Company coreCompany;
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(tenantRepository.findById(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.of(new dev.kalles.sale.mercadopago.domain.Tenant(java.util.UUID.randomUUID(), "mock-token", "test_user_id", "test_user_id", "test_user_id")));
         adapter = new MercadoPagoStoreAdapter(MP_USER_ID, "mock-token", httpClient, tenantRepository);
+        coreCompany = new dev.kalles.sale.core.entity.Company(COMPANY_ID, COMPANY_NAME, java.util.UUID.randomUUID(), STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
+                LATITUDE, LONGITUDE);
 
         companyWithoutStore = new Company(
-                COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
-                LATITUDE, LONGITUDE, null, null
+                COMPANY_ID, java.util.UUID.randomUUID(), COMPANY_NAME, null
         );
         companyWithStore = new Company(
-                COMPANY_ID, "EXT-LOJ001", COMPANY_NAME, STREET_NAME, STREET_NUMBER, CITY_NAME, STATE_NAME,
-                LATITUDE, LONGITUDE, STORE_ID_MP, null
+                COMPANY_ID, java.util.UUID.randomUUID(), COMPANY_NAME, STORE_ID_MP
         );
     }
 
@@ -77,7 +79,7 @@ class MercadoPagoStoreAdapterTest {
             when(mockResponse.body()).thenReturn("{\"id\":" + STORE_ID_MP + "}");
             when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponse);
 
-            adapter.createStore(companyWithoutStore);
+            adapter.createStore(companyWithoutStore, coreCompany);
 
             ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
             verify(httpClient, atLeastOnce()).send(captor.capture(), any());
@@ -92,7 +94,7 @@ class MercadoPagoStoreAdapterTest {
             when(mockResponse.body()).thenReturn("{\"id\":" + STORE_ID_MP + "}");
             when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(mockResponse);
 
-            Long result = adapter.createStore(companyWithoutStore);
+            Long result = adapter.createStore(companyWithoutStore, coreCompany);
 
             assertEquals(STORE_ID_MP, result);
         }
@@ -105,7 +107,7 @@ class MercadoPagoStoreAdapterTest {
         @Test
         @DisplayName("Should not invoke SDK if Company already has a registered store_id")
         void shouldNotInvokeSdkIfStoreIdExists() throws Exception {
-            Long result = adapter.createStore(companyWithStore);
+            Long result = adapter.createStore(companyWithStore, coreCompany);
 
             verify(httpClient, never()).send(any(HttpRequest.class), any());
             assertEquals(STORE_ID_MP, result);
@@ -122,7 +124,7 @@ class MercadoPagoStoreAdapterTest {
             when(httpClient.<String>send(any(HttpRequest.class), any())).thenThrow(new java.io.IOException("Communication failure"));
 
             assertThrows(MercadoPagoIntegrationException.class,
-                    () -> adapter.createStore(companyWithoutStore));
+                    () -> adapter.createStore(companyWithoutStore, coreCompany));
         }
     }
 }

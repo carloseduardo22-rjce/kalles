@@ -9,7 +9,32 @@
 -- 0. EMPRESA E TENANT DE TESTE
 -- ---------------------------------------------------------------
 INSERT INTO tenant (id, name) VALUES ('123e4567-e89b-12d3-a456-426614174000', 'Conta de Teste Kalles') ON CONFLICT (id) DO NOTHING;
-INSERT INTO mercadopago_company (id, name, external_id, tenant_id) VALUES ('e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', 'Loja Matriz', 'ID_DA_LOJA_TESTE_123', '123e4567-e89b-12d3-a456-426614174000') ON CONFLICT (external_id) DO NOTHING;
+
+-- Remove o seed legado criado nas migrations V23/V35 para manter apenas
+-- uma empresa canônica de testes locais por tenant.
+DELETE FROM mercadopago_company
+WHERE external_id = 'ID_DA_LOJA_TESTE_123'
+  AND id <> 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f';
+
+DELETE FROM company
+WHERE tenant_id = '123e4567-e89b-12d3-a456-426614174000'
+  AND name = 'Mercadinho do Teste'
+  AND id <> 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f';
+
+-- Inserindo a loja (como entidade segregada do Core)
+INSERT INTO company (id, name, tenant_id) VALUES ('e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', 'Loja Matriz', '123e4567-e89b-12d3-a456-426614174000') ON CONFLICT (id) DO NOTHING;
+
+-- Inserindo o vínculo com o Mercado Pago
+INSERT INTO mercadopago_company (id, company_id, external_id)
+VALUES (
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f',
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f',
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'
+)
+ON CONFLICT (id) DO UPDATE
+SET
+  company_id = EXCLUDED.company_id,
+  external_id = EXCLUDED.external_id;
 
 -- ---------------------------------------------------------------
 -- 1. OPERADORES
@@ -861,10 +886,10 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 INSERT INTO account (id, tenant_id, company_id, name, email, password_hash, role, verified, created_at)
 VALUES
-  ('d1000000-0000-0000-0000-000000000001'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'Administrador', 'admin@sistema.local', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:00:00'),
-  ('d1000000-0000-0000-0000-000000000002'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'João Silva', 'joao.silva@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:05:00'),
-  ('d1000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, NULL, 'Pedro Costa', 'pedro.costa@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:10:00')
-ON CONFLICT (email) DO NOTHING;
+  ('d1000000-0000-0000-0000-000000000001'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'Administrador', 'admin@sistema.local', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:00:00'),
+  ('d1000000-0000-0000-0000-000000000002'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'João Silva', 'joao.silva@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:05:00'),
+  ('d1000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'Pedro Costa', 'pedro.costa@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:10:00')
+ON CONFLICT (email) DO UPDATE SET company_id = EXCLUDED.company_id;
 
 -- ===============================================================
 -- BLOCO III — SUPORTE: AGENTES, USUÁRIOS E CHAMADOS

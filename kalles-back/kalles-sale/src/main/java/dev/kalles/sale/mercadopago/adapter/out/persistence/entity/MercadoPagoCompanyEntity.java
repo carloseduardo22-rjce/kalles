@@ -25,19 +25,11 @@ public class MercadoPagoCompanyEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "company_id", nullable = false, unique = true)
+    private UUID companyId;
+
     @Column(unique = true, nullable = false, length = 60)
     private String externalId;
 
-    private String name;
-    private String streetName;
-    private String streetNumber;
-    private String cityName;
-    private String stateName;
-    private Double latitude;
-    private Double longitude;
-
     private Long mpStoreId;
-    
-    @Column(name = "tenant_id")
-    private UUID tenantId;
 }

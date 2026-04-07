@@ -19,7 +19,7 @@ public class CashRegisterCommandService {
             throw new IllegalArgumentException("Já existe um caixa com este código: " + request.code());
         }
 
-        CashRegister cashRegister = new CashRegister(request.code(), request.description());
+        CashRegister cashRegister = new CashRegister(request.code(), request.description(), request.companyId());
         return repository.save(cashRegister);
     }
 }

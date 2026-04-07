@@ -288,9 +288,9 @@ class SaleTest {
             outroProduto.setName("Outro Produto");
             BigDecimal outroProdutoPrice = new BigDecimal("10.00");
 
-            sale.addItem(product, new BigDecimal("25.50"));     
-            sale.addItem(outroProduto, outroProdutoPrice); 
-            assertEquals(new BigDecimal("55.50"), sale.getTotal());
+sale.addItem(product, new java.math.BigDecimal("45.50"));
+            sale.addItem(outroProduto, outroProdutoPrice);
+            assertEquals(new java.math.BigDecimal("55.50"), sale.getTotal());
 
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.applyItemDiscount(itemId, new BigDecimal("5.50"));

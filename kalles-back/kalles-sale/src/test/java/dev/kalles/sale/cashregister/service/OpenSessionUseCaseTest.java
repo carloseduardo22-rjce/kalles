@@ -68,7 +68,7 @@ class OpenSessionUseCaseTest {
             initialAmount
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal");
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", operatorCode);
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, initialAmount);
 
@@ -141,7 +141,7 @@ class OpenSessionUseCaseTest {
             new BigDecimal("100.00")
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal");
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.of(cashRegister));
@@ -172,7 +172,7 @@ class OpenSessionUseCaseTest {
             new BigDecimal("100.00")
         );
 
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
 

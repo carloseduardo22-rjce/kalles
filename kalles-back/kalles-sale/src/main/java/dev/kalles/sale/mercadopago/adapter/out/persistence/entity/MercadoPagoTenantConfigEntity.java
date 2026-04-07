@@ -12,7 +12,7 @@ import lombok.Setter;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mercadopago_tenant_config")
+@Table(name = "tenant")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,7 +20,7 @@ import java.util.UUID;
 public class MercadoPagoTenantConfigEntity {
 
     @Id
-    @Column(name = "tenant_id", nullable = false)
+    @Column(name = "id", nullable = false)
     private UUID tenantId;
 
     @Column(name = "mp_access_token")

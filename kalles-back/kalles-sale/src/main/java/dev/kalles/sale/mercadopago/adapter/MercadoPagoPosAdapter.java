@@ -42,7 +42,7 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
     }
 
     @Override
-    public Long createPos(Caixa caixa, Company company) {
+    public Long createPos(Caixa caixa, Company company, dev.kalles.sale.cashregister.entity.CashRegister cashRegister) {
         String token = getAccessToken();
         if (token == null) {
             throw new MercadoPagoIntegrationException("Mercado Pago account is not linked");
@@ -86,7 +86,7 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
         }
 
         JsonObject payload = new JsonObject();
-        payload.addProperty("name", caixa.name());
+        payload.addProperty("name", cashRegister.getDescription() + " - " + cashRegister.getCode());
         payload.addProperty("fixed_amount", false); // Business Invariant defined in features
         payload.addProperty("store_id", company.mpStoreId());
         payload.addProperty("external_store_id", company.externalId());
@@ -191,6 +191,10 @@ public class MercadoPagoPosAdapter implements MercadoPagoPosPort {
                             map.put("store_id", posObj.get("store_id").getAsLong());
                         if (posObj.has("external_id") && !posObj.get("external_id").isJsonNull())
                             map.put("external_id", posObj.get("external_id").getAsString());
+                        if (posObj.has("external_store_id") && !posObj.get("external_store_id").isJsonNull())
+                            map.put("external_store_id", posObj.get("external_store_id").getAsString());
+                        if (posObj.has("fixed_amount") && !posObj.get("fixed_amount").isJsonNull())
+                            map.put("fixed_amount", posObj.get("fixed_amount").getAsBoolean());
                         if (posObj.has("status") && !posObj.get("status").isJsonNull())
                             map.put("status", posObj.get("status").getAsString());
                         if (posObj.has("date_created") && !posObj.get("date_created").isJsonNull())

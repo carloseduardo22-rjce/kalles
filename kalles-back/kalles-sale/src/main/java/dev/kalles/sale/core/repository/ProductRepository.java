@@ -27,7 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 		"LEFT JOIN s.location l " +
 		"LEFT JOIN l.warehouse w " +
 		"WHERE cp.active = true AND cp.companyId = :companyId " +
-		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, p.description, cp.active " +
+		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, cp.costPrice, p.description, cp.active " +
 		"ORDER BY p.name ASC")
 	List<ProductResponse> findAllActiveWithStock(@Param("companyId") UUID companyId);
 
@@ -41,7 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 		"LEFT JOIN Stock s ON s.product = p " +
 		"LEFT JOIN s.location l " +
 		"LEFT JOIN l.warehouse w " +
-		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, p.description, cp.active " +
+		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, cp.costPrice, p.description, cp.active " +
 		"ORDER BY p.name ASC")
 	List<ProductResponse> findAllWithStock(@Param("companyId") UUID companyId);
 
@@ -60,7 +60,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 		"LOWER(p.internalCode) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
 		"LOWER(COALESCE(p.barcode, '')) LIKE LOWER(CONCAT('%', :q, '%'))" +
 		") " +
-		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, p.description, cp.active " +
+		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, cp.costPrice, p.description, cp.active " +
 		"ORDER BY p.name ASC")
 	List<ProductResponse> searchActiveProductsWithStock(@Param("q") String q, @Param("companyId") UUID companyId);
 	@Query("SELECT new dev.kalles.sale.core.dto.ProductResponse(" +
@@ -74,6 +74,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 		"LEFT JOIN s.location l " +
 		"LEFT JOIN l.warehouse w " +
 		"WHERE p.id = :id " +
-		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, p.description, cp.active")
+		"GROUP BY p.id, p.name, p.internalCode, p.barcode, cp.price, cp.costPrice, p.description, cp.active")
 	Optional<ProductResponse> findProductWithStockById(@Param("id") UUID id, @Param("companyId") UUID companyId);
 }

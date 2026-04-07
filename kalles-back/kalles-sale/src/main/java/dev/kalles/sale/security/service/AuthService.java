@@ -1,8 +1,7 @@
 package dev.kalles.sale.security.service;
 
-import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
-import dev.kalles.sale.mercadopago.domain.Tenant;
-import dev.kalles.sale.mercadopago.port.TenantRepository;
+import dev.kalles.sale.core.entity.Tenant;
+import dev.kalles.sale.core.repository.TenantRepository;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.domain.AccountRole;
 import dev.kalles.sale.security.repository.AccountRepository;
@@ -71,7 +70,7 @@ public class AuthService {
         // Create Tenant first
         UUID tenantId = UUID.randomUUID();
         Tenant newTenant = new Tenant(
-                tenantId, request.companyName(), null, null, null);
+                tenantId, request.companyName());
         tenantRepository.save(newTenant);
 
         // Create Account

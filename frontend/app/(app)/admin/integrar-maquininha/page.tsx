@@ -67,23 +67,25 @@ export default function IntegrarMaquininhaPage() {
 
             return (
               <Tooltip key={s.id}>
-                <TooltipTrigger asChild>
-                  <li
-                    onClick={() => !isDisabled && setCurrentStep(s.id)}
-                    className={`p-3 rounded transition 
-                        ${currentStep === s.id ? "bg-blue-500 text-white" : "bg-white"}
-                        ${
-                          isDisabled
-                            ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-gray-200 cursor-pointer"
-                        }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{s.id}.</span>
-                      <span>{s.title}</span>
-                    </div>
-                  </li>
-                </TooltipTrigger>
+                <li>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => !isDisabled && setCurrentStep(s.id)}
+                      className={`w-full text-left p-3 rounded transition 
+                          ${currentStep === s.id ? "bg-blue-500 text-white" : "bg-white"}
+                          ${
+                            isDisabled
+                              ? "opacity-50 cursor-not-allowed"
+                              : "hover:bg-gray-200 cursor-pointer"
+                          }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">{s.id}.</span>
+                        <span>{s.title}</span>
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                </li>
 
                 {isDisabled && (
                   <TooltipContent side="right" className="max-w-[200px]">

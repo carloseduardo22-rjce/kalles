@@ -23,7 +23,19 @@ export default function LoginPage() {
       setIsLoading(true);
       await api.post("/api/auth/login", { email, password });
       toast.success("Login realizado com sucesso!");
-      router.push("/pdv"); // Redireciona para o PDV após o login
+
+      // Consulta o perfil para decidir o redirecionamento por role
+      try {
+        const me = await api.get<{ role: string }>("/api/auth/me");
+        if (me.role === "ADMIN") {
+          router.push("/caixas");
+        } else {
+          router.push("/pdv");
+        }
+      } catch {
+        // Fallback: se não conseguir consultar, vai para caixas
+        router.push("/caixas");
+      }
     } catch (error: any) {
       toast.error(error.message || "E-mail ou senha incorretos.");
     } finally {

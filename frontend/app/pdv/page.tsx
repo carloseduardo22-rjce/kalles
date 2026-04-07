@@ -39,10 +39,12 @@ import type { ProductSearchHandle } from "@/features/sales/components/product-se
 const STORAGE_KEY = "kalles:active-session";
 const LAYOUT_STORAGE_KEY = "kalles:pdv-layout";
 
-type LayoutState = { leftWidth: number; bottomHeight: number };
-const DEFAULT_LAYOUT: LayoutState = { leftWidth: 60, bottomHeight: 25 };
-const MIN_LEFT_WIDTH = 40;
-const MAX_LEFT_WIDTH = 80;
+type LayoutState = { leftWidth: number; centerWidth: number; bottomHeight: number };
+const DEFAULT_LAYOUT: LayoutState = { leftWidth: 25, centerWidth: 45, bottomHeight: 25 };
+const MIN_LEFT_WIDTH = 15;
+const MAX_LEFT_WIDTH = 40;
+const MIN_CENTER_WIDTH = 30;
+const MAX_CENTER_WIDTH = 60;
 const MIN_BOTTOM_HEIGHT = 15;
 const MAX_BOTTOM_HEIGHT = 50;
 
@@ -114,11 +116,11 @@ export default function PdvPage() {
 
   const handleSaveLayout = () => {
     if (containerRef.current) {
-      const newLeft = parseFloat(
-        containerRef.current.style.getPropertyValue("--left-width"),
-      );
+      const newLeft = parseFloat(containerRef.current.style.getPropertyValue("--left-width"));
+      const newCenter = parseFloat(containerRef.current.style.getPropertyValue("--center-width"));
       const layoutToSave = {
         leftWidth: newLeft || savedLayout.leftWidth,
+        centerWidth: newCenter || savedLayout.centerWidth,
         bottomHeight: savedLayout.bottomHeight,
       };
       setSavedLayout(layoutToSave);
@@ -129,20 +131,16 @@ export default function PdvPage() {
 
   const handleCancelLayout = () => {
     if (containerRef.current) {
-      containerRef.current.style.setProperty(
-        "--left-width",
-        `${savedLayout.leftWidth}%`,
-      );
+      containerRef.current.style.setProperty("--left-width", `${savedLayout.leftWidth}%`);
+      containerRef.current.style.setProperty("--center-width", `${savedLayout.centerWidth}%`);
     }
     setIsEditingLayout(false);
   };
 
   const handleRestoreLayout = () => {
     if (containerRef.current) {
-      containerRef.current.style.setProperty(
-        "--left-width",
-        `${DEFAULT_LAYOUT.leftWidth}%`,
-      );
+      containerRef.current.style.setProperty("--left-width", `${DEFAULT_LAYOUT.leftWidth}%`);
+      containerRef.current.style.setProperty("--center-width", `${DEFAULT_LAYOUT.centerWidth}%`);
     }
     setSavedLayout(DEFAULT_LAYOUT);
     localStorage.removeItem(LAYOUT_STORAGE_KEY);
@@ -289,6 +287,12 @@ export default function PdvPage() {
       } else if (e.key === "F4") {
         e.preventDefault();
         router.push("/produtos");
+      } else if (e.key === "F7") {
+        e.preventDefault();
+        if (sale && sale.state === "OPEN" && sale.items.length > 0) {
+          const last = sale.items[sale.items.length - 1];
+          decrementItem(last.productInternalCode);
+        }
       } else if (e.key === "F8") {
         e.preventDefault();
         if (sale && sale.state === "OPEN" && sale.items.length > 0) {
@@ -299,7 +303,7 @@ export default function PdvPage() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, sale, addItem, completeSale]);
+  }, [router, sale, addItem, decrementItem, completeSale]);
 
   if (!hydrated || !sessionData) {
     return (
@@ -369,24 +373,6 @@ export default function PdvPage() {
               >
                 Editar Layout
               </Button>
-              <span className="flex items-center gap-1">
-                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-                  F2
-                </kbd>
-                Consulta de produtos
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-                  F8
-                </kbd>
-                Incrementar último item
-              </span>
-              <span className="flex items-center gap-1 mr-2">
-                <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-                  F4
-                </kbd>
-                Produtos
-              </span>
               <CloseSessionAuthorizedDialog
                 isLoading={sessionLoading}
                 error={sessionError}
@@ -426,13 +412,14 @@ export default function PdvPage() {
         style={
           {
             display: "grid",
-            gridTemplateColumns: `var(--left-width, 60%) minmax(0, 1fr)`,
+            gridTemplateColumns: `var(--left-width, 25%) var(--center-width, 45%) minmax(0, 1fr)`,
             gridTemplateRows: `minmax(0, 1fr) auto`,
             gridTemplateAreas: `
-            "products payment"
-            "totals payment"
+            "marketing products payment"
+            "marketing totals payment"
           `,
             "--left-width": `${savedLayout.leftWidth}%`,
+            "--center-width": `${savedLayout.centerWidth}%`,
           } as React.CSSProperties
         }
       >
@@ -441,13 +428,37 @@ export default function PdvPage() {
           <div className="absolute inset-0 pointer-events-none ring-4 ring-blue-500 ring-inset z-50 transition-all bg-blue-50/5" />
         )}
 
+        {/* SECTION: Marketing (1º Quadrante - Logo Kalles) */}
+        <section
+          className={`flex flex-col relative overflow-hidden ${isEditingLayout ? "border-2 border-dashed border-purple-400 opacity-90" : "border-r"}`}
+          style={{ gridArea: "marketing" }}
+        >
+          <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+            <img 
+              src="/kalles-logo-palavra.jpeg" 
+              alt="Kalles" 
+              className="max-w-full max-h-full object-contain drop-shadow-lg" 
+            />
+          </div>
+        </section>
+
+        {/* Resizer Vertical 1 (Marketing <-> Products) */}
+        {isEditingLayout && (
+          <div
+            onMouseDown={handleMouseDownVertical}
+            className="w-4 bg-purple-500 hover:bg-purple-600 cursor-col-resize flex flex-col items-center justify-center opacity-80 z-40"
+            style={{ gridColumn: "2 / 2", gridRow: "1 / 3", marginLeft: "-6px" }}
+          >
+            <div className="w-1 h-8 bg-white rounded-full"></div>
+          </div>
+        )}
+
         {/* SECTION: Products */}
         <section
           className={`flex flex-col relative overflow-hidden bg-background ${isEditingLayout ? "border-2 border-dashed border-blue-400 opacity-90" : "border-b border-r"}`}
           style={{ gridArea: "products" }}
         >
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
-            {/* Add item */}
             {(!sale || sale.state === "OPEN") && (
               <ProductSearch
                 ref={productSearchRef}
@@ -455,7 +466,6 @@ export default function PdvPage() {
                 onAddItem={addItem}
               />
             )}
-
             {saleError && (
               <ErrorAlert error={saleError} title="Erro" className="text-sm" />
             )}
@@ -541,13 +551,13 @@ export default function PdvPage() {
           )}
         </section>
 
-        {/* Resizer Vertical */}
+        {/* Resizer Vertical 2 (Products <-> Payment) */}
         {isEditingLayout && (
           <div
             onMouseDown={handleMouseDownVertical}
             className="w-4 bg-blue-500 hover:bg-blue-600 cursor-col-resize flex flex-col items-center justify-center opacity-80 z-40"
             style={{
-              gridColumn: "2 / 2",
+              gridColumn: "3 / 3",
               gridRow: "1 / 3",
               marginLeft: "-6px",
             }}
@@ -597,6 +607,58 @@ export default function PdvPage() {
               </div>
             )}
           </div>
+
+          {/* Ferramentas de Automação - Bottom of 3º Quadrante */}
+          {(!sale || sale.state === "OPEN") && (
+            <div className="shrink-0 border-t bg-card px-4 py-3">
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs h-9 font-semibold"
+                  onClick={() => setLookupOpen(true)}
+                >
+                  <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px] mr-1.5">F2</kbd>
+                  Consulta
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs h-9 font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                  onClick={() => {
+                    const items = sale?.items ?? [];
+                    if (items.length > 0) {
+                      const lastItem = items[items.length - 1];
+                      decrementItem(lastItem.productInternalCode);
+                    }
+                  }}
+                  disabled={!sale || sale.items.length === 0 || isLoading}
+                >
+                  <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px] mr-1.5">F7</kbd>
+                  - Decrementar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs h-9 font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                  onClick={() => {
+                    const items = sale?.items ?? [];
+                    if (items.length > 0) {
+                      const lastItem = items[items.length - 1];
+                      addItem("INTERNAL_CODE", lastItem.productInternalCode);
+                    }
+                  }}
+                  disabled={!sale || sale.items.length === 0 || isLoading}
+                >
+                  <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px] mr-1.5">F8</kbd>
+                  + Incrementar
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
 

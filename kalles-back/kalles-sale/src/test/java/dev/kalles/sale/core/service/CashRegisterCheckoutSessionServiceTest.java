@@ -34,7 +34,7 @@ class CashRegisterCheckoutSessionServiceTest {
     }
 
     private CashRegisterSession buildOpenSession() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("João Silva", "OP001");
         return CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
     }

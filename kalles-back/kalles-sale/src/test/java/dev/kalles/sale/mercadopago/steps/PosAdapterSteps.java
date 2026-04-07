@@ -32,26 +32,22 @@ public class PosAdapterSteps {
 
     @Given("uma Company {string} que possui store_id {string} gerado no MP")
     public void companyWithStoreId(String companyId, String storeId) {
-        companyContext = new Company(
-                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, Long.parseLong(storeId), null
-        );
+        companyContext = new Company(java.util.UUID.randomUUID(), java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"), "Kalles", Long.parseLong(storeId));
     }
 
     @Given("uma Company {string} que AINDA NÃO possui store_id no MP")
     public void companyWithoutStoreId(String companyId) {
-        companyContext = new Company(
-                java.util.UUID.randomUUID(), companyId, "Kalles", "Str", "1", "City", "ST", -23.0, -46.0, null, null
-        );
+        companyContext = new Company(java.util.UUID.randomUUID(), java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"), "Kalles", null);
     }
 
     @And("um Caixa com id {string}, nome {string}, pertencente à Company {string}")
     public void caixaBelongsToCompany(String caixaId, String nome, String companyId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, nome, companyContext.id().toString(), null);
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, companyContext.id(), null);
     }
 
     @Given("um Caixa com id {string} que já possui pos_id {string} registrado")
     public void umCaixaComPosId(String caixaId, String posId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, "Caixa", java.util.UUID.randomUUID().toString(), Long.parseLong(posId));
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaId, java.util.UUID.randomUUID(), Long.parseLong(posId));
     }
 
     @And("que o Caixa já possui o pos_id {string} gerado anteriormente")
@@ -81,7 +77,7 @@ public class PosAdapterSteps {
     @When("o adapter solicitar a criação do POS no Mercado Pago")
     public void adapterProcessesPosCreation() {
         try {
-            returnedPosId = adapter.createPos(caixaContext, companyContext);
+            returnedPosId = adapter.createPos(caixaContext, companyContext, new dev.kalles.sale.cashregister.entity.CashRegister("C", "1", java.util.UUID.randomUUID()));
         } catch (Exception e) {
             capturedException = e;
         }

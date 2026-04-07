@@ -32,7 +32,7 @@ public class OrderAdapterSteps {
 
     @Dado("um Caixa com external_id {string} que j\u00E1 possui pos_id {string} registrado no MP")
     public void um_caixa_com_external_id_que_ja_possui_pos_id_registrado_no_mp(String caixaExtId, String posId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, "Caixa", "COMP-1", Long.parseLong(posId));
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, java.util.UUID.randomUUID(), Long.parseLong(posId));
         when(repository.findByExternalId(anyString())).thenReturn(Optional.of(caixaContext));
     }
 
@@ -69,7 +69,7 @@ public class OrderAdapterSteps {
 
     @Dado("que o Caixa {string} n\u00E3o possui pos_id registrado no MP")
     public void que_o_caixa_nao_possui_pos_id_registrado_no_mp(String caixaExtId) {
-        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, "Caixa", "COMP-1", null);
+        caixaContext = new Caixa(java.util.UUID.randomUUID(), caixaExtId, java.util.UUID.randomUUID(), null);
         when(repository.findByExternalId(anyString())).thenReturn(Optional.of(caixaContext));
     }
 

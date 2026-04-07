@@ -24,8 +24,7 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
                 .map(entity -> new Caixa(
                         entity.getId(),
                         entity.getExternalId(),
-                        entity.getName(),
-                        entity.getCompanyId(),
+                        entity.getCashRegisterId(),
                         entity.getMpPosId()));
     }
 
@@ -35,8 +34,7 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
                 .map(entity -> new Caixa(
                         entity.getId(),
                         entity.getExternalId(),
-                        entity.getName(),
-                        entity.getCompanyId(),
+                        entity.getCashRegisterId(),
                         entity.getMpPosId()));
     }
 
@@ -53,8 +51,7 @@ public class CaixaMpRepositoryImpl implements CaixaMpRepository {
         
         entity.setId(caixa.id());
         entity.setExternalId(caixa.externalId());
-        entity.setName(caixa.name());
-        entity.setCompanyId(caixa.companyId());
+        entity.setCashRegisterId(caixa.cashRegisterId());
         entity.setMpPosId(caixa.mpPosId());
         
         repository.save(entity);

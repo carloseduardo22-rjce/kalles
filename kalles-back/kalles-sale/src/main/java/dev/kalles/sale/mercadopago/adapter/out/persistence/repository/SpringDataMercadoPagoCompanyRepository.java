@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface SpringDataMercadoPagoCompanyRepository extends JpaRepository<MercadoPagoCompanyEntity, UUID> {
     Optional<MercadoPagoCompanyEntity> findByExternalId(String externalId);
-    Optional<MercadoPagoCompanyEntity> findByTenantId(UUID tenantId);
+    Optional<MercadoPagoCompanyEntity> findByCompanyId(UUID companyId);
 }

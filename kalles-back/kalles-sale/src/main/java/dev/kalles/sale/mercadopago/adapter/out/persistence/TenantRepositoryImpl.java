@@ -1,6 +1,6 @@
 package dev.kalles.sale.mercadopago.adapter.out.persistence;
 
-import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.TenantEntity;
+import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoTenantConfigEntity;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataTenantRepository;
 import dev.kalles.sale.mercadopago.application.service.TenantCredentialCipherService;
 import dev.kalles.sale.mercadopago.domain.Tenant;
@@ -28,10 +28,10 @@ public class TenantRepositoryImpl implements TenantRepository {
         return repository.findById(tenantId).map(this::toDomain);
     }
 
-    private Tenant toDomain(TenantEntity entity) {
+    private Tenant toDomain(MercadoPagoTenantConfigEntity entity) {
         return new Tenant(
-                entity.getId(),
-                entity.getName(),
+                entity.getTenantId(),
+                null, // No nome
                 cipherService.decrypt(entity.getMpAccessToken()),
                 cipherService.decrypt(entity.getMpRefreshToken()),
                 cipherService.decrypt(entity.getMpUserId())
@@ -40,9 +40,8 @@ public class TenantRepositoryImpl implements TenantRepository {
 
     @Override
     public void save(Tenant tenant) {
-        TenantEntity entity = repository.findById(tenant.id()).orElse(new TenantEntity());
-        entity.setId(tenant.id());
-        entity.setName(tenant.name());
+        MercadoPagoTenantConfigEntity entity = repository.findById(tenant.id()).orElse(new MercadoPagoTenantConfigEntity());
+        entity.setTenantId(tenant.id());
         entity.setMpAccessToken(cipherService.encrypt(tenant.mpAccessToken()));
         entity.setMpRefreshToken(cipherService.encrypt(tenant.mpRefreshToken()));
         entity.setMpUserId(cipherService.encrypt(tenant.mpUserId()));

@@ -1,5 +1,6 @@
 package dev.kalles.sale.exception;
 
+import dev.kalles.sale.billing.exception.BillingIntegrationException;
 import dev.kalles.sale.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.sale.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.sale.cashregister.exception.OperatorAlreadyInSessionException;
@@ -130,6 +131,15 @@ public class GlobalExceptionHandler {
             "A venda foi modificada por outra operação. Tente novamente."
         );
         problem.setTitle("Conflito de concorrência");
+        return problem;
+    }
+    @ExceptionHandler(BillingIntegrationException.class)
+    public ProblemDetail handleBillingIntegration(BillingIntegrationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_GATEWAY,
+            ex.getMessage()
+        );
+        problem.setTitle("Falha de integraÃ§Ã£o com gateway de pagamento");
         return problem;
     }
 }

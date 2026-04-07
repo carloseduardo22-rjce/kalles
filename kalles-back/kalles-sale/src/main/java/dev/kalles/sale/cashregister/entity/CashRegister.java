@@ -31,9 +31,10 @@ public class CashRegister {
     @Column(nullable = false)
     private boolean active = true;
 
-    public CashRegister(String code, String description) {
+    public CashRegister(String code, String description, UUID companyId) {
         this.code = Objects.requireNonNull(code, "Código do caixa obrigatório");
         this.description = Objects.requireNonNull(description, "Descrição obrigatória");
+        this.companyId = companyId;
     }
 
     public void deactivate() {

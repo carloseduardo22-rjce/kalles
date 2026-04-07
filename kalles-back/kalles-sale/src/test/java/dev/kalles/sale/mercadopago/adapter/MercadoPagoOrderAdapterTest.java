@@ -41,8 +41,8 @@ class MercadoPagoOrderAdapterTest {
     @Test
     void shouldFormatPayloadAndReturnQrData() throws Exception {
         when(caixaMpRepository.findByExternalId(anyString()))
-                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", "Desc", "COMP-123", 9999L)));
-        
+                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", UUID.randomUUID(), 9999L)));
+
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(201);
         when(mockResponse.body()).thenReturn("{\"id\":\"MP-ORD-111\",\"type_response\":{\"qr_data\":\"000201010\"}}");
@@ -62,15 +62,15 @@ class MercadoPagoOrderAdapterTest {
     @Test
     void throwIfCaixaHasNoPos() {
         when(caixaMpRepository.findByExternalId(anyString()))
-                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", "Desc", "COMP-123", null)));
+                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", UUID.randomUUID(), null)));
         assertThrows(IllegalStateException.class, () -> adapter.createOrder(cobranca));
     }
 
     @Test
     void mapHttpErrors() throws Exception {
         when(caixaMpRepository.findByExternalId(anyString()))
-                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", "Desc", "COMP-123", 9999L)));
-        
+                .thenReturn(Optional.of(new Caixa(UUID.randomUUID(), "CAIXA-123", UUID.randomUUID(), 9999L)));
+
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(400);
         when(mockResponse.body()).thenReturn("{\"message\":\"bad_request\"}");

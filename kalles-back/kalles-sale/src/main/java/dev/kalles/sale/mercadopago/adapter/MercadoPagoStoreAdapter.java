@@ -61,7 +61,7 @@ public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
     }
 
     @Override
-    public Long createStore(Company company) {
+    public Long createStore(Company company, dev.kalles.sale.core.entity.Company coreCompany) {
         if (company.hasStoreRegistered()) {
             return company.mpStoreId();
         }
@@ -95,15 +95,15 @@ public class MercadoPagoStoreAdapter implements MercadoPagoStorePort {
         }
 
         JsonObject location = new JsonObject();
-        location.addProperty("street_name", company.streetName());
-        location.addProperty("street_number", company.streetNumber());
-        location.addProperty("city_name", company.cityName());
-        location.addProperty("state_name", company.stateName());
-        location.addProperty("latitude", company.latitude());
-        location.addProperty("longitude", company.longitude());
+        location.addProperty("street_name", coreCompany.getStreetName() != null ? coreCompany.getStreetName() : "");
+        location.addProperty("street_number", coreCompany.getStreetNumber() != null ? coreCompany.getStreetNumber() : "S/N");
+        location.addProperty("city_name", coreCompany.getCityName() != null ? coreCompany.getCityName() : "S/I");
+        location.addProperty("state_name", coreCompany.getStateName() != null ? coreCompany.getStateName() : "S/I");
+        location.addProperty("latitude", coreCompany.getLatitude());
+        location.addProperty("longitude", coreCompany.getLongitude());
 
         JsonObject payload = new JsonObject();
-        payload.addProperty("name", company.name());
+        payload.addProperty("name", coreCompany.getName() != null ? coreCompany.getName() : "");
         payload.addProperty("external_id", extId);
         payload.add("location", location);
 

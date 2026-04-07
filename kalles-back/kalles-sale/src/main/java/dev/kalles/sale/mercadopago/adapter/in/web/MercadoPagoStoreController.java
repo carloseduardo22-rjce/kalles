@@ -63,30 +63,16 @@ public class MercadoPagoStoreController {
         System.out.println(request);
         Company company = new Company(
                 null,
+                request.companyId(),
                 request.externalId(),
-                request.name(),
-                request.streetName(),
-                request.streetNumber(),
-                request.cityName(),
-                request.stateName(),
-                request.latitude(),
-                request.longitude(),
-                null,
-                request.tenantId());
-        Long storeId = createMercadoPagoStoreUseCase.execute(company);
+                null);
+        Long storeId = createMercadoPagoStoreUseCase.execute(company, request.companyId());
         return ResponseEntity.ok(new CreateStoreResponse(storeId));
     }
 
     public record CreateStoreRequest(
             String externalId,
-            String name,
-            String streetName,
-            String streetNumber,
-            String cityName,
-            String stateName,
-            double latitude,
-            double longitude,
-            UUID tenantId) {
+            UUID companyId) {
     }
 
     public record CreateStoreResponse(Long storeId) {

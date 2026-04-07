@@ -5,6 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 public interface MercadoPagoStorePort {
-    Long createStore(Company company);
+    Long createStore(Company company, dev.kalles.sale.core.entity.Company coreCompany);
     List<Map<String, Object>> fetchStores();
 }

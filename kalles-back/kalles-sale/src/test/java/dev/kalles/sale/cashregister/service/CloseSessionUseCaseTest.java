@@ -68,8 +68,9 @@ class CloseSessionUseCaseTest {
     @Test
     @DisplayName("Deve fechar sessao persistindo o snapshot do fechamento")
     void shouldCloseSessionPersistingClosingSnapshot() {
-        CashRegisterSession session = buildOpenSession();
         UUID sessionId = UUID.randomUUID();
+        CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
+        org.mockito.Mockito.doReturn(sessionId).when(session).getId();
         Operator authorizer = buildAuthorizer();
         Sale completedSale = buildCompletedSale(sessionId.toString());
 
@@ -132,7 +133,7 @@ class CloseSessionUseCaseTest {
     }
 
     private CashRegisterSession buildOpenSession() {
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
         Operator operator = new Operator("Operador", "OP-001");
         return CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
     }

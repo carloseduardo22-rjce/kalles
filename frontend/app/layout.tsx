@@ -6,6 +6,7 @@ import { AppearanceProvider } from "@/components/appearance-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { CompanyProvider } from "@/shared/contexts/company-context";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -50,7 +51,9 @@ export default function RootLayout({
           themes={["light", "dark"]}
         >
           <AppearanceProvider>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <CompanyProvider>{children}</CompanyProvider>
+            </QueryProvider>
             <Toaster richColors position="top-right" />
           </AppearanceProvider>
         </ThemeProvider>

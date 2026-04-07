@@ -32,23 +32,19 @@ public class StoreAdapterSteps {
     @Given("uma Company com id {string}, nome {string}, logradouro {string}, numero {string}, cidade {string}, estado {string}, latitude {string} e longitude {string}")
     public void companyWithData(String id, String nome, String logradouro, String numero, String cidade, String estado, String lat, String lon) {
         java.util.UUID uuid = id.equals("COMP-001") || id.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(id);
-        companyContext = new Company(
-                uuid, id, nome, logradouro, numero, cidade, estado,
-                Double.parseDouble(lat), Double.parseDouble(lon), null,
-                null
-        );
+        companyContext = new Company(uuid, java.util.UUID.randomUUID(), nome, null);
     }
 
     @Given("uma Company com id {string} que já possui store_id {string} registrado")
     public void companyAlreadyHasStoreId(String companyId, String storeId) {
         java.util.UUID uuid = companyId.equals("COMP-001") || companyId.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(companyId);
-        companyContext = new Company(uuid, companyId, "Name", "Street", "1", "City", "ST", 0.0, 0.0, Long.parseLong(storeId), null);
+        companyContext = new Company(uuid, java.util.UUID.randomUUID(), "Name", Long.parseLong(storeId));
     }
 
     @Given("uma Company com id {string} e nome {string} sem store_id cadastrado")
     public void companyWithoutStoreId(String companyId, String companyName) {
         java.util.UUID uuid = companyId.equals("COMP-002") || companyId.startsWith("COMP") ? java.util.UUID.randomUUID() : java.util.UUID.fromString(companyId);
-        companyContext = new Company(uuid, companyId, companyName, "Street", "1", "City", "ST", 0.0, 0.0, null, null);
+        companyContext = new Company(uuid, java.util.UUID.randomUUID(), companyName, null);
     }
 
     @And("que o SDK do Mercado Pago retornará o store_id {string} para essa requisição")
@@ -67,7 +63,7 @@ public class StoreAdapterSteps {
     @When("o adapter solicitar a criação da Store no Mercado Pago")
     public void adapterProcessesStoreCreation() {
         try {
-            returnedStoreId = adapter.createStore(companyContext);
+            returnedStoreId = adapter.createStore(companyContext, new dev.kalles.sale.core.entity.Company(java.util.UUID.randomUUID(), "C", java.util.UUID.randomUUID(), "R", "1", "C", "S", 0.0, 0.0));
         } catch (Exception e) {
             capturedException = e;
         }

@@ -123,15 +123,26 @@ export const ProductSearch = forwardRef<ProductSearchHandle, ProductSearchProps>
     <form onSubmit={handleSubmit} className="space-y-2">
       <Tabs
         value={type}
-        onValueChange={(v) => setType(v as ProductCodeType)}
+        onValueChange={(v) => {
+          setType(v as ProductCodeType);
+          setTimeout(focusInput, 0);
+        }}
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="INTERNAL_CODE" className="text-xs">
+          <TabsTrigger 
+             value="INTERNAL_CODE" 
+             className="text-xs"
+             onPointerDown={(e) => e.preventDefault()}
+          >
             <Hash className="mr-1 h-3 w-3" />
             Código Interno
           </TabsTrigger>
-          <TabsTrigger value="BAR_CODE" className="text-xs">
+          <TabsTrigger 
+             value="BAR_CODE" 
+             className="text-xs"
+             onPointerDown={(e) => e.preventDefault()}
+          >
             <Barcode className="mr-1 h-3 w-3" />
             Código de Barras
           </TabsTrigger>
