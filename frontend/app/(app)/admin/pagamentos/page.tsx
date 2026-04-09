@@ -35,7 +35,14 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
-import { mercadopagoService } from "@/features/admin/services/mercadopago.service";
+import { paymentMercadoPagoService as mercadopagoService } from "@/features/admin/services/payment-mercadopago.service";
+import {
+  getPaymentProvider,
+  paymentProviders,
+} from "@/features/payment/providers";
+import type { PaymentProviderId } from "@/features/payment/types";
+import { api } from "@/shared/services/api";
+import { useCompany } from "@/shared/contexts/company-context";
 
 interface StoreFormData {
   companyId: string;
@@ -84,10 +91,14 @@ const BRAZILIAN_STATES = [
 ];
 
 export default function PaymentSettingsPage() {
+  const { activeCompany, activeCompanyId } = useCompany();
+  const [selectedProviderId, setSelectedProviderId] =
+    useState<PaymentProviderId>("MERCADO_PAGO");
   const [activeTab, setActiveTab] = useState<"listar" | "criar">("listar");
   const [newIntegrationStep, setNewIntegrationStep] = useState<
     "oauth" | "store" | "pos"
   >("oauth");
+  const selectedProvider = getPaymentProvider(selectedProviderId);
 
   // Em produção, isso viraria de variáveis de ambiente (.env)
   const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
@@ -98,7 +109,10 @@ export default function PaymentSettingsPage() {
   // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
   const [tenantId, setTenantId] = useState<string>("");
 
-  const mpAuthUrl = `https://auth.mercadopago.com/authorization?client_id=${MP_APP_ID}&response_type=code&platform_id=mp&state=${tenantId}&redirect_uri=${REDIRECT_URI}`;
+  const providerAuthUrl =
+    selectedProvider.auth.mode === "oauth" && tenantId
+      ? selectedProvider.auth.buildAuthorizationUrl?.(tenantId) ?? ""
+      : "";
 
   const [loading, setLoading] = useState(false);
   const [storeConfigured, setStoreConfigured] = useState(false);
@@ -107,11 +121,8 @@ export default function PaymentSettingsPage() {
   >([]);
 
   useEffect(() => {
-    fetch("/api/cash-registers")
-      .then(async (res) => {
-        const text = await res.text();
-        return text ? JSON.parse(text) : [];
-      })
+    api
+      .get<any[]>("/api/cash-registers")
       .then((data) => {
         if (!Array.isArray(data)) return;
         const registers = data.map((cr: any) => ({
@@ -133,21 +144,29 @@ export default function PaymentSettingsPage() {
   }, []);
 
   // Verifica se a conta do MP já está conectada ao entrar na aba "criar".
-  // Se já estiver, pula direto para o passo "Estabelecimento".
+  // Se já estiver, decidimos se seguimos para loja ou terminais.
   useEffect(() => {
-    if (activeTab !== "criar") return;
+    if (selectedProviderId !== "MERCADO_PAGO" || activeTab !== "criar") return;
 
-    fetch("/api/mercadopago/stores/my-status")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.companyExists) {
-          setNewIntegrationStep("store");
-        } else {
+    Promise.all([
+      mercadopagoService.getProviderStatus(),
+      mercadopagoService.getCurrentStoreStatus(),
+    ])
+      .then(([providerStatus, storeStatus]) => {
+        if (!providerStatus.linked) {
+          setStoreConfigured(false);
           setNewIntegrationStep("oauth");
+          return;
         }
+
+        const hasConfiguredStore =
+          storeStatus.hasStoreRegistered || !!storeStatus.providerStoreId;
+
+        setStoreConfigured(hasConfiguredStore);
+        setNewIntegrationStep(hasConfiguredStore ? "pos" : "store");
       })
       .catch(() => setNewIntegrationStep("oauth"));
-  }, [activeTab]);
+  }, [activeTab, selectedProviderId]);
 
   const [storeForm, setStoreForm] = useState<StoreFormData>({
     companyId: "",
@@ -172,48 +191,16 @@ export default function PaymentSettingsPage() {
     setStoreForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleUpdatePosField = (key: keyof PosFormData, value: string) => {
-    setPosForm((prev) => ({ ...prev, [key]: value }));
-  };
-
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const payload = {
-        externalId: storeForm.companyId,
-        name: storeForm.name,
-        streetName: storeForm.streetName,
-        streetNumber: storeForm.streetNumber,
-        cityName: storeForm.cityName,
-        stateName: storeForm.stateName,
-        latitude: storeForm.latitude,
-        longitude: storeForm.longitude,
-        tenantId: tenantId,
-      };
-
-      const res = await fetch("/api/mercadopago/stores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        const errorMessage = errorData?.message || "";
-
-        if (
-          errorMessage.toLowerCase().includes("already exists") ||
-          errorMessage.toLowerCase().includes("external_id")
-        ) {
-          throw new Error(
-            `Já existe uma loja criada com aquele external id que no nosso front referenciamos como "ID Interno da Empresa".`,
-          );
-        }
-
-        throw new Error(errorMessage || "Erro desconhecido ao criar loja");
+      if (!activeCompanyId) {
+        throw new Error("Selecione uma empresa ativa antes de vincular a loja.");
       }
+
+      await mercadopagoService.createStore(activeCompanyId, storeForm.companyId);
 
       toast.success("Loja registrada no Mercado Pago com sucesso!");
       setStoreConfigured(true);
@@ -232,26 +219,18 @@ export default function PaymentSettingsPage() {
     setLoading(true);
 
     try {
-      const payload = {
-        companyId: storeForm.companyId,
-        caixaId: posForm.caixaId.replace("-", ""),
-        name: posForm.name,
-      };
+      const selectedRegister = cashRegisters.find(
+        (cashRegister) => cashRegister.code === posForm.caixaId,
+      );
 
-      console.log(payload);
-
-      const res = await fetch("/api/mercadopago/pos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(
-          errorData?.message || "Erro desconhecido ao criar Caixa/POS",
-        );
+      if (!selectedRegister) {
+        throw new Error("Selecione um caixa válido para vincular.");
       }
+
+      await mercadopagoService.createPos(
+        selectedRegister.id,
+        selectedRegister.code.replace(/-/g, ""),
+      );
 
       toast.success("Caixa/POS vinculado com sucesso!");
       setPosForm({ caixaId: "", name: "" }); // Reset
@@ -263,8 +242,9 @@ export default function PaymentSettingsPage() {
   };
 
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
-    queryKey: ["mp-stores"],
+    queryKey: ["payment-provider-stores", selectedProviderId],
     queryFn: mercadopagoService.listStores,
+    enabled: selectedProviderId === "MERCADO_PAGO",
   });
 
   const integrationStores = stores.map((store) => ({
@@ -281,29 +261,90 @@ export default function PaymentSettingsPage() {
   const isLoadingData = isLoadingStores;
 
   return (
-    <div className="flex-1 min-h-screen bg-[#009EE3] p-4 md:p-8 pt-6">
+    <div
+      className={`flex-1 min-h-screen p-4 pt-6 md:p-8 ${
+        selectedProviderId === "STONE" ? "bg-slate-950" : "bg-[#009EE3]"
+      }`}
+    >
       <div className="flex items-center gap-4 mb-2">
         <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
           Integração de Pagamentos
         </h2>
-        <div className="bg-white p-3 rounded-xl shadow-sm">
-          <Image
-            src="/mercado-pago-logo.png"
-            alt="Mercado Pago"
-            width={160}
-            height={40}
-            className="object-contain"
-            priority
-          />
-        </div>
+        {selectedProvider.presentation.logoSrc ? (
+          <div className="bg-white p-3 rounded-xl shadow-sm">
+            <Image
+              src={selectedProvider.presentation.logoSrc}
+              alt={selectedProvider.presentation.displayName}
+              width={160}
+              height={40}
+              className="object-contain"
+              priority
+            />
+          </div>
+        ) : (
+          <div className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-sm">
+            {selectedProvider.presentation.shortName}
+          </div>
+        )}
       </div>
 
-      <p className="text-white/90 w-full mb-8 font-medium">
+      {selectedProviderId !== "MERCADO_PAGO" && (
+        <p className="text-white/90 w-full mb-8 font-medium">
+          {selectedProvider.presentation.description}
+        </p>
+      )}
+
+      {selectedProviderId === "MERCADO_PAGO" && (
+        <p className="text-white/90 w-full mb-8 font-medium">
         Gerencie as suas integrações com o Mercado Pago para aceitar pagamentos
         via Pix (QrCode Dinâmico) e Cartões (Crédito, Débito e Vouchers -
         Alimentação/Refeição). Você pode visualizar as lojas configuradas ou
         criar novas integrações.
-      </p>
+        </p>
+      )}
+
+      <div className="mb-8 grid gap-3 md:grid-cols-2">
+        {paymentProviders.map((provider) => {
+          const isSelected = provider.id === selectedProviderId;
+
+          return (
+            <button
+              key={provider.id}
+              type="button"
+              onClick={() => setSelectedProviderId(provider.id)}
+              className={`rounded-2xl border p-4 text-left transition-all ${
+                isSelected
+                  ? "border-white bg-white text-slate-950 shadow-lg"
+                  : "border-white/30 bg-white/10 text-white hover:bg-white/15"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {provider.presentation.displayName}
+                  </p>
+                  <p
+                    className={`mt-1 text-sm ${
+                      isSelected ? "text-slate-600" : "text-white/75"
+                    }`}
+                  >
+                    {provider.presentation.description}
+                  </p>
+                </div>
+                <div
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    isSelected
+                      ? "bg-slate-100 text-slate-700"
+                      : "bg-white/15 text-white"
+                  }`}
+                >
+                  {provider.capabilities.accountLink ? "Onboarding" : "Preview"}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       <Card className="mb-8 border-0 bg-white/95 shadow-md">
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
@@ -330,6 +371,44 @@ export default function PaymentSettingsPage() {
         </CardContent>
       </Card>
 
+      {selectedProviderId === "STONE" && (
+        <div className="grid gap-6 pb-20">
+          <Card className="border-0 shadow-md">
+            <CardHeader>
+              <CardTitle>{selectedProvider.presentation.displayName}</CardTitle>
+              <CardDescription>
+                O frontend ja conhece este provider pelo contrato generico de
+                payment, mas a camada visual de onboarding ainda nao foi ligada
+                ao fluxo operacional do caixa.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="border-slate-200 bg-slate-50 text-slate-800">
+                <AlertTitle className="font-semibold">Status atual</AlertTitle>
+                <AlertDescription>
+                  O backend payment ja suporta pedidos, fechamento, impressao e
+                  webhooks da Stone Connect 2.0. O proximo passo no frontend e
+                  mapear terminal por caixa para o PDV acionar o adapter Stone
+                  sem conhecer detalhes da API externa.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                {selectedProvider.operationalNotes?.map((note) => (
+                  <div
+                    key={note}
+                    className="rounded-lg border bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                  >
+                    {note}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {selectedProviderId !== "STONE" && (
       <Tabs
         value={activeTab}
         onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
@@ -495,7 +574,7 @@ export default function PaymentSettingsPage() {
                       asChild
                       className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
                     >
-                      <Link href={mpAuthUrl}>
+                      <Link href={providerAuthUrl}>
                         <LinkIcon className="mr-2 h-4 w-4" />
                         Conectar Mercado Pago
                       </Link>
@@ -517,16 +596,40 @@ export default function PaymentSettingsPage() {
                 <CardHeader>
                   <CardTitle>Dados da Loja Física</CardTitle>
                   <CardDescription>
-                    Seus dados serão enviados ao Mercado Pago para registro da
-                    filial pagadora.
+                    A empresa ativa do Kalles fornece os dados cadastrais da
+                    loja. Aqui você informa a referência usada na integração.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {!activeCompanyId && (
+                    <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-700">
+                      <AlertTitle className="font-semibold">
+                        Empresa ativa obrigatória
+                      </AlertTitle>
+                      <AlertDescription>
+                        Selecione a empresa ativa antes de criar a loja no
+                        Mercado Pago.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {activeCompany && (
+                    <Alert className="mb-6 border-sky-500/30 bg-sky-50 text-sky-900">
+                      <AlertTitle className="font-semibold">
+                        Empresa ativa
+                      </AlertTitle>
+                      <AlertDescription>
+                        A integração será criada usando os dados cadastrais de{" "}
+                        <strong>{activeCompany.name}</strong>.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <form onSubmit={handleCreateStore} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="companyId">
-                          ID Interno da Empresa (Kalles)
+                          Referência externa da loja
                         </Label>
                         <Input
                           id="companyId"
@@ -539,10 +642,8 @@ export default function PaymentSettingsPage() {
                           id="companyId-description"
                           className="text-sm text-muted-foreground"
                         >
-                          Identificador externo da loja para o sistema
-                          integrador. Pode conter qualquer valor alfanumérico de
-                          até 60 caracteres e deve ser único para cada loja. Por
-                          exemplo, LOJ001.
+                          Identificador único que o provedor usará para a loja.
+                          Exemplo: LOJ001.
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -556,13 +657,17 @@ export default function PaymentSettingsPage() {
                           onChange={(e) =>
                             handleUpdateStoreField("name", e.target.value)
                           }
-                          required
                         />
                       </div>
                     </div>
 
                     <div className="space-y-4 pt-4 border-t">
                       <h4 className="text-sm font-medium">Localização</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Esses campos ficam apenas como conferência visual nesta
+                        etapa. O cadastro oficial usado na integração vem da
+                        empresa ativa.
+                      </p>
                       <div className="grid gap-4 md:grid-cols-4">
                         <div className="space-y-2 md:col-span-3">
                           <Label htmlFor="streetName">Logradouro</Label>
@@ -575,7 +680,6 @@ export default function PaymentSettingsPage() {
                                 e.target.value,
                               )
                             }
-                            required
                           />
                         </div>
                         <div className="space-y-2">
@@ -589,7 +693,6 @@ export default function PaymentSettingsPage() {
                                 e.target.value,
                               )
                             }
-                            required
                           />
                         </div>
                       </div>
@@ -603,7 +706,6 @@ export default function PaymentSettingsPage() {
                             onChange={(e) =>
                               handleUpdateStoreField("cityName", e.target.value)
                             }
-                            required
                           />
                         </div>
                         <div className="space-y-2">
@@ -669,7 +771,7 @@ export default function PaymentSettingsPage() {
                     </div>
 
                     <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={loading}>
+                      <Button type="submit" disabled={loading || !activeCompanyId}>
                         {loading ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
@@ -707,7 +809,7 @@ export default function PaymentSettingsPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="posCompanyId">
-                          ID da Sua Loja Kalles
+                          Referência da loja vinculada
                         </Label>
                         <Input
                           id="posCompanyId"
@@ -731,7 +833,9 @@ export default function PaymentSettingsPage() {
                               setPosForm((prev) => ({
                                 ...prev,
                                 caixaId: val,
-                                name: cr ? cr.description : prev.name,
+                                name: cr
+                                  ? `${cr.description} - ${cr.code}`
+                                  : prev.name,
                               }));
                             }}
                           >
@@ -749,16 +853,14 @@ export default function PaymentSettingsPage() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="posName">
-                            Nome do Caixa no Mercado Pago
+                            Nome gerado para o ponto de pagamento
                           </Label>
                           <Input
                             id="posName"
-                            placeholder="Ex: Caixa Frontal 01"
+                            placeholder="Selecione um caixa para visualizar"
                             value={posForm.name}
-                            onChange={(e) =>
-                              handleUpdatePosField("name", e.target.value)
-                            }
-                            required
+                            readOnly
+                            className="bg-muted/50"
                           />
                         </div>
                       </div>
@@ -781,6 +883,7 @@ export default function PaymentSettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

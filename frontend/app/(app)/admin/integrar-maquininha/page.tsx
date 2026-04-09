@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { steps } from "./steps";
 import { useQuery } from "@tanstack/react-query";
-import { mercadopagoService } from "@/features/admin/services/mercadopago.service";
+import { paymentMercadoPagoService as mercadopagoService } from "@/features/admin/services/payment-mercadopago.service";
+import {
+  getPaymentProvider,
+  paymentProviders,
+} from "@/features/payment/providers";
+import type { PaymentProviderId } from "@/features/payment/types";
 import type {
   MpStore,
   MpPos,
@@ -16,16 +21,22 @@ import {
 } from "@/components/ui/tooltip";
 
 export default function IntegrarMaquininhaPage() {
+  const [selectedProviderId, setSelectedProviderId] =
+    useState<PaymentProviderId>("MERCADO_PAGO");
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedStore, setSelectedStore] = useState("");
   const [selectedPos, setSelectedPos] = useState("");
   const [serial, setSerial] = useState("");
   const [configuringState, setConfiguringState] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
+  const selectedProvider = getPaymentProvider(selectedProviderId);
 
   const { data: stores = [], isLoading } = useQuery({
-    queryKey: ["mp-stores"],
-    queryFn: mercadopagoService.listStores,
+    queryKey: ["payment-provider-stores", selectedProviderId],
+    queryFn: async () =>
+      selectedProviderId === "MERCADO_PAGO"
+        ? mercadopagoService.listStores()
+        : [],
   });
 
   const hasStoresWithPos = stores.some(
@@ -107,6 +118,72 @@ export default function IntegrarMaquininhaPage() {
       </div>
 
       <div className="flex-1 p-8 relative">
+        <div className="mb-6 grid gap-3 md:grid-cols-2">
+          {paymentProviders.map((provider) => {
+            const isSelected = provider.id === selectedProviderId;
+
+            return (
+              <button
+                key={provider.id}
+                type="button"
+                onClick={() => setSelectedProviderId(provider.id)}
+                className={`rounded-2xl border p-4 text-left transition-all ${
+                  isSelected
+                    ? "border-slate-900 bg-slate-900 text-white shadow-lg"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {provider.presentation.displayName}
+                    </p>
+                    <p
+                      className={`mt-1 text-sm ${
+                        isSelected ? "text-slate-200" : "text-slate-500"
+                      }`}
+                    >
+                      {provider.presentation.description}
+                    </p>
+                  </div>
+                  <div
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      isSelected
+                        ? "bg-white/10 text-white"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {provider.capabilities.terminalActivation ? "Ativo" : "Preview"}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        {selectedProviderId === "STONE" ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {selectedProvider.presentation.displayName}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Esta tela ja usa o contrato generico de providers, mas o
+              onboarding visual da Stone ainda nao foi ligado ao fluxo
+              operacional do caixa.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {selectedProvider.operationalNotes?.map((note) => (
+                <div
+                  key={note}
+                  className="rounded-lg border bg-white px-4 py-3 text-sm text-slate-700"
+                >
+                  {note}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <>
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
             <span className="text-gray-500 font-medium">Carregando...</span>
@@ -256,6 +333,8 @@ export default function IntegrarMaquininhaPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

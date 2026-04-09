@@ -91,11 +91,11 @@ class CloseSessionUseCaseTest {
         assertEquals(new BigDecimal("80.00"), savedClosing.getCashSalesAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getExpectedCashAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getCountedCashAmount());
-        assertEquals(BigDecimal.ZERO, savedClosing.getCashDifferenceAmount());
+        assertEquals(0, savedClosing.getCashDifferenceAmount().compareTo(BigDecimal.ZERO));
         assertNotNull(response.nomeOperadorAutorizador());
         assertTrue(!response.nomeOperadorAutorizador().isBlank());
         assertEquals(new BigDecimal("180.00"), response.resumo().saldoEsperadoEmCaixa());
-        assertEquals(BigDecimal.ZERO, response.resumo().diferencaEmCaixa());
+        assertEquals(0, response.resumo().diferencaEmCaixa().compareTo(BigDecimal.ZERO));
     }
 
     @Test

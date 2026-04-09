@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.adapter;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.domain.Caixa;
 import dev.kalles.sale.mercadopago.domain.CobrancaQr;
 import dev.kalles.sale.mercadopago.domain.ResultadoQr;
@@ -24,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@LegacyMercadoPagoReferenceTest
 class MercadoPagoOrderAdapterTest {
 
     @Mock private HttpClient httpClient;

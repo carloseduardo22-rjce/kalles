@@ -42,6 +42,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago", "/api/webhooks/stone").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Require authentication for all other requests
                 .anyRequest().authenticated()

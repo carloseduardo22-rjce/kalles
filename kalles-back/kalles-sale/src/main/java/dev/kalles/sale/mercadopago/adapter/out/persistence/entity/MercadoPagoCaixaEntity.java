@@ -24,11 +24,12 @@ public class MercadoPagoCaixaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false, length = 60)
+    @Column(name = "external_id", unique = true, nullable = false, length = 60)
     private String externalId;
 
     @Column(name = "cash_register_id", nullable = false)
     private UUID cashRegisterId;
 
+    @Column(name = "mp_pos_id")
     private Long mpPosId;
 }

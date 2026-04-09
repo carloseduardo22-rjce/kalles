@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.application.service;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.note.adapter.out.crypto.AesCryptoAdapter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("TenantCredentialCipherService")
+@LegacyMercadoPagoReferenceTest
 class TenantCredentialCipherServiceTest {
 
     private final TenantCredentialCipherService service =

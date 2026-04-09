@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.application.usecase;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.domain.Terminal;
 import dev.kalles.sale.mercadopago.port.MercadoPagoTerminalPort;
 import dev.kalles.sale.mercadopago.port.TerminalRepository;
@@ -16,6 +17,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@LegacyMercadoPagoReferenceTest
 class ActivatePdvModeUseCaseTest {
 
     @Mock

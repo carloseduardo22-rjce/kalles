@@ -1,4 +1,5 @@
 # language: pt
+@legacy_mercadopago
 
 Funcionalidade: ACL - Adapter traduz Company ERP → Store no Mercado Pago
   Como sistema ERP Kalles (multi-tenant)

@@ -1,5 +1,5 @@
 export interface MpStore {
-  id: number;
+  id: string | number;
   name: string;
   external_id: string;
   date_creation?: string;
@@ -25,4 +25,17 @@ export interface MpTerminal {
   storeId: string;
   externalPosId: string;
   operationMode: string;
+}
+
+export interface MpStoreStatus {
+  provider: "MERCADO_PAGO";
+  companyExists: boolean;
+  hasStoreRegistered: boolean;
+  externalReference: string | null;
+  providerStoreId: string | null;
+}
+
+export interface MpProviderStatus {
+  provider: "MERCADO_PAGO";
+  linked: boolean;
 }

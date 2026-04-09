@@ -1,4 +1,5 @@
 # language: pt
+@legacy_mercadopago
 
 Funcionalidade: ACL - Adapter gera cobrança via QR Code Dinâmico no Mercado Pago
   Como sistema ERP Kalles

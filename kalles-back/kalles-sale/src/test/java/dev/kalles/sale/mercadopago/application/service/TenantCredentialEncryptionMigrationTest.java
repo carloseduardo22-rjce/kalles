@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.application.service;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoTenantConfigEntity; 
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataTenantRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +15,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @DisplayName("TenantCredentialEncryptionMigration")
+@LegacyMercadoPagoReferenceTest
 class TenantCredentialEncryptionMigrationTest {
 
     @Test

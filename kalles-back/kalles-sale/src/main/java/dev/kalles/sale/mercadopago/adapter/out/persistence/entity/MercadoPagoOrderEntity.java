@@ -1,6 +1,7 @@
 package dev.kalles.sale.mercadopago.adapter.out.persistence.entity;
 
 import dev.kalles.sale.mercadopago.domain.PointOrderStatus;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -13,13 +14,19 @@ import java.math.BigDecimal;
 public class MercadoPagoOrderEntity {
 
     @Id
+    @Column(name = "order_id")
     private String orderId;
+
+    @Column(name = "payment_id")
     private String paymentId;
     
     @Enumerated(EnumType.STRING)
     private PointOrderStatus status;
+    @Column(name = "external_reference")
     private String externalReference;
     private BigDecimal amount;
+
+    @Column(name = "idempotency_key")
     private String idempotencyKey;
 
     public MercadoPagoOrderEntity() {

@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.adapter;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.domain.Company;
 import dev.kalles.sale.mercadopago.exception.MercadoPagoIntegrationException;
 import dev.kalles.sale.mercadopago.port.CompanyMpRepository;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MercadoPagoStoreAdapter — ACL: ERP Company to MP Store")
+@LegacyMercadoPagoReferenceTest
 class MercadoPagoStoreAdapterTest {
 
     @Mock

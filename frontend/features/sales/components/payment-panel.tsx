@@ -28,8 +28,8 @@ import {
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { formatCurrency, formatPaymentMethod } from "@/shared/utils/formatters";
-import { api } from "@/shared/services/api";
 import type { PaymentMethod, SaleResponse } from "../types";
+import { getDefaultQrCodeProvider } from "@/features/payment/providers";
 
 const amountSchema = z.object({
   amount: z
@@ -93,6 +93,8 @@ export function PaymentPanel({
   onStartNewSale,
 }: PaymentPanelProps) {
   const [method, setMethod] = useState<PaymentMethod>("CASH");
+  const pixProvider = getDefaultQrCodeProvider();
+  const pixProviderName = pixProvider?.presentation.displayName ?? "provider configurado";
 
     // Dynamic PIX QR Code variables
   const [qrData, setQrData] = useState<string | null>(null);
@@ -177,18 +179,15 @@ export function PaymentPanel({
   }
 
   async function handlePixPayment(amount: number) {
-    if (cashRegisterCode) {
-        // Generate dynamic QR Code via configured Integration
+    if (cashRegisterCode && pixProvider?.processQrPayment) {
+      // Generate dynamic QR Code via configured Integration
       setPixPaymentStatus("pending");
       setIsGeneratingQr(true);
       try {
-        const response = await api.post<{ orderId: string; qrData: string }>(
-          "/api/mercadopago/orders",
-          {
-            pedidoIdErp: sale.sessionToken,
-            amount: amount,
-            caixaId: cashRegisterCode.replace("-", ""),
-          },
+        const response = await pixProvider.processQrPayment(
+          sale.sessionToken,
+          amount,
+          cashRegisterCode,
         );
         setQrData(response.qrData);
         setPendingPixAmount(amount);
@@ -200,7 +199,7 @@ export function PaymentPanel({
         reset({ amount: "" });
       }
     } else {
-      // If there's no cash register code, just add normal payment without MP
+      // If there is no configured provider flow, just add local PIX payment.
       await onAddPayment("PIX", amount);
       reset({ amount: "" });
     }
@@ -374,7 +373,7 @@ export function PaymentPanel({
 
       {error && <ErrorAlert error={error} className="mt-2" />}
 
-      {/* MercadoPago PIX QR Code Dialog */}
+      {/* Provider PIX QR Code Dialog */}
       <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
         <DialogContent className={`sm:max-w-md transition-all duration-500 overflow-hidden ${pixPaymentStatus === "success" ? "bg-green-50/50 dark:bg-green-950/10 border-green-200 dark:border-green-900" : ""}`}>
           
@@ -382,10 +381,10 @@ export function PaymentPanel({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5" />
-                Pagamento via Mercado Pago
+                Pagamento via {pixProviderName}
               </DialogTitle>
               <DialogDescription>
-                Escaneie o QR Code abaixo com o aplicativo do Mercado Pago para
+                Escaneie o QR Code abaixo com o aplicativo do {pixProviderName} para
                 pagar o valor de{" "}
                 <strong className="text-foreground">
                   R$ {pendingPixAmount.toFixed(2).replace(".", ",")}

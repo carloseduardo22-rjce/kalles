@@ -1,4 +1,5 @@
 # language: pt
+@legacy_mercadopago
 
 Funcionalidade: ACL - Adapter traduz Caixa ERP → POS no Mercado Pago
   Como sistema ERP Kalles (multi-tenant)

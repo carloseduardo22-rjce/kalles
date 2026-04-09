@@ -1,11 +1,13 @@
 package dev.kalles.sale.mercadopago.application.usecase;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.port.MercadoPagoOrderPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.*;
 
+@LegacyMercadoPagoReferenceTest
 class CancelPaymentOrderUseCaseTest {
 
     private MercadoPagoOrderPort orderPort;

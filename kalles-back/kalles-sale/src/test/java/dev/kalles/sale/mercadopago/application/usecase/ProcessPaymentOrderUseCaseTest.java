@@ -1,5 +1,6 @@
 package dev.kalles.sale.mercadopago.application.usecase;
 
+import dev.kalles.sale.support.LegacyMercadoPagoReferenceTest;
 import dev.kalles.sale.mercadopago.domain.CobrancaPoint;
 import dev.kalles.sale.mercadopago.domain.ResultadoPoint;
 import dev.kalles.sale.mercadopago.port.MercadoPagoOrderPort;
@@ -14,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@LegacyMercadoPagoReferenceTest
 class ProcessPaymentOrderUseCaseTest {
 
     private MercadoPagoOrderPort orderPort;

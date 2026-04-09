@@ -28,8 +28,9 @@ public class MercadoPagoCompanyEntity {
     @Column(name = "company_id", nullable = false, unique = true)
     private UUID companyId;
 
-    @Column(unique = true, nullable = false, length = 60)
+    @Column(name = "external_id", unique = true, nullable = false, length = 60)
     private String externalId;
 
+    @Column(name = "mp_store_id")
     private Long mpStoreId;
 }

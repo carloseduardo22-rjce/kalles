@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@RestController
+@RestController("legacyMercadoPagoWebhookController")
 @RequestMapping("/api/mercadopago/webhook")
 public class MercadoPagoWebhookController {
 

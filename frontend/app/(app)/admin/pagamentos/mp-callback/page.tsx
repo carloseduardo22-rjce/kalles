@@ -11,11 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { getPaymentProvider } from "@/features/payment/providers";
 
 
 function MpCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const provider = getPaymentProvider("MERCADO_PAGO");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading",
@@ -41,18 +43,9 @@ function MpCallbackContent() {
     }
 
     if (code && state) {
-      // Chamada real ao back-end (proxy via Next.js rewrites)
-      fetch("/api/v1/mercadopago/oauth/link", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code, state }),
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error("Falha ao vincular a conta");
-          }
+      provider
+        .linkAccount!(code, state)
+        .then(() => {
           setStatus("success");
         })
         .catch((err) => {
