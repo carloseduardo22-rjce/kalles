@@ -28,6 +28,8 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String REFRESH_COOKIE_NAME = "kalles_refresh_token";
+
     private final AuthService authService;
     private final AccountRepository accountRepository;
 
@@ -47,9 +49,10 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             @CookieValue(value = "kalles_pos_token", required = false) String posToken) {
 
-        String token = authService.authenticate(request, posToken);
+        var tokens = authService.authenticate(request, posToken);
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, createAuthCookie(token).toString())
+                .header(HttpHeaders.SET_COOKIE, createAuthCookie(tokens.accessToken()).toString())
+                .header(HttpHeaders.SET_COOKIE, createRefreshCookie(tokens.refreshToken()).toString())
                 .build();
     }
 
@@ -61,9 +64,20 @@ public class AuthController {
 
     @PostMapping("/verify")
     public ResponseEntity<Void> verify(@Valid @RequestBody VerifyCodeRequest request) {
-        String token = authService.verifyCode(request);
+        var tokens = authService.verifyCode(request);
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, createAuthCookie(token).toString())
+                .header(HttpHeaders.SET_COOKIE, createAuthCookie(tokens.accessToken()).toString())
+                .header(HttpHeaders.SET_COOKIE, createRefreshCookie(tokens.refreshToken()).toString())
+                .build();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Void> refresh(
+            @CookieValue(value = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
+        var tokens = authService.refresh(refreshToken);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, createAuthCookie(tokens.accessToken()).toString())
+                .header(HttpHeaders.SET_COOKIE, createRefreshCookie(tokens.refreshToken()).toString())
                 .build();
     }
 
@@ -74,8 +88,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
-        ResponseCookie cookie = ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, "")
+    public ResponseEntity<Void> logout(
+            @CookieValue(value = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
+        authService.logout(refreshToken);
+
+        ResponseCookie authCookie = ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
@@ -84,7 +109,8 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, authCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .build();
     }
 
@@ -94,6 +120,16 @@ public class AuthController {
                 .secure(false)
                 .path("/")
                 .maxAge(Duration.ofHours(12))
+                .sameSite("Lax")
+                .build();
+    }
+
+    private ResponseCookie createRefreshCookie(String token) {
+        return ResponseCookie.from(REFRESH_COOKIE_NAME, token)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ofDays(30))
                 .sameSite("Lax")
                 .build();
     }

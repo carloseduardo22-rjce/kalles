@@ -13,6 +13,8 @@ export class ApiError extends Error {
 
 type HttpHeaders = Record<string, string>;
 
+let refreshInFlight: Promise<boolean> | null = null;
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = `Erro ${response.status}`;
@@ -49,6 +51,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+async function tryRefreshSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(buildUrl("/api/auth/refresh"), {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+
+  return refreshInFlight;
+}
+
 const getActiveCompanyHeader = (): HttpHeaders => {
   if (typeof window === "undefined") {
     return {};
@@ -82,38 +100,38 @@ const buildUrl = (
 
 export const api = {
   get<T>(path: string, headers?: HttpHeaders): Promise<T> {
-    return fetch(buildUrl(path), {
+    return requestWithRefresh<T>(buildUrl(path), {
       method: "GET",
       headers: buildHeaders(headers),
       credentials: "include",
-    }).then(handleResponse<T>);
+    });
   },
 
   post<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return fetch(buildUrl(path), {
+    return requestWithRefresh<T>(buildUrl(path), {
       method: "POST",
       headers: buildHeaders(headers),
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
-    }).then(handleResponse<T>);
+    });
   },
 
   patch<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return fetch(buildUrl(path), {
+    return requestWithRefresh<T>(buildUrl(path), {
       method: "PATCH",
       headers: buildHeaders(headers),
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
-    }).then(handleResponse<T>);
+    });
   },
 
   put<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return fetch(buildUrl(path), {
+    return requestWithRefresh<T>(buildUrl(path), {
       method: "PUT",
       headers: buildHeaders(headers),
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
-    }).then(handleResponse<T>);
+    });
   },
 
   delete<T>(
@@ -121,10 +139,33 @@ export const api = {
     params?: Record<string, string>,
     headers?: HttpHeaders,
   ): Promise<T> {
-    return fetch(buildUrl(path, params), {
+    return requestWithRefresh<T>(buildUrl(path, params), {
       method: "DELETE",
       headers: buildHeaders(headers),
       credentials: "include",
-    }).then(handleResponse<T>);
+    });
   },
 };
+
+async function requestWithRefresh<T>(
+  input: string,
+  init: RequestInit,
+  hasRetried = false,
+): Promise<T> {
+  const response = await fetch(input, init);
+
+  if (
+    response.status === 401 &&
+    !hasRetried &&
+    !input.endsWith("/api/auth/refresh") &&
+    !input.endsWith("/api/auth/login")
+  ) {
+    const refreshed = await tryRefreshSession();
+
+    if (refreshed) {
+      return requestWithRefresh<T>(input, init, true);
+    }
+  }
+
+  return handleResponse<T>(response);
+}

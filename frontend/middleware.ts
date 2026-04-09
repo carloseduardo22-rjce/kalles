@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("kalles_auth_token")?.value;
+  const accessToken = request.cookies.get("kalles_auth_token")?.value;
+  const refreshToken = request.cookies.get("kalles_refresh_token")?.value;
+  const hasSession = Boolean(accessToken || refreshToken);
 
   const currentPath = request.nextUrl.pathname;
 
@@ -11,11 +13,11 @@ export function middleware(request: NextRequest) {
     currentPath.startsWith("/register") ||
     currentPath.startsWith("/verify");
 
-  if (!token && !isPublicPage) {
+  if (!hasSession && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (token && isPublicPage) {
+  if (hasSession && isPublicPage) {
     return NextResponse.redirect(new URL("/caixas", request.url));
   }
 

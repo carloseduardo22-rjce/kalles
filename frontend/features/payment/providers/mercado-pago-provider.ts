@@ -13,7 +13,7 @@ import type {
 const PROVIDER = "MERCADO_PAGO" as const;
 const DEFAULT_APP_ID = "448684586415948";
 const DEFAULT_REDIRECT_URI =
-  "https://2dbd-2804-1494-dbb-aa00-ad55-f249-5eaf-70fa.ngrok-free.app/admin/pagamentos/mp-callback";
+  "https://3ffc-2804-1494-dbb-aa00-a54d-cb78-3de9-27c6.ngrok-free.app/admin/pagamentos/mp-callback";
 
 export const mercadoPagoProvider: PaymentProviderAdapter = {
   id: PROVIDER,

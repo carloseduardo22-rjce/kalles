@@ -2,11 +2,12 @@ package dev.kalles.sale.security.service;
 
 import dev.kalles.sale.core.entity.Tenant;
 import dev.kalles.sale.core.repository.TenantRepository;
-import dev.kalles.sale.security.domain.Account;
-import dev.kalles.sale.security.domain.AccountRole;
-import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.sale.security.dto.LoginRequest;
 import dev.kalles.sale.security.dto.RegisterRequest;
+import dev.kalles.sale.security.dto.VerifyCodeRequest;
+import dev.kalles.sale.security.domain.Account;
+import dev.kalles.sale.security.repository.AccountRepository;
+import dev.kalles.sale.security.application.AccountVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-import dev.kalles.sale.security.repository.PosDeviceSessionRepository;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -25,23 +24,22 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final AccountRepository accountRepository;
-    // We ideally use the core generic Tenant, but reusing the one from MP module
-    // since it's the root owner
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final dev.kalles.sale.security.application.AccountVerificationService accountVerificationService;
-    private final PosDeviceSessionRepository posDeviceSessionRepository;
+    private final AccountVerificationService accountVerificationService;
+    private final PosDeviceAuthorizationService posDeviceAuthorizationService;
+    private final RefreshTokenService refreshTokenService;
 
-    public String authenticate(LoginRequest request, String posToken) {
+    public AuthTokens authenticate(LoginRequest request, String posToken) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(request.email(), request.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
         var account = (Account) auth.getPrincipal();
 
-        UUID posId = null;
+        UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
 
-        if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
+        /* if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
             if (posToken == null || posToken.isBlank()) {
                 throw new IllegalArgumentException(
                         "Terminal não configurado. Por favor, solicite o pareamento do caixa.");
@@ -56,9 +54,9 @@ public class AuthService {
             }
 
             posId = session.getPosId();
-        }
+        } */
 
-        return jwtService.generateToken(account, posId);
+        return buildSessionTokens(account, posId);
     }
 
     @Transactional
@@ -80,7 +78,7 @@ public class AuthService {
                 request.name(),
                 request.email(),
                 encryptedPassword,
-                AccountRole.ADMIN);
+                dev.kalles.sale.security.domain.AccountRole.ADMIN);
 
         accountRepository.save(newAccount);
 
@@ -93,7 +91,7 @@ public class AuthService {
     }
 
     @Transactional
-    public String verifyCode(dev.kalles.sale.security.dto.VerifyCodeRequest request) {
+    public AuthTokens verifyCode(VerifyCodeRequest request) {
         Account account = accountRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
 
@@ -107,7 +105,7 @@ public class AuthService {
         // But let's be explicit:
         accountRepository.save(account);
 
-        return jwtService.generateToken(account);
+        return buildSessionTokens(account, null);
     }
 
     @Transactional
@@ -116,5 +114,23 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
 
         accountVerificationService.resendCode(account);
+    }
+    @Transactional
+    public AuthTokens refresh(String rawRefreshToken) {
+        RefreshTokenPrincipal principal = refreshTokenService.validate(rawRefreshToken);
+        String accessToken = jwtService.generateToken(principal.account(), principal.posId());
+        String nextRefreshToken = refreshTokenService.rotate(rawRefreshToken);
+        return new AuthTokens(accessToken, nextRefreshToken);
+    }
+
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revoke(rawRefreshToken);
+    }
+
+    private AuthTokens buildSessionTokens(Account account, UUID posId) {
+        String accessToken = jwtService.generateToken(account, posId);
+        String refreshToken = refreshTokenService.issue(account, posId);
+        return new AuthTokens(accessToken, refreshToken);
     }
 }

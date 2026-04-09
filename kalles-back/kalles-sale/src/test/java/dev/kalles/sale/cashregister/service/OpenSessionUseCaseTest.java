@@ -42,6 +42,9 @@ class OpenSessionUseCaseTest {
     @Mock
     private SessionValidator validatorChain;
 
+    @Mock
+    private PairedDeviceSessionGuard pairedDeviceSessionGuard;
+
     private OpenSessionUseCase useCase;
 
     @BeforeEach
@@ -50,7 +53,8 @@ class OpenSessionUseCaseTest {
             cashRegisterRepository,
             operatorRepository,
             sessionRepository,
-            validatorChain
+            validatorChain,
+            pairedDeviceSessionGuard
         );
     }
 
@@ -91,6 +95,7 @@ class OpenSessionUseCaseTest {
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
         verify(operatorRepository).findByCode(operatorCode);
 
         ArgumentCaptor<CashRegisterSession> captor = ArgumentCaptor.forClass(CashRegisterSession.class);
@@ -125,6 +130,7 @@ class OpenSessionUseCaseTest {
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verifyNoInteractions(pairedDeviceSessionGuard);
         verifyNoInteractions(operatorRepository);
         verifyNoInteractions(sessionRepository);
     }
@@ -158,6 +164,7 @@ class OpenSessionUseCaseTest {
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
         verify(operatorRepository).findByCode(operatorCode);
         verifyNoInteractions(sessionRepository);
     }
@@ -188,5 +195,37 @@ class OpenSessionUseCaseTest {
 
         // Then
         verify(validatorChain).validate(request);
+        verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
+    }
+
+    @Test
+    @DisplayName("Deve bloquear abertura quando dispositivo nao esta pareado ao caixa")
+    void shouldBlockOpenSessionWhenDeviceIsNotPaired() {
+        OpenSessionRequest request = new OpenSessionRequest(
+            "PDV-01",
+            "OP001",
+            new BigDecimal("100.00")
+        );
+
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
+
+        when(cashRegisterRepository.findByCode("PDV-01"))
+            .thenReturn(Optional.of(cashRegister));
+        doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operação."))
+            .when(pairedDeviceSessionGuard)
+            .ensureCanOperate(cashRegister);
+
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> useCase.execute(request)
+        );
+
+        assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
+
+        verify(validatorChain).validate(request);
+        verify(cashRegisterRepository).findByCode("PDV-01");
+        verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
+        verifyNoInteractions(operatorRepository);
+        verifyNoInteractions(sessionRepository);
     }
 }

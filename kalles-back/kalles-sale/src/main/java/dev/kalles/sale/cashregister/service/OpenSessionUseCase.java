@@ -22,17 +22,20 @@ public class OpenSessionUseCase {
     private final OperatorRepository operatorRepository;
     private final CashRegisterSessionRepository sessionRepository;
     private final SessionValidator validatorChain;
+    private final PairedDeviceSessionGuard pairedDeviceSessionGuard;
 
     public OpenSessionUseCase(
             CashRegisterRepository cashRegisterRepository,
             OperatorRepository operatorRepository,
             CashRegisterSessionRepository sessionRepository,
-            @Qualifier("sessionValidatorChain") SessionValidator validatorChain
+            @Qualifier("sessionValidatorChain") SessionValidator validatorChain,
+            PairedDeviceSessionGuard pairedDeviceSessionGuard
     ) {
         this.cashRegisterRepository = cashRegisterRepository;
         this.operatorRepository = operatorRepository;
         this.sessionRepository = sessionRepository;
         this.validatorChain = validatorChain;
+        this.pairedDeviceSessionGuard = pairedDeviceSessionGuard;
     }
 
     @Transactional
@@ -42,6 +45,8 @@ public class OpenSessionUseCase {
         CashRegister cashRegister = cashRegisterRepository
             .findByCode(request.cashRegisterCode())
             .orElseThrow(() -> new CashRegisterNotFoundException(request.cashRegisterCode()));
+
+        pairedDeviceSessionGuard.ensureCanOperate(cashRegister);
 
         Operator operator = operatorRepository
             .findByCode(request.operatorCode())

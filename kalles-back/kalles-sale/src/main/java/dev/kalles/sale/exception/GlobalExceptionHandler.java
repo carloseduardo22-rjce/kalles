@@ -9,6 +9,7 @@ import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.GoalDomainException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.security.service.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -140,6 +141,15 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Falha de integraÃ§Ã£o com gateway de pagamento");
+        return problem;
+    }
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+        problem.setTitle("Sessão expirada");
         return problem;
     }
 }

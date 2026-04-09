@@ -104,14 +104,14 @@ export default function PaymentSettingsPage() {
   const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
   const REDIRECT_URI =
     process.env.NEXT_PUBLIC_MP_REDIRECT_URI ||
-    "https://2dbd-2804-1494-dbb-aa00-ad55-f249-5eaf-70fa.ngrok-free.app/admin/pagamentos/mp-callback";
+    "https://3ffc-2804-1494-dbb-aa00-a54d-cb78-3de9-27c6.ngrok-free.app/admin/pagamentos/mp-callback";
 
   // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
   const [tenantId, setTenantId] = useState<string>("");
 
   const providerAuthUrl =
     selectedProvider.auth.mode === "oauth" && tenantId
-      ? selectedProvider.auth.buildAuthorizationUrl?.(tenantId) ?? ""
+      ? (selectedProvider.auth.buildAuthorizationUrl?.(tenantId) ?? "")
       : "";
 
   const [loading, setLoading] = useState(false);
@@ -197,10 +197,15 @@ export default function PaymentSettingsPage() {
 
     try {
       if (!activeCompanyId) {
-        throw new Error("Selecione uma empresa ativa antes de vincular a loja.");
+        throw new Error(
+          "Selecione uma empresa ativa antes de vincular a loja.",
+        );
       }
 
-      await mercadopagoService.createStore(activeCompanyId, storeForm.companyId);
+      await mercadopagoService.createStore(
+        activeCompanyId,
+        storeForm.companyId,
+      );
 
       toast.success("Loja registrada no Mercado Pago com sucesso!");
       setStoreConfigured(true);
@@ -296,10 +301,10 @@ export default function PaymentSettingsPage() {
 
       {selectedProviderId === "MERCADO_PAGO" && (
         <p className="text-white/90 w-full mb-8 font-medium">
-        Gerencie as suas integrações com o Mercado Pago para aceitar pagamentos
-        via Pix (QrCode Dinâmico) e Cartões (Crédito, Débito e Vouchers -
-        Alimentação/Refeição). Você pode visualizar as lojas configuradas ou
-        criar novas integrações.
+          Gerencie as suas integrações com o Mercado Pago para aceitar
+          pagamentos via Pix (QrCode Dinâmico) e Cartões (Crédito, Débito e
+          Vouchers - Alimentação/Refeição). Você pode visualizar as lojas
+          configuradas ou criar novas integrações.
         </p>
       )}
 
@@ -409,480 +414,501 @@ export default function PaymentSettingsPage() {
       )}
 
       {selectedProviderId !== "STONE" && (
-      <Tabs
-        value={activeTab}
-        onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
-        className="w-full mt-6"
-      >
-        <TabsList className="bg-white/20 text-white border border-white/30 backdrop-blur-sm mb-6 h-12 p-1">
-          <TabsTrigger
-            value="listar"
-            className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
-          >
-            <List className="h-4 w-4" />
-            Lojas e Terminais Configurados
-          </TabsTrigger>
-          <TabsTrigger
-            value="criar"
-            className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Nova Integração (Loja/POS)
-          </TabsTrigger>
-        </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
+          className="w-full mt-6"
+        >
+          <TabsList className="bg-white/20 text-white border border-white/30 backdrop-blur-sm mb-6 h-12 p-1">
+            <TabsTrigger
+              value="listar"
+              className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
+            >
+              <List className="h-4 w-4" />
+              Lojas e Terminais Configurados
+            </TabsTrigger>
+            <TabsTrigger
+              value="criar"
+              className="data-[state=active]:bg-white data-[state=active]:text-[#009EE3] font-medium h-full px-6 flex gap-2 items-center rounded-sm transition-all"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Nova Integração (Loja/POS)
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="listar" className="pb-20">
-          <div className="grid gap-6">
-            {isLoadingData ? (
-              <div className="flex flex-col items-center justify-center p-12 text-center text-white">
-                <LoadingSpinner />
-                <p className="mt-4">
-                  Buscando lojas e caixas no Mercado Pago...
-                </p>
-              </div>
-            ) : integrationStores.length === 0 ? (
-              <Card className="border-0 shadow-md">
-                <CardContent className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
-                  <Store className="h-16 w-16 mb-4 text-zinc-300" />
-                  <p className="text-lg font-medium">Nenhuma loja vinculada.</p>
-                  <p>Mude para a aba de ConfiguraçÃ£o para criar a sua loja.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              integrationStores.map((store) => (
-                <Card
-                  key={store.id}
-                  className="border-0 p-0 gap-0 shadow-md overflow-hidden"
-                >
-                  <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col gap-1">
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Store className="h-5 w-5 text-zinc-600" />
-                          {store.name}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-4">
-                          <span>
-                            <strong>ID Interno:</strong> {store.externalId}
-                          </span>
-                          <span>
-                            <strong>ID Mercado Pago:</strong> {store.mpStoreId}
-                          </span>
-                        </CardDescription>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setActiveTab("criar");
-                          setStoreConfigured(true);
-                          setNewIntegrationStep("pos");
-                          setStoreForm((prev) => ({
-                            ...prev,
-                            companyId: store.externalId,
-                          }));
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Adicionar Terminal
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-4">
-                    <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
-                      <Terminal className="h-4 w-4" />
-                      Terminais (Caixas) Vinculados
-                    </h4>
-                    {store.terminals.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {store.terminals.map((terminal) => (
-                          <div
-                            key={terminal.id}
-                            className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
-                          >
-                            <span className="font-medium">{terminal.name}</span>
-                            <span className="text-xs text-muted-foreground mt-1">
-                              ID: {terminal.id}
+          <TabsContent value="listar" className="pb-20">
+            <div className="grid gap-6">
+              {isLoadingData ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center text-white">
+                  <LoadingSpinner />
+                  <p className="mt-4">
+                    Buscando lojas e caixas no Mercado Pago...
+                  </p>
+                </div>
+              ) : integrationStores.length === 0 ? (
+                <Card className="border-0 shadow-md">
+                  <CardContent className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
+                    <Store className="h-16 w-16 mb-4 text-zinc-300" />
+                    <p className="text-lg font-medium">
+                      Nenhuma loja vinculada.
+                    </p>
+                    <p>
+                      Mude para a aba de ConfiguraçÃ£o para criar a sua loja.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                integrationStores.map((store) => (
+                  <Card
+                    key={store.id}
+                    className="border-0 p-0 gap-0 shadow-md overflow-hidden"
+                  >
+                    <CardHeader className="bg-zinc-100/50 border-b [.border-b]:pb-0 px-6 py-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col gap-1">
+                          <CardTitle className="text-xl flex items-center gap-2">
+                            <Store className="h-5 w-5 text-zinc-600" />
+                            {store.name}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-4">
+                            <span>
+                              <strong>ID Interno:</strong> {store.externalId}
                             </span>
-                          </div>
-                        ))}
+                            <span>
+                              <strong>ID Mercado Pago:</strong>{" "}
+                              {store.mpStoreId}
+                            </span>
+                          </CardDescription>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActiveTab("criar");
+                            setStoreConfigured(true);
+                            setNewIntegrationStep("pos");
+                            setStoreForm((prev) => ({
+                              ...prev,
+                              companyId: store.externalId,
+                            }));
+                          }}
+                        >
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Adicionar Terminal
+                        </Button>
                       </div>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-4">
+                      <h4 className="text-sm font-semibold text-zinc-500 mb-3 flex items-center gap-2">
+                        <Terminal className="h-4 w-4" />
+                        Terminais (Caixas) Vinculados
+                      </h4>
+                      {store.terminals.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {store.terminals.map((terminal) => (
+                            <div
+                              key={terminal.id}
+                              className="flex flex-col p-4 border rounded-lg bg-zinc-50/50"
+                            >
+                              <span className="font-medium">
+                                {terminal.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground mt-1">
+                                ID: {terminal.id}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Nenhum terminal vinculado a esta loja.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="criar">
+            {/* Tabs / Stepper Header for Creation */}
+            <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
+              <button
+                onClick={() => setNewIntegrationStep("oauth")}
+                className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                  newIntegrationStep === "oauth"
+                    ? "border-white text-white drop-shadow-md"
+                    : "border-transparent text-white/70 hover:text-white"
+                }`}
+              >
+                <LinkIcon className="h-4 w-4" />
+                <span>1. Conectar Conta</span>
+              </button>
+              <button
+                onClick={() => setNewIntegrationStep("store")}
+                className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                  newIntegrationStep === "store"
+                    ? "border-white text-white drop-shadow-md"
+                    : "border-transparent text-white/70 hover:text-white"
+                }`}
+              >
+                <Store className="h-4 w-4" />
+                <span>2. Estabelecimento</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (storeConfigured) setNewIntegrationStep("pos");
+                }}
+                disabled={!storeConfigured}
+                className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${
+                  newIntegrationStep === "pos"
+                    ? "border-white text-white drop-shadow-md"
+                    : "border-transparent text-white/50"
+                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
+              >
+                <Terminal className="h-4 w-4" />
+                <span>3. Terminais (Caixas)</span>
+                {!storeConfigured && <Lock className="h-3 w-3 ml-1" />}
+              </button>
+            </div>
+
+            <div className="w-full pb-20">
+              {newIntegrationStep === "oauth" && (
+                <Card className="border-0 shadow-md">
+                  <CardHeader>
+                    <CardTitle>Conectar Conta Mercado Pago</CardTitle>
+                    <CardDescription>
+                      Vincule sua conta do Mercado Pago para receber pagamentos
+                      de suas vendas e criar seus caixas.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {tenantId ? (
+                      <Button
+                        asChild
+                        className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
+                      >
+                        <Link href={providerAuthUrl}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Conectar Mercado Pago
+                        </Link>
+                      </Button>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Nenhum terminal vinculado a esta loja.
-                      </p>
+                      <Button
+                        disabled
+                        className="w-auto bg-[#009EE3]/70 text-white cursor-not-allowed"
+                      >
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Preparando conexão...
+                      </Button>
                     )}
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
+              )}
+              {newIntegrationStep === "store" && (
+                <Card className="border-0 shadow-md">
+                  <CardHeader>
+                    <CardTitle>Dados da Loja Física</CardTitle>
+                    <CardDescription>
+                      A empresa ativa do Kalles fornece os dados cadastrais da
+                      loja. Aqui você informa a referência usada na integração.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!activeCompanyId && (
+                      <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-700">
+                        <AlertTitle className="font-semibold">
+                          Empresa ativa obrigatória
+                        </AlertTitle>
+                        <AlertDescription>
+                          Selecione a empresa ativa antes de criar a loja no
+                          Mercado Pago.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-        <TabsContent value="criar">
-          {/* Tabs / Stepper Header for Creation */}
-          <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
-            <button
-              onClick={() => setNewIntegrationStep("oauth")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "oauth"
-                  ? "border-white text-white drop-shadow-md"
-                  : "border-transparent text-white/70 hover:text-white"
-                }`}
-            >
-              <LinkIcon className="h-4 w-4" />
-              <span>1. Conectar Conta</span>
-            </button>
-            <button
-              onClick={() => setNewIntegrationStep("store")}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "store"
-                  ? "border-white text-white drop-shadow-md"
-                  : "border-transparent text-white/70 hover:text-white"
-                }`}
-            >
-              <Store className="h-4 w-4" />
-              <span>2. Estabelecimento</span>
-            </button>
-            <button
-              onClick={() => {
-                if (storeConfigured) setNewIntegrationStep("pos");
-              }}
-              disabled={!storeConfigured}
-              className={`flex items-center gap-2 pb-2 px-1 border-b-4 font-medium transition-all ${newIntegrationStep === "pos"
-                  ? "border-white text-white drop-shadow-md"
-                  : "border-transparent text-white/50"
-                } ${!storeConfigured ? "cursor-not-allowed opacity-60" : "hover:text-white"}`}
-            >
-              <Terminal className="h-4 w-4" />
-              <span>3. Terminais (Caixas)</span>
-              {!storeConfigured && <Lock className="h-3 w-3 ml-1" />}
-            </button>
-          </div>
+                    {activeCompany && (
+                      <Alert className="mb-6 border-sky-500/30 bg-sky-50 text-sky-900">
+                        <AlertTitle className="font-semibold">
+                          Empresa ativa
+                        </AlertTitle>
+                        <AlertDescription>
+                          A integração será criada usando os dados cadastrais de{" "}
+                          <strong>{activeCompany.name}</strong>.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-          <div className="w-full pb-20">
-            {newIntegrationStep === "oauth" && (
-              <Card className="border-0 shadow-md">
-                <CardHeader>
-                  <CardTitle>Conectar Conta Mercado Pago</CardTitle>
-                  <CardDescription>
-                    Vincule sua conta do Mercado Pago para receber pagamentos de
-                    suas vendas e criar seus caixas.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {tenantId ? (
-                    <Button
-                      asChild
-                      className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
-                    >
-                      <Link href={providerAuthUrl}>
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        Conectar Mercado Pago
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button
-                      disabled
-                      className="w-auto bg-[#009EE3]/70 text-white cursor-not-allowed"
-                    >
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Preparando conexão...
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-            {newIntegrationStep === "store" && (
-              <Card className="border-0 shadow-md">
-                <CardHeader>
-                  <CardTitle>Dados da Loja Física</CardTitle>
-                  <CardDescription>
-                    A empresa ativa do Kalles fornece os dados cadastrais da
-                    loja. Aqui você informa a referência usada na integração.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!activeCompanyId && (
-                    <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-700">
-                      <AlertTitle className="font-semibold">
-                        Empresa ativa obrigatória
-                      </AlertTitle>
-                      <AlertDescription>
-                        Selecione a empresa ativa antes de criar a loja no
-                        Mercado Pago.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                    <form onSubmit={handleCreateStore} className="space-y-6">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="companyId">
+                            Referência externa da loja
+                          </Label>
+                          <Input
+                            id="companyId"
+                            value={storeForm.companyId}
+                            onChange={(e) =>
+                              handleUpdateStoreField(
+                                "companyId",
+                                e.target.value,
+                              )
+                            }
+                          />
+                          <p
+                            id="companyId-description"
+                            className="text-sm text-muted-foreground"
+                          >
+                            Identificador único que o provedor usará para a
+                            loja. Exemplo: LOJ001.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="name">
+                            Nome da Loja (Visível no Recibo)
+                          </Label>
+                          <Input
+                            id="name"
+                            placeholder="Ex: Kalles Matriz Centro"
+                            value={storeForm.name}
+                            onChange={(e) =>
+                              handleUpdateStoreField("name", e.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
 
-                  {activeCompany && (
-                    <Alert className="mb-6 border-sky-500/30 bg-sky-50 text-sky-900">
-                      <AlertTitle className="font-semibold">
-                        Empresa ativa
-                      </AlertTitle>
-                      <AlertDescription>
-                        A integração será criada usando os dados cadastrais de{" "}
-                        <strong>{activeCompany.name}</strong>.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <form onSubmit={handleCreateStore} className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="companyId">
-                          Referência externa da loja
-                        </Label>
-                        <Input
-                          id="companyId"
-                          value={storeForm.companyId}
-                          onChange={(e) =>
-                            handleUpdateStoreField("companyId", e.target.value)
-                          }
-                        />
-                        <p
-                          id="companyId-description"
-                          className="text-sm text-muted-foreground"
-                        >
-                          Identificador único que o provedor usará para a loja.
-                          Exemplo: LOJ001.
+                      <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-sm font-medium">Localização</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Esses campos ficam apenas como conferência visual
+                          nesta etapa. O cadastro oficial usado na integração
+                          vem da empresa ativa.
                         </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="name">
-                          Nome da Loja (Visível no Recibo)
-                        </Label>
-                        <Input
-                          id="name"
-                          placeholder="Ex: Kalles Matriz Centro"
-                          value={storeForm.name}
-                          onChange={(e) =>
-                            handleUpdateStoreField("name", e.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
+                        <div className="grid gap-4 md:grid-cols-4">
+                          <div className="space-y-2 md:col-span-3">
+                            <Label htmlFor="streetName">Logradouro</Label>
+                            <Input
+                              id="streetName"
+                              value={storeForm.streetName}
+                              onChange={(e) =>
+                                handleUpdateStoreField(
+                                  "streetName",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="streetNumber">Número</Label>
+                            <Input
+                              id="streetNumber"
+                              value={storeForm.streetNumber}
+                              onChange={(e) =>
+                                handleUpdateStoreField(
+                                  "streetNumber",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-4 pt-4 border-t">
-                      <h4 className="text-sm font-medium">Localização</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Esses campos ficam apenas como conferência visual nesta
-                        etapa. O cadastro oficial usado na integração vem da
-                        empresa ativa.
-                      </p>
-                      <div className="grid gap-4 md:grid-cols-4">
-                        <div className="space-y-2 md:col-span-3">
-                          <Label htmlFor="streetName">Logradouro</Label>
-                          <Input
-                            id="streetName"
-                            value={storeForm.streetName}
-                            onChange={(e) =>
-                              handleUpdateStoreField(
-                                "streetName",
-                                e.target.value,
-                              )
-                            }
-                          />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="cityName">Cidade</Label>
+                            <Input
+                              id="cityName"
+                              value={storeForm.cityName}
+                              onChange={(e) =>
+                                handleUpdateStoreField(
+                                  "cityName",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="stateName">Estado (Extenso)</Label>
+                            <Select
+                              value={storeForm.stateName}
+                              onValueChange={(val) =>
+                                handleUpdateStoreField("stateName", val)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o estado..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BRAZILIAN_STATES.map((st) => (
+                                  <SelectItem key={st} value={st}>
+                                    {st}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="streetNumber">Número</Label>
-                          <Input
-                            id="streetNumber"
-                            value={storeForm.streetNumber}
-                            onChange={(e) =>
-                              handleUpdateStoreField(
-                                "streetNumber",
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="cityName">Cidade</Label>
-                          <Input
-                            id="cityName"
-                            value={storeForm.cityName}
-                            onChange={(e) =>
-                              handleUpdateStoreField("cityName", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="stateName">Estado (Extenso)</Label>
-                          <Select
-                            value={storeForm.stateName}
-                            onValueChange={(val) =>
-                              handleUpdateStoreField("stateName", val)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o estado..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {BRAZILIAN_STATES.map((st) => (
-                                <SelectItem key={st} value={st}>
-                                  {st}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="latitude">Latitude</Label>
-                          <Input
-                            id="latitude"
-                            type="number"
-                            step="any"
-                            value={storeForm.latitude}
-                            onChange={(e) =>
-                              handleUpdateStoreField(
-                                "latitude",
-                                e.target.value === ""
-                                  ? ""
-                                  : parseFloat(e.target.value),
-                              )
-                            }
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="longitude">Longitude</Label>
-                          <Input
-                            id="longitude"
-                            type="number"
-                            step="any"
-                            value={storeForm.longitude}
-                            onChange={(e) =>
-                              handleUpdateStoreField(
-                                "longitude",
-                                e.target.value === ""
-                                  ? ""
-                                  : parseFloat(e.target.value),
-                              )
-                            }
-                            required
-                          />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="latitude">Latitude</Label>
+                            <Input
+                              id="latitude"
+                              type="number"
+                              step="any"
+                              value={storeForm.latitude}
+                              onChange={(e) =>
+                                handleUpdateStoreField(
+                                  "latitude",
+                                  e.target.value === ""
+                                    ? ""
+                                    : parseFloat(e.target.value),
+                                )
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="longitude">Longitude</Label>
+                            <Input
+                              id="longitude"
+                              type="number"
+                              step="any"
+                              value={storeForm.longitude}
+                              onChange={(e) =>
+                                handleUpdateStoreField(
+                                  "longitude",
+                                  e.target.value === ""
+                                    ? ""
+                                    : parseFloat(e.target.value),
+                                )
+                              }
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={loading || !activeCompanyId}>
-                        {loading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Store className="mr-2 h-4 w-4" />
-                        )}
-                        Criar/Vincular Loja
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-
-            {newIntegrationStep === "pos" && (
-              <Card className="border-0 shadow-md">
-                <CardHeader>
-                  <CardTitle>Terminais de Caixa (POS)</CardTitle>
-                  <CardDescription>
-                    Vincule caixas físicos já cadastrados na sua loja ao Mercado
-                    Pago para gerar QR Codes dinâmicos.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!storeConfigured && (
-                    <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-600">
-                      <AlertTitle className="font-semibold">Atenção</AlertTitle>
-                      <AlertDescription>
-                        Certifique-se de que configurou a Loja Física (Etapa 1)
-                        antes de criar caixas/POS.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <form onSubmit={handleCreatePos} className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="posCompanyId">
-                          Referência da loja vinculada
-                        </Label>
-                        <Input
-                          id="posCompanyId"
-                          value={storeForm.companyId}
-                          readOnly
-                          className="bg-muted/50"
-                        />
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          type="submit"
+                          disabled={loading || !activeCompanyId}
+                        >
+                          {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Store className="mr-2 h-4 w-4" />
+                          )}
+                          Criar/Vincular Loja
+                        </Button>
                       </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
 
-                      <div className="grid gap-4 md:grid-cols-2">
+              {newIntegrationStep === "pos" && (
+                <Card className="border-0 shadow-md">
+                  <CardHeader>
+                    <CardTitle>Terminais de Caixa (POS)</CardTitle>
+                    <CardDescription>
+                      Vincule caixas físicos já cadastrados na sua loja ao
+                      Mercado Pago para gerar QR Codes dinâmicos.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!storeConfigured && (
+                      <Alert className="mb-6 border-amber-500/50 bg-amber-500/10 text-amber-600">
+                        <AlertTitle className="font-semibold">
+                          Atenção
+                        </AlertTitle>
+                        <AlertDescription>
+                          Certifique-se de que configurou a Loja Física (Etapa
+                          1) antes de criar caixas/POS.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <form onSubmit={handleCreatePos} className="space-y-6">
+                      <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="caixaId">
-                            Selecionar Caixa (Físico)
-                          </Label>
-                          <Select
-                            value={posForm.caixaId}
-                            onValueChange={(val) => {
-                              const cr = cashRegisters.find(
-                                (c) => c.code === val,
-                              );
-                              setPosForm((prev) => ({
-                                ...prev,
-                                caixaId: val,
-                                name: cr
-                                  ? `${cr.description} - ${cr.code}`
-                                  : prev.name,
-                              }));
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um caixa registrado..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {cashRegisters.map((cr) => (
-                                <SelectItem key={cr.code} value={cr.code}>
-                                  {cr.code} - {cr.description}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="posName">
-                            Nome gerado para o ponto de pagamento
+                          <Label htmlFor="posCompanyId">
+                            Referência da loja vinculada
                           </Label>
                           <Input
-                            id="posName"
-                            placeholder="Selecione um caixa para visualizar"
-                            value={posForm.name}
+                            id="posCompanyId"
+                            value={storeForm.companyId}
                             readOnly
                             className="bg-muted/50"
                           />
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={loading}>
-                        {loading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Terminal className="mr-2 h-4 w-4" />
-                        )}
-                        Registrar Terminal
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="caixaId">
+                              Selecionar Caixa (Físico)
+                            </Label>
+                            <Select
+                              value={posForm.caixaId}
+                              onValueChange={(val) => {
+                                const cr = cashRegisters.find(
+                                  (c) => c.code === val,
+                                );
+                                setPosForm((prev) => ({
+                                  ...prev,
+                                  caixaId: val,
+                                  name: cr
+                                    ? `${cr.description} - ${cr.code}`
+                                    : prev.name,
+                                }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um caixa registrado..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {cashRegisters.map((cr) => (
+                                  <SelectItem key={cr.code} value={cr.code}>
+                                    {cr.code} - {cr.description}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="posName">
+                              Nome gerado para o ponto de pagamento
+                            </Label>
+                            <Input
+                              id="posName"
+                              placeholder="Selecione um caixa para visualizar"
+                              value={posForm.name}
+                              readOnly
+                              className="bg-muted/50"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-4">
+                        <Button type="submit" disabled={loading}>
+                          {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Terminal className="mr-2 h-4 w-4" />
+                          )}
+                          Registrar Terminal
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

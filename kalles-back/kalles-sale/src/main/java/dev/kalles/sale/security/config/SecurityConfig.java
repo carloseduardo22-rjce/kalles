@@ -40,7 +40,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code", "/api/auth/refresh", "/api/auth/logout", "/api/pos/setup").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago", "/api/webhooks/stone").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

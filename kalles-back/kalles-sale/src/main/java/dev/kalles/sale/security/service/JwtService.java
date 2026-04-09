@@ -19,8 +19,8 @@ public class JwtService {
     @Value("${api.security.token.secret:my-very-secret-default-key-keep-it-safe}")
     private String secret;
 
-    @Value("${api.security.token.expiration:12}")
-    private Integer expirationHours;
+    @Value("${api.security.access-token.expiration-minutes:720}")
+    private Integer accessTokenExpirationMinutes;
 
     public String generateToken(Account account) {
         return generateToken(account, null);
@@ -32,6 +32,7 @@ public class JwtService {
             var jwtBuilder = JWT.create()
                     .withIssuer("kalles-api")
                     .withSubject(account.getEmail())
+                    .withClaim("tokenType", "access")
                     .withClaim("tenantId", account.getTenantId().toString())
                     .withClaim("role", account.getRole().name())
                     .withClaim("accountId", account.getId().toString());
@@ -64,6 +65,6 @@ public class JwtService {
     }
 
     private Date genExpirationDate() {
-        return Date.from(Instant.now().plusSeconds(expirationHours * 3600L).atZone(ZoneId.systemDefault()).toInstant());
+        return Date.from(Instant.now().plusSeconds(accessTokenExpirationMinutes * 60L).atZone(ZoneId.systemDefault()).toInstant());
     }
 }
