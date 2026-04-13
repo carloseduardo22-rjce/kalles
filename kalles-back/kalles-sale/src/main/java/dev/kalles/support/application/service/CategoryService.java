@@ -1,5 +1,6 @@
 package dev.kalles.support.application.service;
 
+import dev.kalles.sale.security.context.TenantContextHolder;
 import dev.kalles.support.application.exception.NotFoundException;
 import dev.kalles.support.domain.Priority;
 import dev.kalles.support.infrastructure.persistence.entity.CategoryEntity;
@@ -19,22 +20,24 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryEntity> listAllActive() {
-        return categoryRepository.findAllByActiveTrueOrderByNameAscSubcategoryAsc();
+        return categoryRepository.findAllByTenantIdAndActiveTrueOrderByNameAscSubcategoryAsc(currentTenantId());
     }
 
     @Transactional(readOnly = true)
     public CategoryEntity findById(UUID id) {
-        return categoryRepository.findById(id)
+        return categoryRepository.findByIdAndTenantId(id, currentTenantId())
                 .orElseThrow(() -> new NotFoundException("Category not found: " + id));
     }
 
     @Transactional
     public CategoryEntity create(String name, String subcategory, Priority defaultPriority) {
-        categoryRepository.findByNameAndSubcategory(name, subcategory).ifPresent(existing -> {
+        UUID tenantId = currentTenantId();
+        categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
             throw new IllegalArgumentException(
                     "A category with name '" + name + "' and subcategory '" + subcategory + "' already exists.");
         });
         CategoryEntity category = new CategoryEntity();
+        category.setTenantId(tenantId);
         category.setName(name);
         category.setSubcategory(subcategory);
         category.setDefaultPriority(defaultPriority);
@@ -45,7 +48,8 @@ public class CategoryService {
     @Transactional
     public CategoryEntity update(UUID id, String name, String subcategory, Priority defaultPriority) {
         CategoryEntity category = findById(id);
-        categoryRepository.findByNameAndSubcategory(name, subcategory).ifPresent(existing -> {
+        UUID tenantId = currentTenantId();
+        categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new IllegalArgumentException(
                         "Another category already uses name '" + name + "' and subcategory '" + subcategory + "'.");
@@ -62,5 +66,13 @@ public class CategoryService {
         CategoryEntity category = findById(id);
         category.setActive(false);
         categoryRepository.save(category);
+    }
+
+    private UUID currentTenantId() {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context is required for support categories");
+        }
+        return tenantId;
     }
 }

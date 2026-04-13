@@ -60,6 +60,13 @@ public class SaleItem {
         this.quantity++;
     }
 
+    public void incrementQuantity(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("A quantidade adicionada deve ser positiva.");
+        }
+        this.quantity += amount;
+    }
+
     public void decrementQuantity() {
         if (this.quantity > 1) {
             this.quantity--;

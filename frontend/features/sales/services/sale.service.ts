@@ -21,10 +21,12 @@ export const saleService = {
     sessionToken: string,
     type: ProductCodeType,
     code: string,
+    quantity = 1,
   ): Promise<SaleResponse> =>
     api.post<SaleResponse>(`${BASE}/${sessionToken}/items`, {
       type,
       code,
+      quantity,
     } satisfies AddItemRequest),
 
   removeItem: (

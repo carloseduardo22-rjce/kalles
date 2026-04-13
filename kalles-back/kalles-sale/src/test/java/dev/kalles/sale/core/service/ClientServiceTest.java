@@ -5,6 +5,9 @@ import dev.kalles.sale.core.dto.ClientResponse;
 import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ClientRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,11 +28,23 @@ import static org.mockito.Mockito.*;
 @DisplayName("ClientService - Serviço de Clientes")
 class ClientServiceTest {
 
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
+
     @Mock
     private ClientRepository clientRepository;
 
     @InjectMocks
     private ClientService clientService;
+
+    @BeforeEach
+    void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
+    }
 
     private ClientRequest buildRequest(String cpf) {
         return new ClientRequest("João da Silva", LocalDate.of(1990, 5, 20), 'M',
@@ -39,6 +54,7 @@ class ClientServiceTest {
     private Client buildClient(UUID id, String cpf) {
         Client c = new Client();
         c.setId(id);
+        c.setCompanyId(COMPANY_ID);
         c.setName("João da Silva");
         c.setBirthDate(LocalDate.of(1990, 5, 20));
         c.setGender('M');
@@ -53,9 +69,9 @@ class ClientServiceTest {
     void shouldCreateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
-        Client saved = buildClient(id, "52998224725");
+        Client saved = buildClient(id, cpf);
 
-        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.empty());
+        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.empty());
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
 
         ClientResponse response = clientService.create(buildRequest(cpf));
@@ -63,6 +79,7 @@ class ClientServiceTest {
         assertNotNull(response);
         assertEquals(id, response.id());
         assertEquals("João da Silva", response.name());
+        verify(clientRepository).findByCpfAndCompanyId(cpf, COMPANY_ID);
         verify(clientRepository).save(any(Client.class));
     }
 
@@ -70,9 +87,9 @@ class ClientServiceTest {
     @DisplayName("Deve lançar exceção ao criar cliente com CPF duplicado")
     void shouldThrowWhenCreatingClientWithDuplicateCpf() {
         String cpf = "529.982.247-25";
-        Client existing = buildClient(UUID.randomUUID(), "52998224725");
+        Client existing = buildClient(UUID.randomUUID(), cpf);
 
-        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(existing));
 
         assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
@@ -88,7 +105,7 @@ class ClientServiceTest {
                 null, null, null, null, null, null, null);
 
         assertDoesNotThrow(() -> clientService.create(request));
-        verify(clientRepository, never()).findByCpf(any());
+        verify(clientRepository, never()).findByCpfAndCompanyId(any(), any());
         verify(clientRepository).save(any());
     }
 
@@ -102,7 +119,7 @@ class ClientServiceTest {
                 "", null, null, null, null, null, null);
 
         assertDoesNotThrow(() -> clientService.create(request));
-        verify(clientRepository, never()).findByCpf(any());
+        verify(clientRepository, never()).findByCpfAndCompanyId(any(), any());
     }
 
     @Test
@@ -110,7 +127,7 @@ class ClientServiceTest {
     void shouldFindClientById() {
         UUID id = UUID.randomUUID();
         Client client = buildClient(id, "529.982.247-25");
-        when(clientRepository.findById(id)).thenReturn(Optional.of(client));
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(client));
 
         ClientResponse response = clientService.findById(id);
 
@@ -122,7 +139,7 @@ class ClientServiceTest {
     @DisplayName("Deve lançar exceção quando cliente não encontrado pelo ID")
     void shouldThrowNotFoundWhenClientNotFoundById() {
         UUID id = UUID.randomUUID();
-        when(clientRepository.findById(id)).thenReturn(Optional.empty());
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         NotFoundException ex = assertThrows(NotFoundException.class, () -> clientService.findById(id));
         assertTrue(ex.getMessage().contains(id.toString()));
@@ -135,7 +152,7 @@ class ClientServiceTest {
                 buildClient(UUID.randomUUID(), "111"),
                 buildClient(UUID.randomUUID(), "222")
         );
-        when(clientRepository.findAllByOrderByNameAsc()).thenReturn(clients);
+        when(clientRepository.findAllByCompanyIdOrderByNameAsc(COMPANY_ID)).thenReturn(clients);
 
         List<ClientResponse> result = clientService.listAll();
 
@@ -147,12 +164,12 @@ class ClientServiceTest {
     void shouldUpdateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
-        Client existing = buildClient(id, "52998224725");
-        Client updated = buildClient(id, "52998224725");
+        Client existing = buildClient(id, cpf);
+        Client updated = buildClient(id, cpf);
         updated.setName("Nome Atualizado");
 
-        when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(existing));
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(existing));
         when(clientRepository.save(any(Client.class))).thenReturn(updated);
 
         ClientRequest request = new ClientRequest("Nome Atualizado", null, null,
@@ -170,10 +187,10 @@ class ClientServiceTest {
         String cpf = "529.982.247-25";
 
         Client existing = buildClient(id, "outro-cpf");
-        Client other = buildClient(otherId, "52998224725");
+        Client other = buildClient(otherId, cpf);
 
-        when(clientRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.of(other));
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(other));
 
         ClientRequest request = new ClientRequest("X", null, null,
                 cpf, null, null, null, null, null, null);
@@ -186,7 +203,7 @@ class ClientServiceTest {
     @DisplayName("Deve lançar exceção ao atualizar cliente inexistente")
     void shouldThrowNotFoundWhenUpdatingNonExistentClient() {
         UUID id = UUID.randomUUID();
-        when(clientRepository.findById(id)).thenReturn(Optional.empty());
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> clientService.update(id, buildRequest("529.982.247-25")));
@@ -196,76 +213,29 @@ class ClientServiceTest {
     @DisplayName("Deve excluir cliente com sucesso")
     void shouldDeleteClientSuccessfully() {
         UUID id = UUID.randomUUID();
-        when(clientRepository.existsById(id)).thenReturn(true);
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(buildClient(id, "529.982.247-25")));
 
         clientService.delete(id);
 
-        verify(clientRepository).deleteById(id);
+        verify(clientRepository).delete(any(Client.class));
     }
 
     @Test
     @DisplayName("Deve lançar exceção ao excluir cliente inexistente")
     void shouldThrowNotFoundWhenDeletingNonExistentClient() {
         UUID id = UUID.randomUUID();
-        when(clientRepository.existsById(id)).thenReturn(false);
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> clientService.delete(id));
-        verify(clientRepository, never()).deleteById(any());
+        verify(clientRepository, never()).delete(any());
     }
 
     @Test
-    @DisplayName("Deve normalizar CPF e celular antes de salvar")
-    void shouldNormalizeCpfAndCellphoneBeforeSaving() {
-        UUID id = UUID.randomUUID();
-        Client saved = buildClient(id, "52998224725");
+    @DisplayName("Deve lançar exceção quando não há company no contexto")
+    void shouldThrowWhenCompanyContextIsMissing() {
+        CompanyContextHolder.clear();
 
-        when(clientRepository.findByCpf("52998224725")).thenReturn(Optional.empty());
-        when(clientRepository.save(any(Client.class))).thenReturn(saved);
-
-        ClientRequest request = new ClientRequest(
-                "  João da Silva  ",
-                LocalDate.of(1990, 5, 20),
-                'M',
-                "529.982.247-25",
-                "55",
-                "(11) 99999-9999",
-                "1234567",
-                null,
-                null,
-                "  Observação  "
-        );
-
-        clientService.create(request);
-
-        verify(clientRepository).save(argThat(client ->
-                "João da Silva".equals(client.getName())
-                        && "52998224725".equals(client.getCpf())
-                        && "11999999999".equals(client.getCellphone())
-                        && "+55".equals(client.getCodeCountry())
-                        && "Observação".equals(client.getObservations())
-        ));
-    }
-
-    @Test
-    @DisplayName("Deve rejeitar celular brasileiro inválido")
-    void shouldRejectInvalidBrazilianCellphone() {
-        ClientRequest request = new ClientRequest(
-                "João da Silva",
-                LocalDate.of(1990, 5, 20),
-                'M',
-                "529.982.247-25",
-                "+55",
-                "119999999999",
-                null,
-                null,
-                null,
-                null
-        );
-
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> clientService.create(request));
-
-        assertEquals("Celular deve ser um número brasileiro válido com 11 dígitos.", exception.getMessage());
-        verify(clientRepository, never()).save(any());
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> clientService.listAll());
+        assertTrue(ex.getMessage().contains("Nenhuma filial selecionada"));
     }
 }

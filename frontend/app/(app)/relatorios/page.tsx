@@ -389,7 +389,7 @@ function FilterBar({
         : "Selecionar período";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" data-onboarding="reports-filters">
       <div className="flex rounded-lg border bg-muted/50 p-0.5">
         {FILTER_MODES.map((m) => (
           <button
@@ -1118,7 +1118,7 @@ function RelatoriosContent() {
 /* ─── Page ─── */
 export default function RelatoriosPage() {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-onboarding="reports-page">
       <div className="border-b bg-card px-6 py-4">
         <h1 className="text-base font-semibold">Relatórios</h1>
         <p className="text-xs text-muted-foreground">
@@ -1127,7 +1127,7 @@ export default function RelatoriosPage() {
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6" data-onboarding="reports-content">
         <Suspense
           fallback={
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

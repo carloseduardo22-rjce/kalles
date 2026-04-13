@@ -8,7 +8,10 @@
 -- ---------------------------------------------------------------
 -- 0. EMPRESA E TENANT DE TESTE
 -- ---------------------------------------------------------------
-INSERT INTO tenant (id, name) VALUES ('123e4567-e89b-12d3-a456-426614174000', 'Conta de Teste Kalles') ON CONFLICT (id) DO NOTHING;
+INSERT INTO tenant (id, name) VALUES
+  ('123e4567-e89b-12d3-a456-426614174000', 'Conta de Teste Kalles'),
+  ('223e4567-e89b-12d3-a456-426614174000', 'Conta Isolada Kalles')
+ON CONFLICT (id) DO NOTHING;
 
 -- Remove o seed legado criado nas migrations V23/V35 para manter apenas
 -- uma empresa canônica de testes locais por tenant.
@@ -23,6 +26,7 @@ WHERE tenant_id = '123e4567-e89b-12d3-a456-426614174000'
 
 -- Inserindo a loja (como entidade segregada do Core)
 INSERT INTO company (id, name, tenant_id) VALUES ('e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', 'Loja Matriz', '123e4567-e89b-12d3-a456-426614174000') ON CONFLICT (id) DO NOTHING;
+INSERT INTO company (id, name, tenant_id) VALUES ('f28a38a0-2f22-4a00-9e6b-67e9f3b5c65f', 'Loja Isolada', '223e4567-e89b-12d3-a456-426614174000') ON CONFLICT (id) DO NOTHING;
 
 -- Inserindo o vínculo com o Mercado Pago
 INSERT INTO mercadopago_company (id, company_id, external_id)
@@ -40,15 +44,15 @@ SET
 -- 1. OPERADORES
 --    Linkando Operadores à Empresa Matriz
 -- ---------------------------------------------------------------
-INSERT INTO operators (name, code, permission_level) VALUES
-  ('João Silva',           'OP-001',   'BASIC'),
-  ('Maria Santos',         'OP-002',   'SUPERVISOR'),
-  ('Pedro Costa',          'OP-003',   'MANAGER'),
-  ('Administrador Kalles', 'ADMIN-001','ADMIN'),
-  ('Lucas Oliveira',       'OP-004',   'BASIC'),
-  ('Isabela Rocha',        'OP-005',   'BASIC'),
-  ('Rafael Alves',         'OP-006',   'SUPERVISOR')
-ON CONFLICT (code) DO NOTHING;
+INSERT INTO operators (name, code, permission_level, company_id) VALUES
+  ('João Silva',           'OP-001',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Maria Santos',         'OP-002',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Pedro Costa',          'OP-003',   'MANAGER',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Administrador Kalles', 'ADMIN-001','ADMIN',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Lucas Oliveira',       'OP-004',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Isabela Rocha',        'OP-005',   'BASIC',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Rafael Alves',         'OP-006',   'SUPERVISOR', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
+ON CONFLICT (code, company_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 2. CAIXAS
@@ -57,7 +61,7 @@ INSERT INTO cash_registers (code, description, active, company_id) VALUES
   ('CAIXA-01', 'Caixa principal — frente de loja',  true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
   ('CAIXA-02', 'Caixa secundário — balcão',         true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
   ('CAIXA-03', 'Caixa self-checkout — Setor A',     true, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (code, company_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 3. PRODUTOS (Catálogo Global)
@@ -93,7 +97,7 @@ INSERT INTO product (name, internal_code, barcode, description, tenant_id, versi
   ('Creme de Leite 300g',    'PRD-028', '7891000280028', 'Creme de leite mesa 300g',                           '123e4567-e89b-12d3-a456-426614174000', 0),
   ('Biscoito Recheado 130g', 'PRD-029', '7891000290029', 'Biscoito recheado chocolate — linha descontinuada',  '123e4567-e89b-12d3-a456-426614174000', 0),
   ('Achocolatado 200ml',     'PRD-030', '7891000300030', 'Achocolatado UHT 200ml',                             '123e4567-e89b-12d3-a456-426614174000', 0)
-ON CONFLICT (internal_code) DO NOTHING;
+ON CONFLICT (internal_code, tenant_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 3.1. PRODUTOS DA EMPRESA (Preços Locais)
@@ -133,6 +137,7 @@ JOIN (VALUES
   ('PRD-029', 3.90,  false, 2.73),
   ('PRD-030', 2.90,  true, 2.03)
 ) AS v(code, price, active, cost_price) ON p.internal_code = v.code
+  AND p.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -198,25 +203,27 @@ FROM (
     ('PRD-030', 'Depósito Central',  'A2',  60)
 ) AS qty(internal_code, warehouse_name, location_code, quantity)
 JOIN product   p ON p.internal_code = qty.internal_code
+                AND p.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
 JOIN warehouse w ON w.name          = qty.warehouse_name
+                AND w.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 JOIN location  l ON l.warehouse_id  = w.id AND l.code = qty.location_code
 ON CONFLICT (product_id, location_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 7. CLIENTES
 -- ---------------------------------------------------------------
-INSERT INTO client (name, birth_date, gender, cpf, code_country, cellphone, rg, name_father, name_mother, observations) VALUES
-  ('Ana Paula Souza',    '1992-03-15', 'F', '529.982.247-25', '+55', '11991110001', '12345678', 'Carlos Souza',    'Marta Souza',    NULL),
-  ('Bruno Ferreira',     '1985-07-22', 'M', '153.509.460-56', '+55', '21992220002', '23456789', 'Luiz Ferreira',   'Rosa Ferreira',  'Cliente VIP'),
-  ('Carla Mendes',       '1998-11-05', 'F', '046.270.070-54', '+55', '31993330003', '34567890', NULL,              'Sônia Mendes',   NULL),
-  ('Diego Lima',         '1990-01-30', 'M', '168.995.350-09', '+55', '41994440004', '45678901', 'Paulo Lima',      'Clara Lima',     NULL),
-  ('Fernanda Castro',    '2000-08-18', 'F', '942.836.530-06', '+55', '51995550005', NULL,        NULL,             NULL,             NULL),
-  ('Gabriela Martins',   '1995-04-10', 'F', '871.504.977-73', '+55', '61996660006', '56789012', 'Roberto Martins', 'Lúcia Martins',  'Preferência: produtos naturais'),
-  ('Henrique Barbosa',   '1980-12-20', 'M', '023.845.231-40', '+55', '71997770007', '67890123', 'Sérgio Barbosa',  'Vera Barbosa',   'Cliente desde 2020'),
-  ('Juliana Peixoto',    '1993-06-03', 'F', '470.645.218-07', '+55', '81998880008', '78901234', NULL,              'Beatriz Peixoto',NULL),
-  ('Marcos Teixeira',    '1975-09-14', 'M', '862.073.580-01', '+55', '19999990009', '89012345', 'André Teixeira',  'Fátima Teixeira','Empresário — compras mensais'),
-  ('Natália Rodrigues',  '2002-02-28', 'F', '674.594.981-49', '+55', '27900010010', NULL,        NULL,             NULL,             NULL)
-ON CONFLICT (cpf) DO NOTHING;
+INSERT INTO client (name, birth_date, gender, cpf, code_country, cellphone, rg, name_father, name_mother, observations, company_id) VALUES
+  ('Ana Paula Souza',    '1992-03-15', 'F', '529.982.247-25', '+55', '11991110001', '12345678', 'Carlos Souza',    'Marta Souza',    NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Bruno Ferreira',     '1985-07-22', 'M', '153.509.460-56', '+55', '21992220002', '23456789', 'Luiz Ferreira',   'Rosa Ferreira',  'Cliente VIP',                       'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Carla Mendes',       '1998-11-05', 'F', '046.270.070-54', '+55', '31993330003', '34567890', NULL,              'Sônia Mendes',   NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Diego Lima',         '1990-01-30', 'M', '168.995.350-09', '+55', '41994440004', '45678901', 'Paulo Lima',      'Clara Lima',     NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Fernanda Castro',    '2000-08-18', 'F', '942.836.530-06', '+55', '51995550005', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Gabriela Martins',   '1995-04-10', 'F', '871.504.977-73', '+55', '61996660006', '56789012', 'Roberto Martins', 'Lúcia Martins',  'Preferência: produtos naturais',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Henrique Barbosa',   '1980-12-20', 'M', '023.845.231-40', '+55', '71997770007', '67890123', 'Sérgio Barbosa',  'Vera Barbosa',   'Cliente desde 2020',               'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Juliana Peixoto',    '1993-06-03', 'F', '470.645.218-07', '+55', '81998880008', '78901234', NULL,              'Beatriz Peixoto',NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Marcos Teixeira',    '1975-09-14', 'M', '862.073.580-01', '+55', '19999990009', '89012345', 'André Teixeira',  'Fátima Teixeira','Empresário — compras mensais',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Natália Rodrigues',  '2002-02-28', 'F', '674.594.981-49', '+55', '27900010010', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
+ON CONFLICT (cpf, company_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 8. SESSÃO DE CAIXA ABERTA
@@ -234,7 +241,9 @@ SELECT
   'OPEN'
 FROM cash_registers cr, operators op
 WHERE cr.code = 'CAIXA-01'
+  AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
   AND op.code = 'OP-001'
+  AND op.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -275,6 +284,7 @@ FROM (VALUES
   ('023.845.231-40',  10,  0.00, '2026-03-01')
 ) AS v(cpf, pts, disc, enrolled)
 JOIN client c ON c.cpf = v.cpf
+            AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (client_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -293,7 +303,9 @@ SELECT
   'CLOSED'
 FROM cash_registers cr, operators op
 WHERE cr.code = 'CAIXA-02'
+  AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
   AND op.code = 'OP-003'
+  AND op.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -332,6 +344,7 @@ FROM (VALUES
   ('c1000000-0000-0000-0000-000000000004', 'CANCELED',  NULL,              6.90,  6.90, 6.90,  0.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
 LEFT JOIN client c ON c.cpf = v.cpf
+                  AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -367,6 +380,7 @@ FROM (VALUES
   ('c1000000-0000-0000-0000-000000000007', 'CANCELED',  NULL,              4.50,  4.50, 4.50,  0.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
 LEFT JOIN client c ON c.cpf = v.cpf
+                  AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -403,6 +417,7 @@ FROM (VALUES
   ('d1000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000007', 'PRD-005', 1, 4.50, 0.00)
 ) AS i(item_id, sale_id, internal_code, qty, unit_price, discount)
 JOIN product p ON p.internal_code = i.internal_code
+              AND p.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -447,7 +462,9 @@ SELECT
   'OPEN'
 FROM cash_registers cr, operators op
 WHERE cr.code = 'CAIXA-03'
+  AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
   AND op.code = 'OP-004'
+  AND op.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -481,6 +498,7 @@ FROM (VALUES
   ('c1000000-0000-0000-0000-000000000011', '046.270.070-54',  8.90,  8.90)
 ) AS v(sale_id, cpf, subtotal, total)
 LEFT JOIN client c ON c.cpf = v.cpf
+                  AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -513,6 +531,7 @@ FROM (VALUES
   ('c1000000-0000-0000-0000-000000000015', 'CANCELED',  NULL,              7.00,  7.00, 7.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due)
 LEFT JOIN client c ON c.cpf = v.cpf
+                  AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -549,6 +568,7 @@ FROM (VALUES
   ('d1000000-0000-0000-0000-000000000024', 'c1000000-0000-0000-0000-000000000015', 'PRD-024', 1, 7.00)
 ) AS i(item_id, sale_id, internal_code, qty, unit_price)
 JOIN product p ON p.internal_code = i.internal_code
+              AND p.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -632,7 +652,9 @@ FROM (VALUES
   ('b0000000-0000-0000-0000-000000000011','CAIXA-02','OP-006', 80.00,'2026-03-09 10:00:00','2026-03-09 18:30:00')
 ) AS s(session_id, caixa_code, op_code, initial_amount, opened_at, closed_at)
 JOIN cash_registers cr ON cr.code = s.caixa_code
+                      AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 JOIN operators      op ON op.code = s.op_code
+                      AND op.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -830,6 +852,7 @@ FROM (VALUES
   ('d2000000-0000-0000-0000-000000000082','c1000000-0000-0000-0000-000000000050','PRD-022',1,5.40)
 ) AS i(item_id, sale_id, internal_code, qty, price)
 JOIN product p ON p.internal_code = i.internal_code
+              AND p.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
@@ -889,7 +912,7 @@ VALUES
   ('d1000000-0000-0000-0000-000000000001'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'Administrador', 'admin@sistema.local', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:00:00'),
   ('d1000000-0000-0000-0000-000000000002'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'João Silva', 'joao.silva@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:05:00'),
   ('d1000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'Pedro Costa', 'pedro.costa@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:10:00')
-ON CONFLICT (email) DO UPDATE SET company_id = EXCLUDED.company_id;
+ON CONFLICT (email, tenant_id) DO UPDATE SET company_id = EXCLUDED.company_id;
 
 -- ===============================================================
 -- BLOCO III — SUPORTE: AGENTES, USUÁRIOS E CHAMADOS
@@ -903,34 +926,44 @@ ON CONFLICT (email) DO UPDATE SET company_id = EXCLUDED.company_id;
 -- ---------------------------------------------------------------
 -- 25. AGENTES DE SUPORTE
 -- ---------------------------------------------------------------
-INSERT INTO support.agents (id, employee_id, name, active)
+INSERT INTO support.agents (id, tenant_id, employee_id, name, active)
 VALUES
-  ('f2000000-0000-0000-0000-000000000001'::uuid, 'AGT-001', 'Carlos Anderson Silva',  true),
-  ('f2000000-0000-0000-0000-000000000002'::uuid, 'AGT-002', 'Fernanda Lima Alves',    true),
-  ('f2000000-0000-0000-0000-000000000003'::uuid, 'AGT-003', 'Roberto Nunes Santos',   false)
-ON CONFLICT (employee_id) DO NOTHING;
+  ('f2000000-0000-0000-0000-000000000001'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'AGT-001', 'Carlos Anderson Silva',  true),
+  ('f2000000-0000-0000-0000-000000000002'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'AGT-002', 'Fernanda Lima Alves',    true),
+  ('f2000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'AGT-003', 'Roberto Nunes Santos',   false),
+  ('f2000000-0000-0000-0000-000000000101'::uuid, '223e4567-e89b-12d3-a456-426614174000'::uuid, 'AGT-001', 'Agente Tenant Isolado', true)
+ON CONFLICT (employee_id, tenant_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 26. USUÁRIOS DE SUPORTE
 --     admin@sistema.local → fallback automático do backend quando
 --     o chamado é aberto sem nome/email (novo comportamento).
 -- ---------------------------------------------------------------
-INSERT INTO support.users (email, name)
+INSERT INTO support.users (tenant_id, email, name)
 VALUES
-  ('admin@sistema.local',       'Administrador'),
-  ('joao.silva@empresa.com',    'João Silva'),
-  ('pedro.costa@empresa.com',   'Pedro Costa')
-ON CONFLICT (email) DO NOTHING;
+  ('123e4567-e89b-12d3-a456-426614174000'::uuid, 'admin@sistema.local',       'Administrador'),
+  ('123e4567-e89b-12d3-a456-426614174000'::uuid, 'joao.silva@empresa.com',    'Joao Silva'),
+  ('123e4567-e89b-12d3-a456-426614174000'::uuid, 'pedro.costa@empresa.com',   'Pedro Costa'),
+  ('223e4567-e89b-12d3-a456-426614174000'::uuid, 'cliente@isolado.local',     'Cliente Tenant Isolado')
+ON CONFLICT (email, tenant_id) DO NOTHING;
+
+INSERT INTO support.categories (tenant_id, name, subcategory, default_priority)
+VALUES
+  ('223e4567-e89b-12d3-a456-426614174000'::uuid, 'General', 'Question', 'LOW'),
+  ('223e4567-e89b-12d3-a456-426614174000'::uuid, 'System', 'Bug', 'HIGH')
+ON CONFLICT (name, subcategory, tenant_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 27. CHAMADOS DE SUPORTE — todos os status e prioridades
 -- ---------------------------------------------------------------
 INSERT INTO support.tickets
-  (id, title, description, status, priority,
+  (id, tenant_id, company_id, title, description, status, priority,
    user_id, agent_id, category_id,
    sla_active, sla_started_at, version, created_at, updated_at)
 SELECT
   t.ticket_id::uuid,
+  '123e4567-e89b-12d3-a456-426614174000'::uuid,
+  'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid,
   t.title,
   t.description,
   t.status,
@@ -1009,9 +1042,42 @@ FROM (VALUES
        category_name, category_subcategory,
        sla_active, sla_started_at, created_at, updated_at)
 JOIN support.users   u   ON u.email       = t.user_email
+                         AND u.tenant_id  = '123e4567-e89b-12d3-a456-426614174000'::uuid
 LEFT JOIN support.agents a ON a.employee_id = t.agent_employee_id
+                          AND a.tenant_id   = '123e4567-e89b-12d3-a456-426614174000'::uuid
 JOIN support.categories cat ON cat.name = t.category_name
                            AND cat.subcategory = t.category_subcategory
+                           AND cat.tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO support.tickets
+  (id, tenant_id, company_id, title, description, status, priority,
+   user_id, agent_id, category_id,
+   sla_active, sla_started_at, version, created_at, updated_at)
+SELECT
+  'f3000000-0000-0000-0000-000000000101'::uuid,
+  '223e4567-e89b-12d3-a456-426614174000'::uuid,
+  'f28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid,
+  'Chamado isolado do tenant B',
+  'Registro minimo para validar que listagens do tenant A nao enxergam o tenant B.',
+  'OPEN',
+  'LOW',
+  u.id,
+  a.id,
+  cat.id,
+  true,
+  '2026-03-10 13:00:00'::timestamp,
+  0,
+  '2026-03-10 13:00:00'::timestamp,
+  '2026-03-10 13:00:00'::timestamp
+FROM support.users u
+JOIN support.agents a ON a.employee_id = 'AGT-001'
+                     AND a.tenant_id = '223e4567-e89b-12d3-a456-426614174000'::uuid
+JOIN support.categories cat ON cat.name = 'General'
+                           AND cat.subcategory = 'Question'
+                           AND cat.tenant_id = '223e4567-e89b-12d3-a456-426614174000'::uuid
+WHERE u.email = 'cliente@isolado.local'
+  AND u.tenant_id = '223e4567-e89b-12d3-a456-426614174000'::uuid
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------

@@ -36,9 +36,12 @@ export default function ProdutosPage() {
         });
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden" data-onboarding="catalog-page">
       {/* ─── Header ─── */}
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm">
+      <header
+        className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm"
+        data-onboarding="catalog-header"
+      >
         <Package className="h-5 w-5 text-primary" />
         <div>
           <h1 className="text-sm font-semibold leading-none">
@@ -66,7 +69,7 @@ export default function ProdutosPage() {
       </header>
 
       {/* ─── Search bar ─── */}
-      <div className="border-b bg-muted/30 px-4 py-3">
+      <div className="border-b bg-muted/30 px-4 py-3" data-onboarding="catalog-filters">
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -91,7 +94,7 @@ export default function ProdutosPage() {
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" data-onboarding="catalog-content">
         {isFetching && allProducts.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando produtos…" />

@@ -9,6 +9,7 @@ export type SaleState =
   | "CANCELED";
 
 export type ProductCodeType = "INTERNAL_CODE" | "BAR_CODE";
+export type FidelityDiscountType = "FIXED" | "PERCENTAGE";
 
 export interface ProductResponse {
   id: string;
@@ -58,6 +59,7 @@ export interface SaleResponse {
 export interface AddItemRequest {
   type: ProductCodeType;
   code: string;
+  quantity: number;
 }
 
 export interface PaymentRequest {

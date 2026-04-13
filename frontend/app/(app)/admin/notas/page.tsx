@@ -47,7 +47,10 @@ export default function NotesPage() {
   }, []);
 
   const noteStats = useMemo(() => {
-    const plainText = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const plainText = content
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     return {
       characters: plainText.length,
       sensitiveBlocks: (content.match(/data-sensitive=\"true\"/g) || []).length,
@@ -58,7 +61,7 @@ export default function NotesPage() {
     const trimmedSecret = secret.trim();
 
     if (!trimmedSecret) {
-      throw new Error("Informe um segredo v·lido.");
+      throw new Error("Informe um segredo v√°lido.");
     }
 
     if (!tenantId) {
@@ -67,14 +70,13 @@ export default function NotesPage() {
       return token;
     }
 
-    toast.info("Protegendo conte˙do sensÌvel...");
+    toast.info("Protegendo conte√∫do sens√≠vel...");
 
     const response = await fetch("/api/notes/sensitive/encrypt", {
       method: "POST",
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "X-Tenant-ID": tenantId,
       },
       body: JSON.stringify({
         plainText: text,
@@ -83,7 +85,7 @@ export default function NotesPage() {
     });
 
     if (!response.ok) {
-      throw new Error("N„o foi possÌvel proteger o conte˙do no servidor.");
+      throw new Error("N√£o foi poss√≠vel proteger o conte√∫do no servidor.");
     }
 
     const data = (await response.json()) as SensitiveEncryptResponse;
@@ -101,28 +103,32 @@ export default function NotesPage() {
       const localEntry = localSensitiveStore.get(token);
 
       if (!localEntry || localEntry.secret !== trimmedSecret) {
-        throw new Error("Segredo inv·lido para este conte˙do.");
+        throw new Error("Segredo inv√°lido para este conte√∫do.");
       }
 
       return localEntry.text;
     }
 
     if (!tenantId) {
-      throw new Error("N„o foi possÌvel validar este conte˙do sem tenant ativo.");
+      throw new Error(
+        "N√£o foi poss√≠vel validar este conte√∫do sem tenant ativo.",
+      );
     }
 
-    const response = await fetch(`/api/notes/sensitive/decrypt/${token}`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant-ID": tenantId,
+    const response = await fetch(
+      `/api/notes/sensitive/decrypt/${encodeURIComponent(token)}`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ secret: trimmedSecret }),
       },
-      body: JSON.stringify({ secret: trimmedSecret }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error("Segredo inv·lido ou conte˙do n„o encontrado.");
+      throw new Error("Segredo inv√°lido ou conte√∫do n√£o encontrado.");
     }
 
     const data = (await response.json()) as SensitiveDecryptResponse;
@@ -144,10 +150,10 @@ export default function NotesPage() {
                   Bloco de notas
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Escreva anotaÁıes normais e proteja apenas os trechos sensÌveis.
-                  Em vez de um blur confuso, a nota mostra um marcador claro e,
-                  ao clicar nele, o sistema pede o mesmo segredo usado na
-                  proteÁ„o para revelar o conte˙do armazenado.
+                  Escreva anota√ß√µes normais e proteja apenas os trechos
+                  sens√≠veis. Em vez de um blur confuso, a nota mostra um
+                  marcador claro e, ao clicar nele, o sistema pede o mesmo
+                  segredo usado na prote√ß√£o para revelar o conte√∫do armazenado.
                 </p>
               </div>
             </div>
@@ -155,15 +161,19 @@ export default function NotesPage() {
             <div className="grid min-w-[220px] gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
               <div className="flex items-center gap-2 font-medium text-slate-900">
                 <BookText className="h-4 w-4 text-amber-700" />
-                Resumo r·pido
+                Resumo r√°pido
               </div>
               <div className="flex items-center justify-between">
                 <span>Caracteres</span>
-                <strong className="text-slate-900">{noteStats.characters}</strong>
+                <strong className="text-slate-900">
+                  {noteStats.characters}
+                </strong>
               </div>
               <div className="flex items-center justify-between">
-                <span>Trechos sensÌveis</span>
-                <strong className="text-slate-900">{noteStats.sensitiveBlocks}</strong>
+                <span>Trechos sens√≠veis</span>
+                <strong className="text-slate-900">
+                  {noteStats.sensitiveBlocks}
+                </strong>
               </div>
               <div className="flex items-start gap-2 rounded-xl bg-white px-3 py-2 text-xs text-slate-500">
                 <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
@@ -171,8 +181,8 @@ export default function NotesPage() {
                   {loadingTenant
                     ? "Preparando o tenant para criptografia no servidor..."
                     : tenantId
-                      ? "Criptografia sensÌvel pronta para usar com o tenant atual."
-                      : "Sem tenant carregado: a tela usa um fallback local tempor·rio para n„o travar a experiÍncia."}
+                      ? "Criptografia sens√≠vel pronta para usar com o tenant atual."
+                      : "Sem tenant carregado: a tela usa um fallback local tempor√°rio para n√£o travar a experi√™ncia."}
                 </span>
               </div>
             </div>
@@ -185,7 +195,7 @@ export default function NotesPage() {
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="TÌtulo da nota"
+              placeholder="T√≠tulo da nota"
               className="h-12 border-none px-0 text-2xl font-semibold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
             />
 
@@ -198,8 +208,8 @@ export default function NotesPage() {
 
             <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                O bot„o de salvar ainda est· visual nesta tela, mas o fluxo de
-                proteÁ„o sensÌvel j· foi melhorado e preparado para integraÁ„o.
+                O bot√£o de salvar ainda est√° visual nesta tela, mas o fluxo de
+                prote√ß√£o sens√≠vel j√° foi melhorado e preparado para integra√ß√£o.
               </p>
               <Button type="button" className="min-w-[140px]">
                 Salvar nota

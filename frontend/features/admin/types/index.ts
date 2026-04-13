@@ -105,6 +105,7 @@ export interface FidelityPolicyRequest {
   objectivePoints: number;
   configuredDiscount: number;
   valuePoint: number;
+  discountType: "FIXED" | "PERCENTAGE";
 }
 
 export interface FidelityPolicyResponse {
@@ -112,6 +113,7 @@ export interface FidelityPolicyResponse {
   objectivePoints: number;
   configuredDiscount: number;
   valuePoint: number;
+  discountType: "FIXED" | "PERCENTAGE";
   active: boolean;
   createdAt: string;
 }
@@ -121,6 +123,7 @@ export interface FidelityResponse {
   clientId: string;
   points: number;
   availableDiscount: number;
+  discountType: "FIXED" | "PERCENTAGE";
   createdAt: string;
   expired: boolean;
 }

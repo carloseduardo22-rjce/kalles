@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, MailOpen } from "lucide-react";
+import { setSessionScopedItem } from "@/shared/utils/session-storage";
 
 function VerifyContent() {
   const [code, setCode] = useState("");
@@ -20,6 +21,7 @@ function VerifyContent() {
 
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const tenantId = searchParams.get("tenantId") || "";
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +39,14 @@ function VerifyContent() {
 
     try {
       setIsLoading(true);
-      await api.post("/api/auth/verify", { email, code });
+      await api.post("/api/auth/verify", {
+        email,
+        code,
+        tenantId: tenantId || undefined,
+      });
+      if (tenantId) {
+        setSessionScopedItem(`@kalles:tenantId:${email}`, tenantId);
+      }
       toast.success("E-mail verificado com sucesso!");
       router.push("/caixas"); // Redirects to the authenticated area
     } catch (error: any) {
@@ -50,9 +59,11 @@ function VerifyContent() {
   const handleResend = async () => {
     try {
       setIsResending(true);
-      await api.post(
-        `/api/auth/resend-code?email=${encodeURIComponent(email)}`,
-      );
+      const params = new URLSearchParams({ email });
+      if (tenantId) {
+        params.set("tenantId", tenantId);
+      }
+      await api.post(`/api/auth/resend-code?${params.toString()}`);
       toast.success("Novo código enviado para o seu e-mail.");
     } catch (error: any) {
       toast.error(error.message || "Erro ao reenviar o código.");

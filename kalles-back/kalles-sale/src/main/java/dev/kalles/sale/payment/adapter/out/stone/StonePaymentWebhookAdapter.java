@@ -5,10 +5,13 @@ import dev.kalles.sale.payment.domain.PaymentMethodType;
 import dev.kalles.sale.payment.domain.PaymentProvider;
 import dev.kalles.sale.payment.domain.PaymentStatus;
 import dev.kalles.sale.payment.domain.PaymentWebhookEvent;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -17,6 +20,12 @@ import static dev.kalles.sale.payment.adapter.out.stone.StoneMappingUtils.toPaym
 @Component
 public class StonePaymentWebhookAdapter implements PaymentWebhookPort {
 
+    private final String webhookSecret;
+
+    public StonePaymentWebhookAdapter(@Value("${stone.webhook-secret:}") String webhookSecret) {
+        this.webhookSecret = webhookSecret;
+    }
+
     @Override
     public PaymentProvider provider() {
         return PaymentProvider.STONE;
@@ -24,7 +33,16 @@ public class StonePaymentWebhookAdapter implements PaymentWebhookPort {
 
     @Override
     public boolean validateSignature(String xSignature, String xRequestId, String dataId) {
-        return true;
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            return false;
+        }
+        if (xSignature == null || xSignature.isBlank()) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                webhookSecret.getBytes(StandardCharsets.UTF_8),
+                xSignature.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     @Override

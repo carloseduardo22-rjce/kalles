@@ -100,9 +100,12 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden" data-onboarding="settings-page">
       {/* ─── Header ─── */}
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm">
+      <header
+        className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm"
+        data-onboarding="settings-header"
+      >
         <Settings className="h-5 w-5 text-primary" />
         <div>
           <h1 className="text-sm font-semibold leading-none">Configurações</h1>
@@ -115,7 +118,10 @@ export default function ConfiguracoesPage() {
       <div className="flex-1 overflow-auto p-4">
         <div className="mx-auto max-w-lg space-y-6">
           {/* ─── Themes section ─── */}
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <div
+            className="rounded-lg border bg-card p-4 shadow-sm"
+            data-onboarding="settings-theme"
+          >
             <div className="mb-4 flex items-center gap-2">
               <Palette className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Tema e Cores</h2>
@@ -182,7 +188,10 @@ export default function ConfiguracoesPage() {
           </div>
 
           {/* ─── Logo section ─── */}
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <div
+            className="rounded-lg border bg-card p-4 shadow-sm"
+            data-onboarding="settings-logo"
+          >
             <div className="mb-4 flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Logo da Empresa</h2>

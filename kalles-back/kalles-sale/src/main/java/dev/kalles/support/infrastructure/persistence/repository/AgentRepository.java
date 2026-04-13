@@ -9,9 +9,11 @@ import java.util.UUID;
 
 public interface AgentRepository extends JpaRepository<AgentEntity, UUID> {
 
-    Optional<AgentEntity> findByEmployeeId(String employeeId);
+    Optional<AgentEntity> findByTenantIdAndEmployeeId(UUID tenantId, String employeeId);
 
-    List<AgentEntity> findAllByActiveTrueOrderByNameAsc();
+    List<AgentEntity> findAllByTenantIdAndActiveTrueOrderByNameAsc(UUID tenantId);
 
-    List<AgentEntity> findAllByOrderByNameAsc();
+    List<AgentEntity> findAllByTenantIdOrderByNameAsc(UUID tenantId);
+
+    Optional<AgentEntity> findByIdAndTenantId(UUID id, UUID tenantId);
 }

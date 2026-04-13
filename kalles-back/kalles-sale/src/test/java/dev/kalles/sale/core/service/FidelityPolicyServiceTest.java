@@ -3,8 +3,12 @@ package dev.kalles.sale.core.service;
 import dev.kalles.sale.core.dto.FidelityPolicyRequest;
 import dev.kalles.sale.core.dto.FidelityPolicyResponse;
 import dev.kalles.sale.core.entity.FidelityPolicy;
+import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.FidelityPolicyRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,11 +30,23 @@ import static org.mockito.Mockito.*;
 @DisplayName("FidelityPolicyService - Serviço de Política de Fidelidade")
 class FidelityPolicyServiceTest {
 
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
+
     @Mock
     private FidelityPolicyRepository fidelityPolicyRepository;
 
     @InjectMocks
     private FidelityPolicyService fidelityPolicyService;
+
+    @BeforeEach
+    void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
+    }
 
     private FidelityPolicy buildPolicy(boolean active) {
         FidelityPolicy p = new FidelityPolicy();
@@ -38,6 +54,7 @@ class FidelityPolicyServiceTest {
         p.setObjectivePoints(100);
         p.setConfiguredDiscount(new BigDecimal("20.00"));
         p.setValuePoint(1);
+        p.setDiscountType(FidelityDiscountType.FIXED);
         p.setActive(active);
         p.setCreatedAt(LocalDate.now());
         return p;
@@ -46,7 +63,11 @@ class FidelityPolicyServiceTest {
     @Test
     @DisplayName("Deve criar política com sucesso e desativar as anteriores")
     void shouldCreatePolicySuccessfully() {
-        FidelityPolicyRequest request = new FidelityPolicyRequest(100, new BigDecimal("20.00"), 1);
+        FidelityPolicyRequest request = new FidelityPolicyRequest(
+                100,
+                new BigDecimal("20.00"),
+                1,
+                FidelityDiscountType.FIXED);
         FidelityPolicy saved = buildPolicy(true);
 
         when(fidelityPolicyRepository.save(any(FidelityPolicy.class))).thenReturn(saved);
@@ -56,32 +77,38 @@ class FidelityPolicyServiceTest {
         assertNotNull(response);
         assertEquals(100, response.objectivePoints());
         assertEquals(new BigDecimal("20.00"), response.configuredDiscount());
+        assertEquals(FidelityDiscountType.FIXED, response.discountType());
         assertTrue(response.active());
-        verify(fidelityPolicyRepository).deactivateAll();
+        verify(fidelityPolicyRepository).deactivateAllByCompanyId(COMPANY_ID);
         verify(fidelityPolicyRepository).save(any(FidelityPolicy.class));
     }
 
     @Test
     @DisplayName("Deve desativar políticas existentes ao criar nova")
     void shouldDeactivateExistingPoliciesWhenCreatingNew() {
-        FidelityPolicyRequest request = new FidelityPolicyRequest(200, new BigDecimal("50.00"), 2);
+        FidelityPolicyRequest request = new FidelityPolicyRequest(
+                200,
+                new BigDecimal("50.00"),
+                2,
+                FidelityDiscountType.PERCENTAGE);
         FidelityPolicy saved = buildPolicy(true);
         saved.setObjectivePoints(200);
         saved.setConfiguredDiscount(new BigDecimal("50.00"));
         saved.setValuePoint(2);
+        saved.setDiscountType(FidelityDiscountType.PERCENTAGE);
 
         when(fidelityPolicyRepository.save(any(FidelityPolicy.class))).thenReturn(saved);
 
         fidelityPolicyService.create(request);
 
-        verify(fidelityPolicyRepository).deactivateAll();
+        verify(fidelityPolicyRepository).deactivateAllByCompanyId(COMPANY_ID);
     }
 
     @Test
     @DisplayName("Deve retornar a política ativa quando existir")
     void shouldReturnActivePolicyWhenExists() {
         FidelityPolicy active = buildPolicy(true);
-        when(fidelityPolicyRepository.findFirstByActiveTrue()).thenReturn(Optional.of(active));
+        when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.of(active));
 
         FidelityPolicyResponse response = fidelityPolicyService.getActive();
 
@@ -92,7 +119,7 @@ class FidelityPolicyServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando não existe política ativa")
     void shouldThrowNotFoundWhenNoActivePolicyExists() {
-        when(fidelityPolicyRepository.findFirstByActiveTrue()).thenReturn(Optional.empty());
+        when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> fidelityPolicyService.getActive());
     }
@@ -101,7 +128,7 @@ class FidelityPolicyServiceTest {
     @DisplayName("Deve listar todas as políticas cadastradas")
     void shouldListAllPolicies() {
         List<FidelityPolicy> policies = List.of(buildPolicy(false), buildPolicy(true));
-        when(fidelityPolicyRepository.findAll()).thenReturn(policies);
+        when(fidelityPolicyRepository.findAllByCompanyIdOrderByCreatedAtDesc(COMPANY_ID)).thenReturn(policies);
 
         List<FidelityPolicyResponse> result = fidelityPolicyService.listAll();
 

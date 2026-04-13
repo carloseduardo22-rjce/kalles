@@ -1,5 +1,6 @@
 package dev.kalles.sale.core.entity;
 
+import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -58,12 +59,25 @@ public class Fidelity {
 
     public void checkObjectivePoints() {
         if (this.points >= policy.getObjectivePoints()) {
-            this.availableDiscount = this.policy.getConfiguredDiscount();
+            BigDecimal reward = this.policy.getConfiguredDiscount();
+            if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
+                this.availableDiscount = this.availableDiscount.add(reward).min(new BigDecimal("100"));
+            } else {
+                this.availableDiscount = this.availableDiscount.add(reward);
+            }
             this.points = 0;
         }
     }
 
     public BigDecimal consumeDiscount(BigDecimal saleTotal) {
+        if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
+            BigDecimal applied = saleTotal
+                    .multiply(this.availableDiscount)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
+                    .min(saleTotal);
+            this.availableDiscount = BigDecimal.ZERO;
+            return applied;
+        }
         BigDecimal applied = this.availableDiscount.min(saleTotal);
         this.availableDiscount = this.availableDiscount.subtract(applied);
         return applied;
@@ -74,6 +88,10 @@ public class Fidelity {
     }
 
     public void rollbackDiscount(BigDecimal amount) {
+        if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
+            this.availableDiscount = this.availableDiscount.add(amount).min(new BigDecimal("100"));
+            return;
+        }
         this.availableDiscount = this.availableDiscount.add(amount);
     }
 

@@ -1,10 +1,10 @@
 package dev.kalles.sale.security.filter;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import dev.kalles.sale.core.repository.CompanyRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import dev.kalles.sale.security.context.PosContextHolder;
 import dev.kalles.sale.security.context.TenantContextHolder;
-import dev.kalles.sale.security.domain.AccountRole;
 import dev.kalles.sale.security.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,7 +29,9 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final CompanyRepository companyRepository;
     public static final String AUTH_COOKIE_NAME = "kalles_auth_token";
+    public static final String COMPANY_HEADER_NAME = "x-company-id";
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, 
@@ -46,6 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 
                 var companyId = decodedJWT.getClaim("companyId").asString();
                 var posId = decodedJWT.getClaim("posId").asString();
+                UUID tenantUuid = UUID.fromString(tenantId);
 
                 // Set Spring Security Context
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
@@ -53,22 +56,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 // Set Tenant Context
-                TenantContextHolder.setTenantId(UUID.fromString(tenantId));
+                TenantContextHolder.setTenantId(tenantUuid);
                 
                 // Set Specific Store Context if present
+                String headerCompanyId = request.getHeader(COMPANY_HEADER_NAME);
                 if (companyId != null && !companyId.trim().isEmpty()) {
-                    CompanyContextHolder.setCompanyId(UUID.fromString(companyId));
-                } else if ("ADMIN".equals(role)) {
-                    String headerCompanyId = request.getHeader("x-company-id");
-                    if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
-                        CompanyContextHolder.setCompanyId(UUID.fromString(headerCompanyId));
+                    UUID tokenCompanyId = UUID.fromString(companyId);
+                    if (headerCompanyId != null && !headerCompanyId.isBlank()
+                            && !tokenCompanyId.equals(UUID.fromString(headerCompanyId))) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Company header conflicts with authenticated company");
+                        return;
                     }
+                    CompanyContextHolder.setCompanyId(tokenCompanyId);
+                } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
+                    UUID requestedCompanyId;
+                    try {
+                        requestedCompanyId = UUID.fromString(headerCompanyId);
+                    } catch (IllegalArgumentException ex) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid company header");
+                        return;
+                    }
+
+                    if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Requested company is not accessible for authenticated tenant");
+                        return;
+                    }
+                    CompanyContextHolder.setCompanyId(requestedCompanyId);
                 }
                 
                 if (posId != null && !posId.trim().isEmpty()) {
                     PosContextHolder.setPosId(UUID.fromString(posId));
                 }
             }
+        }
+
+        if (SecurityContextHolder.getContext().getAuthentication() != null
+                && requiresCompanyContext(request)
+                && CompanyContextHolder.getCompanyId() == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Company context is required for this endpoint");
+            return;
         }
         
         try {
@@ -90,5 +116,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .orElse(null);
         }
         return null;
+    }
+
+    private boolean requiresCompanyContext(HttpServletRequest request) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        return path.startsWith("/api/products")
+                || path.startsWith("/api/warehouses")
+                || path.startsWith("/api/stocks")
+                || path.startsWith("/api/operators")
+                || path.startsWith("/api/cash-registers")
+                || path.startsWith("/api/cash-register-sessions")
+                || path.startsWith("/api/sales")
+                || path.startsWith("/api/clients")
+                || path.startsWith("/api/fidelity")
+                || path.startsWith("/api/fidelity-policies")
+                || path.startsWith("/api/goals")
+                || path.startsWith("/api/reports");
     }
 }

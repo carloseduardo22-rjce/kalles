@@ -23,6 +23,8 @@ import dev.kalles.sale.payment.application.port.in.PrintPaymentDocumentUseCase;
 import dev.kalles.sale.payment.application.port.in.ProcessPaymentUseCase;
 import dev.kalles.sale.payment.application.port.in.ProcessPaymentWebhookUseCase;
 import dev.kalles.sale.payment.application.port.in.RefundPaymentUseCase;
+import dev.kalles.sale.payment.application.service.PaymentProviderOAuthStateService;
+import dev.kalles.sale.security.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -94,6 +96,16 @@ class KallesSaleApplicationTests {
         }
 
         @Bean
+        PaymentProviderOAuthStateService paymentProviderOAuthStateService() {
+            return mock(PaymentProviderOAuthStateService.class);
+        }
+
+        @Bean
+        AccountRepository accountRepository() {
+            return mock(AccountRepository.class);
+        }
+
+        @Bean
         CreatePaymentStoreUseCase createPaymentStoreUseCase() {
             return mock(CreatePaymentStoreUseCase.class);
         }
@@ -155,11 +167,15 @@ class KallesSaleApplicationTests {
         @Bean
         PaymentProviderAccountController paymentProviderAccountController(
                 LinkPaymentProviderAccountUseCase linkPaymentProviderAccountUseCase,
-                GetPaymentProviderAccountStatusUseCase getPaymentProviderAccountStatusUseCase
+                GetPaymentProviderAccountStatusUseCase getPaymentProviderAccountStatusUseCase,
+                PaymentProviderOAuthStateService paymentProviderOAuthStateService,
+                AccountRepository accountRepository
         ) {
             return new PaymentProviderAccountController(
                     linkPaymentProviderAccountUseCase,
-                    getPaymentProviderAccountStatusUseCase
+                    getPaymentProviderAccountStatusUseCase,
+                    paymentProviderOAuthStateService,
+                    accountRepository
             );
         }
 

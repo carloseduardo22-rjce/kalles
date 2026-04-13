@@ -1,6 +1,8 @@
 package dev.kalles.sale.core.repository;
 
 import dev.kalles.sale.core.entity.Client;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,5 +13,11 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
 
     Optional<Client> findByCpf(String cpf);
 
-    List<Client> findAllByOrderByNameAsc();
+    Optional<Client> findByCpfAndCompanyId(String cpf, UUID companyId);
+
+    Optional<Client> findByIdAndCompanyId(UUID id, UUID companyId);
+
+    List<Client> findAllByCompanyIdOrderByNameAsc(UUID companyId);
+
+    Page<Client> findAllByCompanyIdOrderByNameAsc(UUID companyId, Pageable pageable);
 }

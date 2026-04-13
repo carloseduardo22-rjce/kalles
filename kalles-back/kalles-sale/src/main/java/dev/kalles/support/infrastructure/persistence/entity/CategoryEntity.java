@@ -14,7 +14,7 @@ import java.util.UUID;
     schema = "support",
     comment = "Ticket categories that define default priority",
     indexes = {
-        @Index(name = "idx_categories_name_subcategory", columnList = "name, subcategory", unique = true)
+        @Index(name = "idx_categories_tenant_name_subcategory", columnList = "tenant_id, name, subcategory", unique = true)
     }
 )
 @Getter
@@ -25,6 +25,9 @@ public class CategoryEntity extends BaseAuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
 
     @Column(nullable = false, length = 150)
     private String name;

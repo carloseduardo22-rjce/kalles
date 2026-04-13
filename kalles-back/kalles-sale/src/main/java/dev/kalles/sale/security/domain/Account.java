@@ -14,7 +14,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "account")
+@Table(
+        name = "account",
+        uniqueConstraints = @UniqueConstraint(name = "uk_account_email_tenant", columnNames = {"email", "tenant_id"}),
+        indexes = @Index(name = "idx_account_email_tenant", columnList = "email, tenant_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,7 +37,7 @@ public class Account implements UserDetails {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Column(name = "password_hash", nullable = false)

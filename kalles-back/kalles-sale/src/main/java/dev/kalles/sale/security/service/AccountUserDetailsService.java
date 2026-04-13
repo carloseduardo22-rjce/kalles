@@ -15,7 +15,13 @@ public class AccountUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return accountRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        var matches = accountRepository.findAllByEmailIgnoreCase(username);
+        if (matches.isEmpty()) {
+            throw new UsernameNotFoundException("User not found with email: " + username);
+        }
+        if (matches.size() > 1) {
+            throw new UsernameNotFoundException("Tenant is required for duplicated email: " + username);
+        }
+        return matches.getFirst();
     }
 }

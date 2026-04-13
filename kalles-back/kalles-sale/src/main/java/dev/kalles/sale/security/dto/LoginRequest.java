@@ -9,5 +9,11 @@ public record LoginRequest(
     String email,
 
     @NotBlank(message = "Senha é obrigatória")
-    String password
-) {}
+    String password,
+
+    String tenantId
+) {
+    public LoginRequest(String email, String password) {
+        this(email, password, null);
+    }
+}

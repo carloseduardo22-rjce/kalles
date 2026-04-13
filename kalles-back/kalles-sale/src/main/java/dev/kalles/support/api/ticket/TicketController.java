@@ -1,5 +1,6 @@
 package dev.kalles.support.api.ticket;
 
+import dev.kalles.sale.api.dto.PageResponse;
 import dev.kalles.support.application.dto.AgentMessageRequest;
 import dev.kalles.support.application.dto.AssignTicketRequest;
 import dev.kalles.support.application.dto.CustomerMessageRequest;
@@ -52,6 +53,25 @@ public class TicketController {
         );
     }
 
+    @GetMapping("/page")
+    @Operation(summary = "List accessible tickets with pagination")
+    public ResponseEntity<PageResponse<TicketResponse>> listPage(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        return ResponseEntity.ok(PageResponse.from(
+                ticketService.listAccessiblePage(
+                                Optional.ofNullable(status),
+                                authentication.getName(),
+                                isAdmin(authentication),
+                                page,
+                                size
+                        )
+                        .map(TicketResponse::from)
+        ));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get accessible ticket by ID")
     @ApiResponses({
@@ -82,7 +102,9 @@ public class TicketController {
     @Operation(summary = "Assign an agent")
     public ResponseEntity<TicketResponse> assignTicket(
             @PathVariable UUID id,
-            @Valid @RequestBody AssignTicketRequest request) {
+            @Valid @RequestBody AssignTicketRequest request,
+            Authentication authentication) {
+        requireAdmin(authentication);
         return ResponseEntity.ok(TicketResponse.from(ticketService.assignTicket(id, request.agentId())));
     }
 
@@ -143,14 +165,16 @@ public class TicketController {
 
     @GetMapping("/agent/{agentId}")
     @Operation(summary = "List tickets by agent")
-    public ResponseEntity<List<TicketResponse>> findByAgent(@PathVariable UUID agentId) {
+    public ResponseEntity<List<TicketResponse>> findByAgent(@PathVariable UUID agentId, Authentication authentication) {
+        requireAdmin(authentication);
         return ResponseEntity.ok(
                 ticketService.findByAgent(agentId).stream().map(TicketResponse::from).toList());
     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "List tickets by user")
-    public ResponseEntity<List<TicketResponse>> findByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<TicketResponse>> findByUser(@PathVariable UUID userId, Authentication authentication) {
+        requireAdmin(authentication);
         return ResponseEntity.ok(
                 ticketService.findByUser(userId).stream().map(TicketResponse::from).toList());
     }

@@ -1,5 +1,7 @@
 package dev.kalles.support.application.service;
 
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.support.application.exception.NotFoundException;
@@ -15,6 +17,8 @@ import dev.kalles.support.infrastructure.persistence.entity.UserEntity;
 import dev.kalles.support.infrastructure.persistence.mapper.TicketMapper;
 import dev.kalles.support.infrastructure.persistence.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,17 +40,41 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<Ticket> listAccessible(Optional<TicketStatus> status, String actorEmail, boolean isAdmin) {
+        UUID tenantId = currentTenantId();
         List<TicketEntity> entities;
         if (isAdmin) {
             entities = status
-                    .map(ticketRepository::findAllByStatusOrderByCreatedAtDesc)
-                    .orElseGet(ticketRepository::findAllByOrderByCreatedAtDesc);
+                    .map(value -> ticketRepository.findAllByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, value))
+                    .orElseGet(() -> ticketRepository.findAllByTenantIdOrderByCreatedAtDesc(tenantId));
         } else {
             entities = status
-                    .map(value -> ticketRepository.findAllByUserEmailAndStatusOrderByCreatedAtDesc(actorEmail, value))
-                    .orElseGet(() -> ticketRepository.findAllByUserEmailOrderByCreatedAtDesc(actorEmail));
+                    .map(value -> ticketRepository.findAllByTenantIdAndUserEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(tenantId, actorEmail, value))
+                    .orElseGet(() -> ticketRepository.findAllByTenantIdAndUserEmailIgnoreCaseOrderByCreatedAtDesc(tenantId, actorEmail));
         }
         return entities.stream().map(mapper::toDomain).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> listAccessiblePage(
+            Optional<TicketStatus> status,
+            String actorEmail,
+            boolean isAdmin,
+            int page,
+            int size
+    ) {
+        UUID tenantId = currentTenantId();
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<TicketEntity> entities;
+        if (isAdmin) {
+            entities = status
+                    .map(value -> ticketRepository.findAllByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, value, pageRequest))
+                    .orElseGet(() -> ticketRepository.findAllByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest));
+        } else {
+            entities = status
+                    .map(value -> ticketRepository.findAllByTenantIdAndUserEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(tenantId, actorEmail, value, pageRequest))
+                    .orElseGet(() -> ticketRepository.findAllByTenantIdAndUserEmailIgnoreCaseOrderByCreatedAtDesc(tenantId, actorEmail, pageRequest));
+        }
+        return entities.map(mapper::toDomain);
     }
 
     @Transactional(readOnly = true)
@@ -60,13 +88,13 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<Ticket> findByAgent(UUID agentId) {
-        return ticketRepository.findAllByAgentIdOrderByCreatedAtDesc(agentId)
+        return ticketRepository.findAllByTenantIdAndAgentIdOrderByCreatedAtDesc(currentTenantId(), agentId)
                 .stream().map(mapper::toDomain).toList();
     }
 
     @Transactional(readOnly = true)
     public List<Ticket> findByUser(UUID userId) {
-        return ticketRepository.findAllByUserIdOrderByCreatedAtDesc(userId)
+        return ticketRepository.findAllByTenantIdAndUserIdOrderByCreatedAtDesc(currentTenantId(), userId)
                 .stream().map(mapper::toDomain).toList();
     }
 
@@ -81,6 +109,8 @@ public class TicketService {
         Ticket ticket = Ticket.open(title, description, user, category);
 
         TicketEntity entity = mapper.toEntity(ticket, userEntity, null, categoryEntity);
+        entity.setTenantId(account.getTenantId());
+        entity.setCompanyId(CompanyContextHolder.getCompanyId());
         ticketRepository.save(entity);
         return mapper.toDomain(entity);
     }
@@ -143,12 +173,12 @@ public class TicketService {
     }
 
     private TicketEntity findTicketEntity(UUID ticketId) {
-        return ticketRepository.findWithDetailsById(ticketId)
+        return ticketRepository.findWithDetailsByIdAndTenantId(ticketId, currentTenantId())
                 .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
     }
 
     private Account findAccount(String actorEmail) {
-        return accountRepository.findByEmail(actorEmail)
+        return accountRepository.findByTenantIdAndEmailIgnoreCase(currentTenantId(), actorEmail)
                 .orElseThrow(() -> new NotFoundException("Account not found: " + actorEmail));
     }
 
@@ -172,5 +202,13 @@ public class TicketService {
 
         ticketRepository.save(ticketEntity);
         return mapper.toDomain(ticketEntity);
+    }
+
+    private UUID currentTenantId() {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context is required for support tickets");
+        }
+        return tenantId;
     }
 }

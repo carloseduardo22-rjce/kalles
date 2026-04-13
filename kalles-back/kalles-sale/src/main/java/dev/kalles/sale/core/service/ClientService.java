@@ -5,163 +5,110 @@ import dev.kalles.sale.core.dto.ClientResponse;
 import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ClientRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class ClientService {
 
-    private static final String BRAZIL_COUNTRY_CODE = "+55";
-    private static final Pattern NON_DIGITS_PATTERN = Pattern.compile("\\D");
-    private static final Pattern BRAZILIAN_MOBILE_PATTERN = Pattern.compile("^[1-9]{2}9\\d{8}$");
-
     private final ClientRepository clientRepository;
-
-    @Transactional
-    public ClientResponse create(ClientRequest request) {
-        NormalizedClientData normalized = normalize(request);
-
-        if (normalized.cpf() != null && !normalized.cpf().isBlank()) {
-            clientRepository.findByCpf(normalized.cpf()).ifPresent(existing -> {
-                throw new IllegalArgumentException("Já existe um cliente cadastrado com o CPF informado.");
-            });
-        }
-
-        Client client = new Client();
-        apply(client, normalized);
-        return ClientResponse.from(clientRepository.save(client));
-    }
-
-    @Transactional(readOnly = true)
-    public ClientResponse findById(UUID id) {
-        return clientRepository.findById(id)
-                .map(ClientResponse::from)
-                .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
-    }
 
     @Transactional(readOnly = true)
     public List<ClientResponse> listAll() {
-        return clientRepository.findAllByOrderByNameAsc()
+        return clientRepository.findAllByCompanyIdOrderByNameAsc(getCompanyId())
                 .stream()
                 .map(ClientResponse::from)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<ClientResponse> listPage(int page, int size) {
+        return clientRepository.findAllByCompanyIdOrderByNameAsc(
+                        getCompanyId(),
+                        PageRequest.of(page, size)
+                )
+                .map(ClientResponse::from);
+    }
+
+    @Transactional
+    public ClientResponse create(ClientRequest request) {
+        UUID companyId = getCompanyId();
+
+        if (request.cpf() != null && !request.cpf().isBlank()) {
+            clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
+                throw new IllegalArgumentException("Já existe um cliente com o CPF informado nesta filial.");
+            });
+        }
+
+        Client client = new Client();
+        client.setCompanyId(companyId);
+        client.setName(request.name());
+        client.setCpf(request.cpf());
+        client.setGender(request.gender());
+        client.setCodeCountry(request.codeCountry());
+        client.setCellphone(request.cellphone());
+        client.setBirthDate(request.birthDate());
+        client.setRg(request.rg());
+        client.setNameFather(request.nameFather());
+        client.setNameMother(request.nameMother());
+        client.setObservations(request.observations());
+        return ClientResponse.from(clientRepository.save(client));
+    }
+
+    @Transactional(readOnly = true)
+    public ClientResponse findById(UUID id) {
+        return clientRepository.findByIdAndCompanyId(id, getCompanyId())
+                .map(ClientResponse::from)
+                .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
+    }
+
     @Transactional
     public ClientResponse update(UUID id, ClientRequest request) {
-        Client client = clientRepository.findById(id)
+        UUID companyId = getCompanyId();
+        Client client = clientRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
-        NormalizedClientData normalized = normalize(request);
 
-        if (normalized.cpf() != null && !normalized.cpf().isBlank()) {
-            clientRepository.findByCpf(normalized.cpf()).ifPresent(existing -> {
+        if (request.cpf() != null && !request.cpf().isBlank()) {
+            clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
-                    throw new IllegalArgumentException("Já existe um cliente cadastrado com o CPF informado.");
+                    throw new IllegalArgumentException("Já existe um cliente com o CPF informado nesta filial.");
                 }
             });
         }
 
-        apply(client, normalized);
+        client.setName(request.name());
+        client.setCpf(request.cpf());
+        client.setGender(request.gender());
+        client.setCodeCountry(request.codeCountry());
+        client.setCellphone(request.cellphone());
+        client.setBirthDate(request.birthDate());
+        client.setRg(request.rg());
+        client.setNameFather(request.nameFather());
+        client.setNameMother(request.nameMother());
+        client.setObservations(request.observations());
         return ClientResponse.from(clientRepository.save(client));
     }
 
     @Transactional
     public void delete(UUID id) {
-        if (!clientRepository.existsById(id)) {
-            throw new NotFoundException("Cliente não encontrado: " + id);
+        Client client = clientRepository.findByIdAndCompanyId(id, getCompanyId())
+                .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
+        clientRepository.delete(client);
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
         }
-        clientRepository.deleteById(id);
-    }
-
-    private void apply(Client client, NormalizedClientData normalized) {
-        client.setName(normalized.name());
-        client.setBirthDate(normalized.birthDate());
-        client.setGender(normalized.gender());
-        client.setCpf(normalized.cpf());
-        client.setCodeCountry(normalized.codeCountry());
-        client.setCellphone(normalized.cellphone());
-        client.setRg(normalized.rg());
-        client.setNameFather(normalized.nameFather());
-        client.setNameMother(normalized.nameMother());
-        client.setObservations(normalized.observations());
-    }
-
-    private NormalizedClientData normalize(ClientRequest request) {
-        String cellphone = normalizeCellphone(request.cellphone());
-
-        return new NormalizedClientData(
-                trimToNull(request.name()),
-                request.birthDate(),
-                request.gender(),
-                normalizeCpf(request.cpf()),
-                normalizeCodeCountry(request.codeCountry(), cellphone),
-                cellphone,
-                trimToNull(request.rg()),
-                trimToNull(request.nameFather()),
-                trimToNull(request.nameMother()),
-                trimToNull(request.observations())
-        );
-    }
-
-    private String normalizeCpf(String cpf) {
-        String digits = digitsOnly(cpf);
-        return digits.isBlank() ? null : digits;
-    }
-
-    private String normalizeCellphone(String cellphone) {
-        String digits = digitsOnly(cellphone);
-        if (digits.isBlank()) {
-            return null;
-        }
-        if (!BRAZILIAN_MOBILE_PATTERN.matcher(digits).matches()) {
-            throw new IllegalArgumentException("Celular deve ser um número brasileiro válido com 11 dígitos.");
-        }
-        return digits;
-    }
-
-    private String normalizeCodeCountry(String codeCountry, String cellphone) {
-        String digits = digitsOnly(codeCountry);
-
-        if (cellphone == null) {
-            return digits.isBlank() ? null : BRAZIL_COUNTRY_CODE;
-        }
-        if (!digits.isBlank() && !"55".equals(digits)) {
-            throw new IllegalArgumentException("Código do país do celular deve ser +55.");
-        }
-
-        return BRAZIL_COUNTRY_CODE;
-    }
-
-    private String digitsOnly(String value) {
-        return value == null ? "" : NON_DIGITS_PATTERN.matcher(value).replaceAll("");
-    }
-
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isBlank() ? null : trimmed;
-    }
-
-    private record NormalizedClientData(
-            String name,
-            LocalDate birthDate,
-            Character gender,
-            String cpf,
-            String codeCountry,
-            String cellphone,
-            String rg,
-            String nameFather,
-            String nameMother,
-            String observations
-    ) {
+        return companyId;
     }
 }

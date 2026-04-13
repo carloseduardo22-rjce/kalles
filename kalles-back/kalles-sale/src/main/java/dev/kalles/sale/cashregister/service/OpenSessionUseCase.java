@@ -11,9 +11,12 @@ import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.cashregister.validator.SessionValidator;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 public class OpenSessionUseCase {
@@ -42,14 +45,16 @@ public class OpenSessionUseCase {
     public SessionResponse execute(OpenSessionRequest request) {
         validatorChain.validate(request);
 
+        UUID companyId = getCompanyId();
+
         CashRegister cashRegister = cashRegisterRepository
-            .findByCode(request.cashRegisterCode())
+            .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)
             .orElseThrow(() -> new CashRegisterNotFoundException(request.cashRegisterCode()));
 
         pairedDeviceSessionGuard.ensureCanOperate(cashRegister);
 
         Operator operator = operatorRepository
-            .findByCode(request.operatorCode())
+            .findByCodeAndCompanyId(request.operatorCode(), companyId)
             .orElseThrow(() -> new OperatorNotFoundException(request.operatorCode()));
 
         CashRegisterSession session = CashRegisterSession.open(
@@ -61,5 +66,13 @@ public class OpenSessionUseCase {
         CashRegisterSession savedSession = sessionRepository.save(session);
 
         return SessionResponse.fromEntity(savedSession);
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 }

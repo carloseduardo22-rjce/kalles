@@ -16,6 +16,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/shared/services/api";
+import { setSessionScopedItem } from "@/shared/utils/session-storage";
+
+type RegisterResponse = {
+  tenantId?: string;
+};
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,13 +41,25 @@ export default function RegisterPage() {
     e.preventDefault();
     try {
       setIsLoading(true);
-      await api.post("/api/auth/register", {
+      const response = await api.post<RegisterResponse>("/api/auth/register", {
         name: formData.name,
         companyName: formData.companyName,
         email: formData.email,
         password: formData.password,
       });
+      const tenantId = response?.tenantId;
+      if (tenantId) {
+        setSessionScopedItem(`@kalles:tenantId:${formData.email}`, tenantId);
+      }
       toast.success("Conta criada! Verifique seu e-mail.");
+      if (tenantId) {
+        const params = new URLSearchParams({
+          email: formData.email,
+          tenantId,
+        });
+        router.push(`/verify?${params.toString()}`);
+        return;
+      }
       router.push(`/verify?email=${encodeURIComponent(formData.email)}`); // Redireciona para confirmação de email
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta. Tente novamente.");

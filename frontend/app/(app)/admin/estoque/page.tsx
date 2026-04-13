@@ -31,6 +31,7 @@ import { productService } from "@/features/sales/services/product.service";
 import { formatCurrency } from "@/shared/utils/formatters";
 import type { StockRequest, StockResponse } from "@/features/admin/types";
 import type { ProductResponse } from "@/features/sales/types";
+import { normalizeStockRequest } from "@/features/admin/utils/form-normalization";
 
 function StockForm({
   products,
@@ -279,8 +280,11 @@ export default function EstoquePage() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex w-72 shrink-0 flex-col border-r">
+    <div className="flex h-full overflow-hidden" data-onboarding="stock-page">
+      <div
+        className="flex w-72 shrink-0 flex-col border-r"
+        data-onboarding="stock-products"
+      >
         <div className="flex items-center gap-2 border-b bg-card px-3 py-3">
           <Package className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold">Produtos</span>
@@ -335,7 +339,10 @@ export default function EstoquePage() {
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center gap-2 border-b bg-card px-4 py-3 shadow-sm">
+        <header
+          className="flex items-center gap-2 border-b bg-card px-4 py-3 shadow-sm"
+          data-onboarding="stock-header"
+        >
           <Layers className="h-5 w-5 text-primary" />
           <div>
             <h1 className="text-sm font-semibold leading-none">
@@ -353,7 +360,7 @@ export default function EstoquePage() {
           </Button>
         </header>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4" data-onboarding="stock-content">
           {!selectedProductId ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
               <Layers className="h-12 w-12 opacity-20" />
@@ -446,7 +453,7 @@ export default function EstoquePage() {
           </DialogHeader>
           <StockForm
             products={products}
-            onSubmit={(data) => setStockMutation.mutate(data)}
+            onSubmit={(data) => setStockMutation.mutate(normalizeStockRequest(data))}
             isPending={setStockMutation.isPending}
             onCancel={() => setSetStockOpen(false)}
           />

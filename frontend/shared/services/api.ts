@@ -1,3 +1,5 @@
+import { getSessionScopedItem } from "@/shared/utils/session-storage";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export class ApiError extends Error {
@@ -14,6 +16,7 @@ export class ApiError extends Error {
 type HttpHeaders = Record<string, string>;
 
 let refreshInFlight: Promise<boolean> | null = null;
+let csrfInFlight: Promise<void> | null = null;
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -72,15 +75,54 @@ const getActiveCompanyHeader = (): HttpHeaders => {
     return {};
   }
 
-  const activeCompanyId = localStorage.getItem("@kalles:activeCompanyId");
+  const activeCompanyId = getSessionScopedItem("@kalles:activeCompanyId");
   return activeCompanyId ? { "X-Company-ID": activeCompanyId } : {};
 };
 
-const buildHeaders = (headers?: HttpHeaders): HttpHeaders => ({
-  "Content-Type": "application/json",
-  ...getActiveCompanyHeader(),
-  ...headers,
-});
+const getCookieValue = (name: string): string | null => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${name.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&")}=([^;]*)`),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+async function ensureCsrfToken(): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (getCookieValue("XSRF-TOKEN")) {
+    return;
+  }
+
+  if (!csrfInFlight) {
+    csrfInFlight = fetch(buildUrl("/api/auth/csrf"), {
+      method: "GET",
+      credentials: "include",
+    })
+      .then(() => undefined)
+      .finally(() => {
+        csrfInFlight = null;
+      });
+  }
+
+  return csrfInFlight;
+}
+
+const buildHeaders = (headers?: HttpHeaders): HttpHeaders => {
+  const csrfToken = getCookieValue("XSRF-TOKEN");
+
+  return {
+    "Content-Type": "application/json",
+    ...getActiveCompanyHeader(),
+    ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+    ...headers,
+  };
+};
 
 const buildUrl = (
   path: string,
@@ -152,6 +194,15 @@ async function requestWithRefresh<T>(
   init: RequestInit,
   hasRetried = false,
 ): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    await ensureCsrfToken();
+    init = {
+      ...init,
+      headers: buildHeaders(init.headers as HttpHeaders | undefined),
+    };
+  }
+
   const response = await fetch(input, init);
 
   if (

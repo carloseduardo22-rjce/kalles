@@ -1,20 +1,30 @@
 package dev.kalles.sale.core.service;
 
+import dev.kalles.sale.core.dto.CompanyProductListItem;
+import dev.kalles.sale.core.dto.ProductCatalogResponse;
 import dev.kalles.sale.core.dto.ProductRequest;
-import dev.kalles.sale.core.dto.ProductResponse;
+import dev.kalles.sale.core.dto.ProductStockSummary;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.entity.CompanyProduct;
+import dev.kalles.sale.core.repository.CompanyProductReadRepository;
 import dev.kalles.sale.core.repository.CompanyProductRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
+import dev.kalles.sale.core.repository.ProductStockQueryRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import dev.kalles.sale.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,48 +32,70 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CompanyProductRepository companyProductRepository;
+    private final CompanyProductReadRepository companyProductReadRepository;
+    private final ProductStockQueryRepository productStockQueryRepository;
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> listAllActive() {
-        return productRepository.findAllActiveWithStock(getCompanyId());
+    public List<ProductCatalogResponse> listAllActive() {
+        UUID companyId = getCompanyId();
+        List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, false);
+        return enrichWithStock(companyId, catalog);
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> listAll() {
-        return productRepository.findAllWithStock(getCompanyId());
+    public List<ProductCatalogResponse> listAll() {
+        UUID companyId = getCompanyId();
+        List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, true);
+        return enrichWithStock(companyId, catalog);
     }
 
     @Transactional(readOnly = true)
-    public ProductResponse findById(UUID id) {
-        return productRepository.findProductWithStockById(id, getCompanyId())
+    public Page<ProductCatalogResponse> listPage(boolean includeInactive, int page, int size) {
+        UUID companyId = getCompanyId();
+        Page<CompanyProductListItem> catalogPage = companyProductReadRepository.listCatalogPage(
+                companyId,
+                includeInactive,
+                PageRequest.of(page, size)
+        );
+        List<ProductCatalogResponse> content = enrichWithStock(companyId, catalogPage.getContent());
+        return new PageImpl<>(content, catalogPage.getPageable(), catalogPage.getTotalElements());
+    }
+
+    @Transactional(readOnly = true)
+    public ProductCatalogResponse findById(UUID id) {
+        UUID companyId = getCompanyId();
+        List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, true);
+        CompanyProductListItem item = catalog.stream()
+                .filter(c -> c.productId().equals(id))
+                .findFirst()
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
+        Map<UUID, Long> stockMap = buildStockMap(companyId, List.of(id));
+        return ProductCatalogResponse.from(item, stockMap.getOrDefault(id, 0L));
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> searchActive(String q) {
-        return productRepository.searchActiveProductsWithStock(q, getCompanyId());
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
+    public List<ProductCatalogResponse> searchActive(String q) {
+        UUID companyId = getCompanyId();
+        List<CompanyProductListItem> catalog = companyProductReadRepository.searchActiveCatalog(companyId, q);
+        return enrichWithStock(companyId, catalog);
     }
 
     @Transactional
-    public ProductResponse create(ProductRequest request) {
-        productRepository.findByInternalCode(request.internalCode()).ifPresent(existing -> {
+    public ProductCatalogResponse create(ProductRequest request) {
+        UUID tenantId = TenantContextHolder.getTenantId();
+
+        // Tenant-scoped uniqueness check
+        productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             throw new IllegalArgumentException("Já existe um produto com o código interno informado.");
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
-            productRepository.findByBarcode(request.barcode()).ifPresent(existing -> {
+            productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
                 throw new IllegalArgumentException("Já existe um produto com o código de barras informado.");
             });
         }
+
         Product product = new Product();
-        product.setTenantId(TenantContextHolder.getTenantId());
+        product.setTenantId(tenantId);
         product.setName(request.name());
         product.setInternalCode(request.internalCode());
         product.setBarcode(request.barcode());
@@ -82,17 +114,19 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse update(UUID id, ProductRequest request) {
-        Product product = productRepository.findById(id)
+    public ProductCatalogResponse update(UUID id, ProductRequest request) {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        Product product = productRepository.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
 
-        productRepository.findByInternalCode(request.internalCode()).ifPresent(existing -> {
+        // Tenant-scoped uniqueness check
+        productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new IllegalArgumentException("Já existe um produto com o código interno informado.");
             }
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
-            productRepository.findByBarcode(request.barcode()).ifPresent(existing -> {
+            productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
                     throw new IllegalArgumentException("Já existe um produto com o código de barras informado.");
                 }
@@ -126,5 +160,28 @@ public class ProductService {
                 .orElseThrow(() -> new NotFoundException("Produto não configurado nesta filial."));
         cp.setActive(false);
         companyProductRepository.save(cp);
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
+    }
+
+    private List<ProductCatalogResponse> enrichWithStock(UUID companyId, List<CompanyProductListItem> catalog) {
+        if (catalog.isEmpty()) return Collections.emptyList();
+        List<UUID> productIds = catalog.stream().map(CompanyProductListItem::productId).toList();
+        Map<UUID, Long> stockMap = buildStockMap(companyId, productIds);
+        return catalog.stream()
+                .map(item -> ProductCatalogResponse.from(item, stockMap.getOrDefault(item.productId(), 0L)))
+                .toList();
+    }
+
+    private Map<UUID, Long> buildStockMap(UUID companyId, List<UUID> productIds) {
+        return productStockQueryRepository.summarizeByCompany(companyId, productIds)
+                .stream()
+                .collect(Collectors.toMap(ProductStockSummary::productId, ProductStockSummary::totalQuantity));
     }
 }

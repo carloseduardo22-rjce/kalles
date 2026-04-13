@@ -8,13 +8,18 @@ import type {
 } from "../types";
 import { cashRegisterService } from "../services/cash-register.service";
 import { ApiError } from "@/shared/services/api";
+import {
+  getSessionScopedItem,
+  removeSessionScopedItem,
+  setSessionScopedItem,
+} from "@/shared/utils/session-storage";
 
 const STORAGE_KEY = "kalles:active-session";
 
 function readSession(): ActiveSession | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = getSessionScopedItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as ActiveSession) : null;
   } catch {
     return null;
@@ -22,11 +27,11 @@ function readSession(): ActiveSession | null {
 }
 
 function saveSession(session: ActiveSession): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  setSessionScopedItem(STORAGE_KEY, JSON.stringify(session));
 }
 
 function clearSession(): void {
-  window.localStorage.removeItem(STORAGE_KEY);
+  removeSessionScopedItem(STORAGE_KEY);
 }
 
 interface UseSessionReturn {

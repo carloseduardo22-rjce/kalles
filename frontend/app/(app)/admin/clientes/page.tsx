@@ -220,20 +220,22 @@ function ClientForm({
 export default function ClientesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ClientResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClientResponse | null>(null);
 
   const {
-    data: clients = [],
+    data: clientPage,
     isLoading,
     error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["admin-clients"],
-    queryFn: () => clientService.listAll(),
+    queryKey: ["admin-clients", page],
+    queryFn: () => clientService.listPage(page, 25),
   });
+  const clients = clientPage?.content ?? [];
 
   const clientIds = clients.map((c) => c.id);
 
@@ -311,18 +313,21 @@ export default function ClientesPage() {
     : clients;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden" data-onboarding="clients-page">
       {/* ─── Header ─── */}
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm">
+      <header
+        className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm"
+        data-onboarding="clients-header"
+      >
         <Users className="h-5 w-5 text-primary" />
         <div>
-          <h1 className="text-sm font-semibold leading-none">Clientes</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {isLoading
-              ? "Carregando..."
-              : `${clients.length} cliente(s) cadastrado(s)`}
-          </p>
-        </div>
+            <h1 className="text-sm font-semibold leading-none">Clientes</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isLoading
+                ? "Carregando..."
+                : `${clientPage?.totalElements ?? 0} cliente(s) cadastrado(s)`}
+            </p>
+          </div>
         <div className="ml-auto flex items-center gap-2">
           <Button
             variant="ghost"
@@ -343,7 +348,7 @@ export default function ClientesPage() {
       </header>
 
       {/* ─── Search ─── */}
-      <div className="border-b bg-muted/30 px-4 py-3">
+      <div className="border-b bg-muted/30 px-4 py-3" data-onboarding="clients-filters">
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -355,8 +360,39 @@ export default function ClientesPage() {
         </div>
       </div>
 
+      <footer className="flex items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground">
+        <span>
+          Pagina {clientPage ? clientPage.page + 1 : 1} de{" "}
+          {clientPage?.totalPages || 1}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((current) => Math.max(current - 1, 0))}
+            disabled={page === 0 || isFetching}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setPage((current) =>
+                clientPage && current + 1 < clientPage.totalPages
+                  ? current + 1
+                  : current,
+              )
+            }
+            disabled={!clientPage || page + 1 >= clientPage.totalPages || isFetching}
+          >
+            Proxima
+          </Button>
+        </div>
+      </footer>
+
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" data-onboarding="clients-content">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando clientes..." />

@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { SensitiveInfo } from "./sensitive-mark";
 
-const SENSITIVE_PLACEHOLDER = "Informação sensível";
+const SENSITIVE_PLACEHOLDER = "InformaÃ§Ã£o sensÃ­vel";
 
 interface TipTapEditorProps {
   content: string;
@@ -56,9 +56,9 @@ export function TipTapEditor({
       },
       handleClick(_view, _pos, event) {
         const target = event.target as HTMLElement | null;
-        const sensitiveElement = target?.closest("[data-sensitive='true']") as
-          | HTMLElement
-          | null;
+        const sensitiveElement = target?.closest(
+          "[data-sensitive='true']",
+        ) as HTMLElement | null;
 
         if (!sensitiveElement) {
           return false;
@@ -92,7 +92,7 @@ export function TipTapEditor({
 
     const currentSelection = editor.state.doc.textBetween(from, to, " ").trim();
     if (!currentSelection) {
-      toast.info("Selecione um texto válido para proteger.");
+      toast.info("Selecione um texto vÃ¡lido para proteger.");
       return;
     }
 
@@ -103,13 +103,15 @@ export function TipTapEditor({
 
   const confirmSensitiveProtect = async () => {
     if (!protectSecret.trim()) {
-      toast.error("Informe o segredo que será exigido para revelar o conteúdo.");
+      toast.error(
+        "Informe o segredo que serÃ¡ exigido para revelar o conteÃºdo.",
+      );
       return;
     }
 
     const { from, to } = editor.state.selection;
     if (from === to) {
-      toast.error("A seleção foi perdida. Selecione o texto novamente.");
+      toast.error("A seleÃ§Ã£o foi perdida. Selecione o texto novamente.");
       setProtectOpen(false);
       return;
     }
@@ -117,7 +119,10 @@ export function TipTapEditor({
     setProtecting(true);
 
     try {
-      const token = await onEncryptSensitive(selectedText, protectSecret.trim());
+      const token = await onEncryptSensitive(
+        selectedText,
+        protectSecret.trim(),
+      );
 
       editor
         .chain()
@@ -142,7 +147,7 @@ export function TipTapEditor({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Não foi possível proteger esse conteúdo agora.",
+          : "NÃ£o foi possÃ­vel proteger esse conteÃºdo agora.",
       );
     } finally {
       setProtecting(false);
@@ -151,7 +156,7 @@ export function TipTapEditor({
 
   const confirmRevealSensitive = async () => {
     if (!revealSecret.trim()) {
-      toast.error("Informe o segredo para visualizar o conteúdo.");
+      toast.error("Informe o segredo para visualizar o conteÃºdo.");
       return;
     }
 
@@ -164,7 +169,7 @@ export function TipTapEditor({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Não foi possível revelar esse conteúdo.",
+          : "NÃ£o foi possÃ­vel revelar esse conteÃºdo.",
       );
       setRevealedText("");
     } finally {
@@ -199,7 +204,9 @@ export function TipTapEditor({
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive("bulletList") ? "bg-white shadow-sm" : ""}
+            className={
+              editor.isActive("bulletList") ? "bg-white shadow-sm" : ""
+            }
           >
             <List className="h-4 w-4" />
           </Button>
@@ -212,10 +219,10 @@ export function TipTapEditor({
             size="sm"
             onClick={handleSensitiveProtect}
             className="border-amber-300 bg-white text-amber-900 hover:bg-amber-50"
-            title="Proteger seleção"
+            title="Proteger seleÃ§Ã£o"
           >
             <ShieldAlert className="mr-2 h-4 w-4" />
-            Proteger seleção
+            Proteger seleÃ§Ã£o
           </Button>
         </div>
 
@@ -225,11 +232,11 @@ export function TipTapEditor({
           <div className="flex items-start gap-2">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Selecione um trecho e clique em <strong>Proteger seleção</strong>.
-              O texto original sai da nota, fica armazenado com segurança e no
-              lugar entra um marcador de informação sensível. Para ver de novo,
+              Selecione um trecho e clique em <strong>Proteger seleÃ§Ã£o</strong>.
+              O texto original sai da nota, fica armazenado com seguranÃ§a e no
+              lugar entra um marcador de informaÃ§Ã£o sensÃ­vel. Para ver de novo,
               basta clicar no marcador e informar o mesmo segredo usado na
-              proteção.
+              proteÃ§Ã£o.
             </p>
           </div>
         </div>
@@ -238,10 +245,10 @@ export function TipTapEditor({
       <Dialog open={protectOpen} onOpenChange={setProtectOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Proteger conteúdo sensível</DialogTitle>
+            <DialogTitle>Proteger conteÃºdo sensÃ­vel</DialogTitle>
             <DialogDescription>
-              O trecho abaixo será substituído por um marcador na nota. Para
-              revelar depois, será necessário informar este mesmo segredo.
+              O trecho abaixo serÃ¡ substituÃ­do por um marcador na nota. Para
+              revelar depois, serÃ¡ necessÃ¡rio informar este mesmo segredo.
             </DialogDescription>
           </DialogHeader>
 
@@ -283,7 +290,7 @@ export function TipTapEditor({
               ) : (
                 <ShieldAlert className="mr-2 h-4 w-4" />
               )}
-              Confirmar proteção
+              Confirmar proteÃ§Ã£o
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,9 +299,9 @@ export function TipTapEditor({
       <Dialog open={revealOpen} onOpenChange={setRevealOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Revelar informação sensível</DialogTitle>
+            <DialogTitle>Revelar informaÃ§Ã£o sensÃ­vel</DialogTitle>
             <DialogDescription>
-              Informe o segredo definido na proteção para ver o conteúdo
+              Informe o segredo definido na proteÃ§Ã£o para ver o conteÃºdo
               armazenado.
             </DialogDescription>
           </DialogHeader>
@@ -318,7 +325,7 @@ export function TipTapEditor({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
                     <Eye className="h-4 w-4" />
-                    Conteúdo revelado
+                    ConteÃºdo revelado
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-slate-700">
                     {revealedText}
@@ -326,7 +333,7 @@ export function TipTapEditor({
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  O conteúdo aparecerá aqui depois da validação do segredo.
+                  O conteÃºdo aparecerÃ¡ aqui depois da validaÃ§Ã£o do segredo.
                 </p>
               )}
             </div>

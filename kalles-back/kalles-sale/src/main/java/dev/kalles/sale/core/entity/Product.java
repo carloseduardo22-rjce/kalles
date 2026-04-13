@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Index;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
@@ -15,12 +16,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.Setter;
 
 @Entity
-@Table(indexes = {
-	@Index(name = "idx_product_internal_code", columnList = "internal_code"),
-	@Index(name = "idx_product_barcode", columnList = "barcode")
+@Table(uniqueConstraints = {
+		@UniqueConstraint(name = "uk_product_internal_code_tenant", columnNames = { "internal_code", "tenant_id" }),
+		@UniqueConstraint(name = "uk_product_barcode_tenant", columnNames = { "barcode", "tenant_id" })
 })
 @Getter
 @Setter
@@ -32,19 +32,19 @@ public class Product {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-    @Version
-    private Long version;
+	@Version
+	private Long version;
 
-    @Column(name = "tenant_id")
-    private UUID tenantId;
+	@Column(name = "tenant_id", nullable = false)
+	private UUID tenantId;
 
 	@Column(nullable = false, length = 150)
 	private String name;
 
-	@Column(name = "internal_code", nullable = false, unique = true, length = 50)
+	@Column(name = "internal_code", nullable = false, length = 50)
 	private String internalCode;
 
-	@Column(unique = true, length = 50)
+	@Column(length = 50)
 	private String barcode;
 
 	private String description;

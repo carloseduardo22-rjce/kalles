@@ -17,7 +17,6 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,12 +33,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.blankOrNullString;
 
-@Disabled("Spec-first contract for auth and POS pairing. Enable after Etapa 3 implementation.")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = KallesSaleApplication.class)
 class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupport {
 
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
     @LocalServerPort
     private int port;
@@ -62,6 +59,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+        private UUID companyId;
     private UUID cashRegisterId;
 
     @BeforeEach
@@ -77,8 +75,8 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         tenantRepository.deleteAll();
 
         tenantRepository.save(new Tenant(TENANT_ID, "Conta de Teste Kalles"));
-        companyRepository.save(new Company(
-                COMPANY_ID,
+        companyId = companyRepository.save(new Company(
+                null,
                 "Loja Matriz",
                 TENANT_ID,
                 null,
@@ -87,24 +85,24 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 null,
                 null,
                 null
-        ));
+        )).getId();
 
         cashRegisterId = cashRegisterRepository.save(
-                new CashRegister("CAIXA-01", "Caixa principal", COMPANY_ID)
+                new CashRegister("CAIXA-01", "Caixa principal", companyId)
         ).getId();
 
         accountRepository.save(newAccount(
                 "Administrador",
                 "admin@sistema.local",
                 AccountRole.ADMIN,
-                COMPANY_ID
+                companyId
         ));
 
         accountRepository.save(newAccount(
                 "Operador Caixa 01",
                 "operador.caixa01@sistema.local",
                 AccountRole.OPERATOR,
-                COMPANY_ID
+                companyId
         ));
     }
 
@@ -146,7 +144,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", authCookie)
                 .body(Map.of(
-                        "companyId", COMPANY_ID,
+                        "companyId", companyId,
                         "posId", cashRegisterId
                 ))
                 .when()
@@ -165,7 +163,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
 
     @Test
     void shouldSetupDeviceCookieWithValidPairingToken() {
-        String pairingToken = seedPairingToken("pairing-token-caixa-01", COMPANY_ID, cashRegisterId, true);
+        String pairingToken = seedPairingToken("pairing-token-caixa-01", companyId, cashRegisterId, true);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -180,7 +178,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
 
     @Test
     void shouldAllowOperatorLoginWithValidPosToken() {
-        String pairingToken = seedPairingToken("pairing-token-valido", COMPANY_ID, cashRegisterId, true);
+        String pairingToken = seedPairingToken("pairing-token-valido", companyId, cashRegisterId, true);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -198,7 +196,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
 
     @Test
     void shouldBlockOperatorLoginWithRevokedPosToken() {
-        String pairingToken = seedPairingToken("pairing-token-revogado", COMPANY_ID, cashRegisterId, false);
+        String pairingToken = seedPairingToken("pairing-token-revogado", companyId, cashRegisterId, false);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -242,7 +240,6 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
 
     private Account newAccount(String name, String email, AccountRole role, UUID companyId) {
         Account account = new Account(TENANT_ID, name, email, passwordEncoder.encode("123456"), role);
-        account.setId(UUID.randomUUID());
         account.setCompanyId(companyId);
         account.setVerified(true);
         return account;

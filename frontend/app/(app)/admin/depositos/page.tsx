@@ -46,6 +46,10 @@ import type {
   WarehouseRequest,
   WarehouseResponse,
 } from "@/features/admin/types";
+import {
+  normalizeLocationRequest,
+  normalizeWarehouseRequest,
+} from "@/features/admin/utils/form-normalization";
 
 /* ─── Warehouse Form ────────────────────────────────────────────────────── */
 function WarehouseForm({
@@ -517,7 +521,9 @@ export default function DepositosPage() {
             </DialogDescription>
           </DialogHeader>
           <WarehouseForm
-            onSubmit={(data) => createWhMutation.mutate(data)}
+            onSubmit={(data) =>
+              createWhMutation.mutate(normalizeWarehouseRequest(data))
+            }
             isPending={createWhMutation.isPending}
             onCancel={() => setCreateWhOpen(false)}
           />
@@ -537,7 +543,10 @@ export default function DepositosPage() {
             <WarehouseForm
               defaultValues={editWh}
               onSubmit={(data) =>
-                updateWhMutation.mutate({ id: editWh.id, data })
+                updateWhMutation.mutate({
+                  id: editWh.id,
+                  data: normalizeWarehouseRequest(data),
+                })
               }
               isPending={updateWhMutation.isPending}
               onCancel={() => setEditWh(null)}
@@ -589,7 +598,10 @@ export default function DepositosPage() {
           {addLocFor && (
             <LocationForm
               onSubmit={(data) =>
-                createLocMutation.mutate({ warehouseId: addLocFor.id, data })
+                createLocMutation.mutate({
+                  warehouseId: addLocFor.id,
+                  data: normalizeLocationRequest(data),
+                })
               }
               isPending={createLocMutation.isPending}
               onCancel={() => setAddLocFor(null)}
@@ -611,7 +623,10 @@ export default function DepositosPage() {
             <LocationForm
               defaultValues={editLoc}
               onSubmit={(data) =>
-                updateLocMutation.mutate({ id: editLoc.id, data })
+                updateLocMutation.mutate({
+                  id: editLoc.id,
+                  data: normalizeLocationRequest(data),
+                })
               }
               isPending={updateLocMutation.isPending}
               onCancel={() => setEditLoc(null)}

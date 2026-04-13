@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
 import {
   Card,
   CardContent,
@@ -16,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/shared/services/api";
+import { useCompany } from "@/shared/contexts/company-context";
 
 type CompanyResponse = {
   id: string;
@@ -29,6 +29,7 @@ type CompanyResponse = {
 };
 
 export default function LojasPage() {
+  const { loadCompanies, activeCompany } = useCompany();
   const [companies, setCompanies] = useState<CompanyResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -48,6 +49,9 @@ export default function LojasPage() {
     try {
       const data = await api.get<CompanyResponse[]>("/api/companies");
       setCompanies(data);
+      loadCompanies(
+        data.map((company) => ({ id: company.id, name: company.name })),
+      );
       return data;
     } catch (err) {
       toast.error("Erro ao buscar as lojas.");
@@ -60,35 +64,37 @@ export default function LojasPage() {
   useEffect(() => {
     fetchCompanies().then((data) => {
       // If no stores, trigger onboarding
-      if (data && data.length === 0) {
+      if (false && data && data.length === 0) {
         setTimeout(() => {
           const driverObj = driver({
             showProgress: true,
             animate: true,
             allowClose: false,
-            doneBtnText: 'Vamos lá!',
-            nextBtnText: 'Próximo →',
-            prevBtnText: '← Voltar',
+            doneBtnText: "Vamos lá!",
+            nextBtnText: "Próximo →",
+            prevBtnText: "← Voltar",
             steps: [
               {
-                element: '#tour-welcome',
+                element: "#tour-welcome",
                 popover: {
-                  title: 'Bem-vindo ao Setup inicial do Kalles',
-                  description: 'Aqui é onde você começa a configurar o seu negócio no sistema.',
+                  title: "Bem-vindo ao Setup inicial do Kalles",
+                  description:
+                    "Aqui é onde você começa a configurar o seu negócio no sistema.",
                   side: "bottom",
-                  align: 'start'
-                }
+                  align: "start",
+                },
               },
               {
-                element: '#tour-create-form',
+                element: "#tour-create-form",
                 popover: {
-                  title: 'Crie sua primeira Loja',
-                  description: 'O Kalles ERP é multi-lojas nativamente. Você precisa criar a primeira (Matriz) para começar a operar, lançar produtos e usar o PDV.',
+                  title: "Crie sua primeira Loja",
+                  description:
+                    "O Kalles ERP é multi-lojas nativamente. Você precisa criar a primeira (Matriz) para começar a operar, lançar produtos e usar o PDV.",
                   side: "right",
-                  align: 'center'
-                }
-              }
-            ]
+                  align: "center",
+                },
+              },
+            ],
           });
           driverObj.drive();
         }, 800);
@@ -120,10 +126,19 @@ export default function LojasPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-5xl py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div
+      className="container mx-auto max-w-5xl py-8 space-y-8"
+      data-onboarding="stores-page"
+    >
+      <div
+        className="flex items-center justify-between"
+        data-onboarding="stores-header"
+      >
         <div>
-          <h1 id="tour-welcome" className="text-3xl font-bold flex items-center gap-2">
+          <h1
+            id="tour-welcome"
+            className="text-3xl font-bold flex items-center gap-2"
+          >
             <Store className="h-8 w-8 text-primary" />
             Lojas
           </h1>
@@ -133,8 +148,13 @@ export default function LojasPage() {
         </div>
       </div>
 
+      <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm">
+        <span className="font-semibold text-primary">Filial ativa:</span>{" "}
+        <span>{activeCompany?.name ?? "Nenhuma filial selecionada"}</span>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
-        <Card id="tour-create-form">
+        <Card id="tour-create-form" data-onboarding="stores-form">
           <CardHeader>
             <CardTitle>Nova Loja</CardTitle>
             <CardDescription>
@@ -212,7 +232,7 @@ export default function LojasPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-4" data-onboarding="stores-content">
           <h2 className="text-xl font-semibold">Lojas Cadastradas</h2>
           {isLoading ? (
             <div className="flex justify-center p-8">

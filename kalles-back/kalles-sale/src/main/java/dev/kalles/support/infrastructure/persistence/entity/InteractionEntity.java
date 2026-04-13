@@ -15,6 +15,7 @@ import java.util.UUID;
     schema = "support",
     comment = "Timeline of messages and notes within a ticket",
     indexes = {
+        @Index(name = "idx_interactions_tenant_id", columnList = "tenant_id"),
         @Index(name = "idx_interactions_ticket_id", columnList = "ticket_id")
     }
 )
@@ -26,6 +27,9 @@ public class InteractionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ticket_id", nullable = false)

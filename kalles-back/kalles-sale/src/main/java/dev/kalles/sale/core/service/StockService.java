@@ -36,10 +36,13 @@ public class StockService {
     public StockResponse setStock(StockRequest request) {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + request.productId()));
-        Location location = locationRepository.findById(request.locationId())
-                .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada: " + request.locationId()));
 
         UUID companyId = getCompanyId();
+
+        // Validate location belongs to the current company
+        Location location = locationRepository.findByIdAndCompanyId(request.locationId(), companyId)
+                .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + request.locationId()));
+
         Stock stock = stockRepository
                 .findByProductIdAndLocationId(product.getId(), location.getId())
                 .orElseGet(() -> new Stock(product, location, 0));
@@ -86,10 +89,11 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByLocation(UUID locationId) {
-        if (!locationRepository.existsById(locationId)) {
-            throw new NotFoundException("Localizacao nao encontrada: " + locationId);
-        }
-        return stockRepository.findAllByLocationId(locationId)
+        // Validate location belongs to the current company
+        UUID companyId = getCompanyId();
+        locationRepository.findByIdAndCompanyId(locationId, companyId)
+                .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + locationId));
+        return stockRepository.findAllByLocationIdAndCompanyId(locationId, companyId)
                 .stream()
                 .map(StockResponse::from)
                 .toList();

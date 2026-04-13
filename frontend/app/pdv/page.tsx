@@ -23,6 +23,7 @@ import { CancellationDialog } from "@/features/sales/components/cancellation-dia
 import { DiscountDialog } from "@/features/sales/components/discount-dialog";
 import { SaleStateBadge } from "@/features/sales/components/sale-state-badge";
 import { ProductLookupDialog } from "@/features/sales/components/product-lookup-dialog";
+import { ItemQuantityDialog } from "@/features/sales/components/item-quantity-dialog";
 import { CloseSessionAuthorizedDialog } from "@/features/cash-register/components/close-session-authorized-dialog";
 import { FidelityPdvPanel } from "@/features/sales/components/fidelity-pdv-panel";
 import { ErrorAlert } from "@/shared/components/error-alert";
@@ -35,6 +36,11 @@ import type { ActiveSession } from "@/features/cash-register/types";
 import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
 import type { ProductSearchHandle } from "@/features/sales/components/product-search";
+import {
+  getSessionScopedItem,
+  removeSessionScopedItem,
+  setSessionScopedItem,
+} from "@/shared/utils/session-storage";
 
 const STORAGE_KEY = "kalles:active-session";
 const LAYOUT_STORAGE_KEY = "kalles:pdv-layout";
@@ -68,6 +74,11 @@ const INTERACTIVE_FOCUS_SELECTOR = [
   "[data-state='open']",
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
+
+type PendingAddItem = {
+  type: ProductCodeType;
+  code: string;
+};
 
 export default function PdvPage() {
   const router = useRouter();
@@ -157,8 +168,11 @@ export default function PdvPage() {
     null,
   );
   const [lookupOpen, setLookupOpen] = useState(false);
+  const [pendingAddItem, setPendingAddItem] = useState<PendingAddItem | null>(
+    null,
+  );
   const hasSecondaryOverlay =
-    lookupOpen || !!removalItem || cancelOpen || !!discountItem;
+    lookupOpen || !!removalItem || cancelOpen || !!discountItem || !!pendingAddItem;
 
   const {
     closeSession,
@@ -170,7 +184,7 @@ export default function PdvPage() {
     async function initSession() {
       let stored: ActiveSession | null = null;
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = getSessionScopedItem(STORAGE_KEY);
         stored = raw ? (JSON.parse(raw) as ActiveSession) : null;
       } catch {
         // ignore parse error
@@ -202,7 +216,7 @@ export default function PdvPage() {
               initialAmount: openRegister.initialAmount ?? 0,
               openedAt: openRegister.openedAt ?? new Date().toISOString(),
             };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+            setSessionScopedItem(STORAGE_KEY, JSON.stringify(synced));
             stored = synced;
           }
         }
@@ -305,6 +319,16 @@ export default function PdvPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router, sale, addItem, decrementItem, completeSale]);
 
+  async function requestAddItem(type: ProductCodeType, code: string) {
+    setPendingAddItem({ type, code });
+  }
+
+  async function confirmAddItem(quantity: number) {
+    if (!pendingAddItem) return;
+    await addItem(pendingAddItem.type, pendingAddItem.code, quantity);
+    setPendingAddItem(null);
+  }
+
   if (!hydrated || !sessionData) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -319,6 +343,7 @@ export default function PdvPage() {
   }) {
     const result = await closeSession(payload);
     if (result) {
+      removeSessionScopedItem(STORAGE_KEY);
       sessionStorage.setItem(
         `kalles:report:${result.sessionId}`,
         JSON.stringify(result),
@@ -337,9 +362,12 @@ export default function PdvPage() {
     sale?.state === "COMPLETED" || sale?.state === "CANCELED";
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background" data-onboarding="pdv-page">
       {/* Header */}
-      <header className="flex items-center justify-between border-b bg-card px-4 py-2.5 shadow-sm">
+      <header
+        className="flex items-center justify-between border-b bg-card px-4 py-2.5 shadow-sm"
+        data-onboarding="pdv-header"
+      >
         <div className="flex items-center gap-3">
           {logoUrl ? (
             <img
@@ -455,6 +483,7 @@ export default function PdvPage() {
 
         {/* SECTION: Products */}
         <section
+          data-onboarding="pdv-products"
           className={`flex flex-col relative overflow-hidden bg-background ${isEditingLayout ? "border-2 border-dashed border-blue-400 opacity-90" : "border-b border-r"}`}
           style={{ gridArea: "products" }}
         >
@@ -463,7 +492,7 @@ export default function PdvPage() {
               <ProductSearch
                 ref={productSearchRef}
                 isLoading={isLoading}
-                onAddItem={addItem}
+                onAddItem={requestAddItem}
               />
             )}
             {saleError && (
@@ -509,6 +538,7 @@ export default function PdvPage() {
 
         {/* SECTION: Totals */}
         <section
+          data-onboarding="pdv-totals"
           className={`flex flex-col overflow-hidden bg-card ${isEditingLayout ? "border-2 border-dashed border-green-400 opacity-90" : "border-r"}`}
           style={{ gridArea: "totals" }}
         >
@@ -568,6 +598,7 @@ export default function PdvPage() {
 
         {/* SECTION: Payment */}
         <section
+          data-onboarding="pdv-payment"
           className={`flex flex-col overflow-hidden bg-background relative ${isEditingLayout ? "border-2 border-dashed border-orange-400 opacity-90" : ""}`}
           style={{ gridArea: "payment" }}
         >
@@ -610,7 +641,10 @@ export default function PdvPage() {
 
           {/* Ferramentas de Automação - Bottom of 3º Quadrante */}
           {(!sale || sale.state === "OPEN") && (
-            <div className="shrink-0 border-t bg-card px-4 py-3">
+            <div
+              className="shrink-0 border-t bg-card px-4 py-3"
+              data-onboarding="pdv-shortcuts"
+            >
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   type="button"
@@ -700,10 +734,17 @@ export default function PdvPage() {
         }}
       />
 
+      <ItemQuantityDialog
+        open={!!pendingAddItem}
+        isLoading={isLoading}
+        onClose={() => setPendingAddItem(null)}
+        onConfirm={confirmAddItem}
+      />
+
       <ProductLookupDialog
         open={lookupOpen}
         onOpenChange={setLookupOpen}
-        onSelect={(code) => addItem("INTERNAL_CODE", code)}
+        onSelect={(code) => requestAddItem("INTERNAL_CODE", code)}
       />
     </div>
   );

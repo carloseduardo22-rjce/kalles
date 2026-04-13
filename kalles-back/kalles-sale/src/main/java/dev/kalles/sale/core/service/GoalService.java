@@ -6,6 +6,7 @@ import dev.kalles.sale.core.entity.Goal;
 import dev.kalles.sale.core.enums.goal.GoalStatus;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.GoalRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,22 +24,23 @@ public class GoalService {
 
     @Transactional
     public GoalResponse create(GoalRequest request) {
-        Goal goal = Goal.create(request.targetValue(), request.periodicity(), request.startDate(), request.endDate());
-        List<Goal> conflicting = goalRepository.findByPeriodicityAndStatus(goal.getPeriodicity(), GoalStatus.ACTIVE);
+        UUID companyId = getCompanyId();
+        Goal goal = Goal.create(companyId, request.targetValue(), request.periodicity(), request.startDate(), request.endDate());
+        List<Goal> conflicting = goalRepository.findByCompanyIdAndPeriodicityAndStatus(companyId, goal.getPeriodicity(), GoalStatus.ACTIVE);
         OverlapValidator.validate(conflicting, goal);
         return GoalResponse.from(goalRepository.save(goal));
     }
 
     @Transactional(readOnly = true)
     public List<GoalResponse> listAll() {
-        return goalRepository.findAll().stream()
+        return goalRepository.findAllByCompanyIdOrderByStartDateDesc(getCompanyId()).stream()
                 .map(GoalResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public GoalResponse findById(UUID id) {
-        return goalRepository.findById(id)
+        return goalRepository.findByIdAndCompanyId(id, getCompanyId())
                 .map(GoalResponse::from)
                 .orElseThrow(() -> new NotFoundException("Meta não encontrada: " + id));
     }
@@ -53,8 +55,9 @@ public class GoalService {
 
     @Transactional
     public GoalResponse activate(UUID id) {
+        UUID companyId = getCompanyId();
         Goal goal = getGoalOrThrow(id);
-        List<Goal> conflicting = goalRepository.findByPeriodicityAndStatus(goal.getPeriodicity(), GoalStatus.ACTIVE);
+        List<Goal> conflicting = goalRepository.findByCompanyIdAndPeriodicityAndStatus(companyId, goal.getPeriodicity(), GoalStatus.ACTIVE);
         OverlapValidator.validate(conflicting, goal);
         goal.activate();
         return GoalResponse.from(goalRepository.save(goal));
@@ -69,10 +72,8 @@ public class GoalService {
 
     @Transactional
     public void delete(UUID id) {
-        if (!goalRepository.existsById(id)) {
-            throw new NotFoundException("Meta não encontrada: " + id);
-        }
-        goalRepository.deleteById(id);
+        Goal goal = getGoalOrThrow(id);
+        goalRepository.delete(goal);
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +89,15 @@ public class GoalService {
     }
 
     private Goal getGoalOrThrow(UUID id) {
-        return goalRepository.findById(id)
+        return goalRepository.findByIdAndCompanyId(id, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Meta não encontrada: " + id));
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 }

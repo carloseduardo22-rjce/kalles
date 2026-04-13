@@ -42,6 +42,11 @@ security:
   encryption:
     tenant-credentials-secret: ${TENANT_CREDENTIALS_SECRET}
 
+app:
+  security:
+    cookies:
+      secure: ${APP_SECURE_COOKIES:false}
+
 billing:
   stripe:
     secret-key: ${STRIPE_SECRET_KEY:}
@@ -50,3 +55,11 @@ billing:
     monthly-price-id: ${STRIPE_MONTHLY_PRICE_ID:}
     portal-configuration-id: ${STRIPE_PORTAL_CONFIGURATION_ID:}
     default-plan-code: monthly-default
+
+mercadopago:
+  app-id: ${MERCADOPAGO_APP_ID:448684586415948}
+  redirect-uri: ${MERCADOPAGO_REDIRECT_URI:https://localhost:3000/admin/pagamentos/mp-callback}
+  webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
+
+stone:
+  webhook-secret: ${STONE_WEBHOOK_SECRET:}

@@ -9,6 +9,7 @@ import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.GoalDomainException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.security.exception.RateLimitExceededException;
 import dev.kalles.sale.security.service.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -150,6 +151,15 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Sessão expirada");
+        return problem;
+    }
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ProblemDetail handleRateLimitExceeded(RateLimitExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.TOO_MANY_REQUESTS,
+            ex.getMessage()
+        );
+        problem.setTitle("Muitas tentativas");
         return problem;
     }
 }

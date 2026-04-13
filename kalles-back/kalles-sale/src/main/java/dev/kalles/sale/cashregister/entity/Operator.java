@@ -11,7 +11,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "operators")
+@Table(name = "operators",
+    uniqueConstraints = @UniqueConstraint(name = "uk_operator_code_company", columnNames = {"code", "company_id"})
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,7 +27,10 @@ public class Operator {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
+    @Column(nullable = false)
     private String code;
 
     @Enumerated(EnumType.STRING)

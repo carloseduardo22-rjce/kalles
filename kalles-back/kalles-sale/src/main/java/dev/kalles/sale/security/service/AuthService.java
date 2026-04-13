@@ -4,17 +4,17 @@ import dev.kalles.sale.core.entity.Tenant;
 import dev.kalles.sale.core.repository.TenantRepository;
 import dev.kalles.sale.security.dto.LoginRequest;
 import dev.kalles.sale.security.dto.RegisterRequest;
+import dev.kalles.sale.security.dto.RegisterResponse;
 import dev.kalles.sale.security.dto.VerifyCodeRequest;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.sale.security.application.AccountVerificationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -22,7 +22,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final AuthenticationManager authenticationManager;
     private final AccountRepository accountRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
@@ -30,14 +29,20 @@ public class AuthService {
     private final AccountVerificationService accountVerificationService;
     private final PosDeviceAuthorizationService posDeviceAuthorizationService;
     private final RefreshTokenService refreshTokenService;
+    private final AuthenticationProtectionService authenticationProtectionService;
 
-    public AuthTokens authenticate(LoginRequest request, String posToken) {
-        var usernamePassword = new UsernamePasswordAuthenticationToken(request.email(), request.password());
-        var auth = this.authenticationManager.authenticate(usernamePassword);
+    public AuthTokens authenticate(LoginRequest request, String posToken, String clientFingerprint) {
+        authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId(), clientFingerprint);
+        try {
+            var account = resolveAccount(request.email(), request.tenantId());
+            if (!passwordEncoder.matches(request.password(), account.getPassword())) {
+                throw new IllegalArgumentException("Credenciais invalidas.");
+            }
+            if (!account.isVerified()) {
+                throw new IllegalArgumentException("Conta ainda nao verificada.");
+            }
 
-        var account = (Account) auth.getPrincipal();
-
-        UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
+            UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
 
         /* if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
             if (posToken == null || posToken.isBlank()) {
@@ -56,15 +61,16 @@ public class AuthService {
             posId = session.getPosId();
         } */
 
-        return buildSessionTokens(account, posId);
+            authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId(), clientFingerprint);
+            return buildSessionTokens(account, posId);
+        } catch (RuntimeException ex) {
+            authenticationProtectionService.registerLoginFailure(request.email(), request.tenantId(), clientFingerprint);
+            throw ex;
+        }
     }
 
     @Transactional
-    public String register(RegisterRequest request) {
-        if (accountRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("E-mail já está em uso.");
-        }
-
+    public RegisterResponse register(RegisterRequest request) {
         // Create Tenant first
         UUID tenantId = UUID.randomUUID();
         Tenant newTenant = new Tenant(
@@ -87,30 +93,38 @@ public class AuthService {
 
         // Do not generate token immediately because the account is not verified yet.
         // Return something empty or a success message.
-        return "Conta criada com sucesso. Verifique seu e-mail.";
+        return new RegisterResponse(tenantId.toString(), "Conta criada com sucesso. Verifique seu e-mail.");
     }
 
     @Transactional
-    public AuthTokens verifyCode(VerifyCodeRequest request) {
-        Account account = accountRepository.findByEmail(request.email())
+    public AuthTokens verifyCode(VerifyCodeRequest request, String clientFingerprint) {
+        authenticationProtectionService.assertVerificationAllowed(request.email(), request.tenantId(), clientFingerprint);
+        try {
+            Account account = resolveAccountOptional(request.email(), request.tenantId())
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
 
-        if (account.isVerified()) {
+            if (account.isVerified()) {
             throw new IllegalArgumentException("Conta já está verificada.");
         }
 
-        accountVerificationService.verifyCode(account, request.code());
+            accountVerificationService.verifyCode(account, request.code());
         // Since we opened a transaction, and Hibernate manages `account`, it could
         // auto-save.
         // But let's be explicit:
-        accountRepository.save(account);
+            accountRepository.save(account);
+            authenticationProtectionService.registerVerificationSuccess(request.email(), request.tenantId(), clientFingerprint);
 
-        return buildSessionTokens(account, null);
+            return buildSessionTokens(account, null);
+        } catch (RuntimeException ex) {
+            authenticationProtectionService.registerVerificationFailure(request.email(), request.tenantId(), clientFingerprint);
+            throw ex;
+            }
     }
 
     @Transactional
-    public void resendVerificationCode(String email) {
-        Account account = accountRepository.findByEmail(email)
+    public void resendVerificationCode(String email, String tenantId, String clientFingerprint) {
+        authenticationProtectionService.assertResendAllowed(email, tenantId, clientFingerprint);
+        Account account = resolveAccountOptional(email, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
 
         accountVerificationService.resendCode(account);
@@ -132,5 +146,23 @@ public class AuthService {
         String accessToken = jwtService.generateToken(account, posId);
         String refreshToken = refreshTokenService.issue(account, posId);
         return new AuthTokens(accessToken, refreshToken);
+    }
+
+    private Account resolveAccount(String email, String tenantId) {
+        return resolveAccountOptional(email, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Conta nao encontrada."));
+    }
+
+    private Optional<Account> resolveAccountOptional(String email, String tenantId) {
+        if (tenantId != null && !tenantId.isBlank()) {
+            UUID parsedTenantId = UUID.fromString(tenantId);
+            return accountRepository.findByTenantIdAndEmailIgnoreCase(parsedTenantId, email);
+        }
+
+        var matches = accountRepository.findAllByEmailIgnoreCase(email);
+        if (matches.size() > 1) {
+            throw new IllegalArgumentException("Tenant obrigatorio para este e-mail.");
+        }
+        return matches.stream().findFirst();
     }
 }

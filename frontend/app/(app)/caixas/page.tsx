@@ -399,7 +399,7 @@ export default function CaixasPage() {
 
   /* ── Render ── */
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6" data-onboarding="caixas-page">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -415,7 +415,10 @@ export default function CaixasPage() {
 
       {/* Summary row */}
       {!isLoadingRegisters && !isErrorRegisters && registers && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+          data-onboarding="caixas-summary"
+        >
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <Monitor className="size-8 shrink-0 text-muted-foreground" />
@@ -462,7 +465,10 @@ export default function CaixasPage() {
       <Separator />
 
       {/* Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        data-onboarding="caixas-content"
+      >
         {isLoadingRegisters ? (
           <div className="col-span-full flex items-center justify-center py-24">
             <Loader2 className="size-8 animate-spin text-muted-foreground" />

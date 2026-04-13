@@ -107,6 +107,16 @@ class SaleTest {
 
             assertEquals(new BigDecimal("10.00"), sale.getTotal());
         }
+
+        @Test
+        @DisplayName("Deve adicionar varias unidades do item de uma vez")
+        void deveAdicionarVariasUnidadesDeUmaVez() {
+            sale.addItem(product, productPrice, 4);
+
+            assertEquals(1, sale.getItems().size());
+            assertEquals(4, sale.getItems().iterator().next().getQuantity());
+            assertEquals(new BigDecimal("102.00"), sale.getTotal());
+        }
     }
 
     @Nested

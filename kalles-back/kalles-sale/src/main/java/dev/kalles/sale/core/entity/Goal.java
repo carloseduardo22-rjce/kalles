@@ -33,7 +33,7 @@ public class Goal {
     @Version
     private Long version;
 
-    @Column(name = "company_id")
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     @Column(name = "target_value", nullable = false, precision = 19, scale = 2)
@@ -53,8 +53,11 @@ public class Goal {
     @Column(nullable = false)
     private GoalStatus status;
 
-    public static Goal create(BigDecimal targetValue, Periodicity periodicity,
+    public static Goal create(UUID companyId, BigDecimal targetValue, Periodicity periodicity,
                                LocalDate startDate, LocalDate endDate) {
+        if (companyId == null) {
+            throw new GoalDomainException("Company ID is required");
+        }
         if (targetValue == null) {
             throw new GoalDomainException("Target value is required");
         }
@@ -65,6 +68,7 @@ public class Goal {
             throw new GoalDomainException("End date must be after start date");
         }
         Goal goal = new Goal();
+        goal.companyId = companyId;
         goal.targetValue = targetValue;
         goal.periodicity = periodicity;
         goal.startDate = startDate;

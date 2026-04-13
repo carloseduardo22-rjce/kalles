@@ -9,9 +9,11 @@ import java.util.UUID;
 
 public interface CategoryRepository extends JpaRepository<CategoryEntity, UUID> {
 
-    Optional<CategoryEntity> findByNameAndSubcategory(String name, String subcategory);
+    Optional<CategoryEntity> findByTenantIdAndNameAndSubcategory(UUID tenantId, String name, String subcategory);
 
-    List<CategoryEntity> findAllByActiveTrueOrderByNameAscSubcategoryAsc();
+    List<CategoryEntity> findAllByTenantIdAndActiveTrueOrderByNameAscSubcategoryAsc(UUID tenantId);
 
-    List<CategoryEntity> findAllByOrderByNameAscSubcategoryAsc();
+    List<CategoryEntity> findAllByTenantIdOrderByNameAscSubcategoryAsc(UUID tenantId);
+
+    Optional<CategoryEntity> findByIdAndTenantId(UUID id, UUID tenantId);
 }

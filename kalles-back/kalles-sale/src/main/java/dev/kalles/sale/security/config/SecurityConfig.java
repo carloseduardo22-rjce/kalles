@@ -10,12 +10,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,15 +36,70 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers(
+                        "/api/auth/login",
+                        "/api/auth/register",
+                        "/api/auth/verify",
+                        "/api/auth/resend-code",
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
+                        "/api/pos/setup",
+                        "/api/billing/webhook",
+                        "/api/webhooks/mercadopago",
+                        "/api/webhooks/stone"
+                )
+            )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
+                // ── Public endpoints ──
+                .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code", "/api/auth/refresh", "/api/auth/logout", "/api/pos/setup").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago", "/api/webhooks/stone").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // Require authentication for all other requests
+
+                // ── PDV operations: OPERATOR + ADMIN ──
+                .requestMatchers("/api/sales/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers("/api/cash-register-sessions/**").hasAnyRole("ADMIN", "OPERATOR")
+
+                // OPERATOR needs to search/view products in PDV
+                .requestMatchers(HttpMethod.GET, "/api/products/search").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.GET, "/api/products/{id}").hasAnyRole("ADMIN", "OPERATOR")
+
+                // OPERATOR needs to read clients for fidelity
+                .requestMatchers(HttpMethod.GET, "/api/clients/**").hasAnyRole("ADMIN", "OPERATOR")
+
+                // OPERATOR needs fidelity read + enroll
+                .requestMatchers(HttpMethod.GET, "/api/fidelity/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.POST, "/api/fidelity/enroll/**").hasAnyRole("ADMIN", "OPERATOR")
+
+                // ── Admin-only: management CRUD ──
+                .requestMatchers("/api/products/**").hasRole("ADMIN")
+                .requestMatchers("/api/warehouses/**").hasRole("ADMIN")
+                .requestMatchers("/api/stocks/**").hasRole("ADMIN")
+                .requestMatchers("/api/operators/**").hasRole("ADMIN")
+                .requestMatchers("/api/cash-registers/**").hasRole("ADMIN")
+                .requestMatchers("/api/goals/**").hasRole("ADMIN")
+                .requestMatchers("/api/fidelity-policies/**").hasRole("ADMIN")
+                .requestMatchers("/api/reports/**").hasRole("ADMIN")
+                .requestMatchers("/api/companies/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/clients/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/clients/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/clients/**").hasRole("ADMIN")
+
+                // ── Payment/integrations: ADMIN only ──
+                .requestMatchers("/api/payment/**").hasRole("ADMIN")
+                .requestMatchers("/api/payments/**").hasRole("ADMIN")
+                .requestMatchers("/api/payment-points/**").hasRole("ADMIN")
+                .requestMatchers("/api/payment-providers/**").hasRole("ADMIN")
+                .requestMatchers("/api/payment-stores/**").hasRole("ADMIN")
+                .requestMatchers("/api/payment-terminals/**").hasRole("ADMIN")
+                .requestMatchers("/api/mercadopago/**").hasRole("ADMIN")
+
+                // ── Fallback ──
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -67,7 +122,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(allowedOrigin));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Company-ID", "x-company-id", "X-XSRF-TOKEN"));
         configuration.setAllowCredentials(true); // Super important for cookies!
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

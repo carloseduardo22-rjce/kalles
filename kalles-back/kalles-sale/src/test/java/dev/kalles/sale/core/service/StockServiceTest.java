@@ -77,7 +77,7 @@ class StockServiceTest {
     }
 
     private Location buildLocation(UUID id) {
-        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", "Endereco A", true);
+        Warehouse wh = new Warehouse(UUID.randomUUID(), "Dep A", companyId, "Endereco A", true);
         return new Location(id, wh, "EST-01", null);
     }
 
@@ -93,7 +93,7 @@ class StockServiceTest {
         CompanyProduct companyProduct = new CompanyProduct();
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.empty());
         when(stockRepository.save(any(Stock.class))).thenReturn(saved);
         when(companyProductRepository.findByCompanyIdAndProductId(companyId, productId)).thenReturn(Optional.of(companyProduct));
@@ -122,7 +122,7 @@ class StockServiceTest {
         CompanyProduct companyProduct = new CompanyProduct();
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
         when(stockRepository.save(existing)).thenReturn(updated);
         when(companyProductRepository.findByCompanyIdAndProductId(companyId, productId)).thenReturn(Optional.of(companyProduct));
@@ -144,7 +144,7 @@ class StockServiceTest {
         Stock existing = new Stock(UUID.randomUUID(), null, product, location, 30);
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
@@ -164,7 +164,7 @@ class StockServiceTest {
         Stock existing = new Stock(UUID.randomUUID(), null, product, location, 30);
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.of(location));
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.of(location));
         when(stockRepository.findByProductIdAndLocationId(productId, locationId)).thenReturn(Optional.of(existing));
         when(stockRepository.save(existing)).thenReturn(existing);
 
@@ -191,7 +191,7 @@ class StockServiceTest {
         UUID productId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
         when(productRepository.findById(productId)).thenReturn(Optional.of(buildProduct(productId)));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.empty());
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> stockService.setStock(new StockRequest(productId, locationId, 10, new BigDecimal("5.00"))));
@@ -258,8 +258,8 @@ class StockServiceTest {
         Product product = buildProduct(UUID.randomUUID());
         Stock stock = new Stock(UUID.randomUUID(), null, product, location, 10);
 
-        when(locationRepository.existsById(locationId)).thenReturn(true);
-        when(stockRepository.findAllByLocationId(locationId)).thenReturn(List.of(stock));
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.of(location));
+        when(stockRepository.findAllByLocationIdAndCompanyId(locationId, companyId)).thenReturn(List.of(stock));
 
         List<StockResponse> result = stockService.getStockByLocation(locationId);
 
@@ -271,7 +271,7 @@ class StockServiceTest {
     @DisplayName("Deve lancar excecao quando localizacao nao encontrada ao consultar estoque")
     void shouldThrowNotFoundWhenLocationNotFoundOnGetStockByLocation() {
         UUID locationId = UUID.randomUUID();
-        when(locationRepository.existsById(locationId)).thenReturn(false);
+        when(locationRepository.findByIdAndCompanyId(locationId, companyId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> stockService.getStockByLocation(locationId));

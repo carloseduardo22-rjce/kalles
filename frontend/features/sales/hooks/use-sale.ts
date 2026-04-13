@@ -10,7 +10,11 @@ interface UseSaleReturn {
   isLoading: boolean;
   error: string | null;
   createSale: () => Promise<void>;
-  addItem: (type: ProductCodeType, code: string) => Promise<void>;
+  addItem: (
+    type: ProductCodeType,
+    code: string,
+    quantity?: number,
+  ) => Promise<void>;
   decrementItem: (internalCode: string) => Promise<void>;
   removeItem: (
     productCode: string,
@@ -72,10 +76,15 @@ export function useSale(sessionToken: string): UseSaleReturn {
   }, [sessionToken]);
 
   const addItem = useCallback(
-    async (type: ProductCodeType, code: string) => {
+    async (type: ProductCodeType, code: string, quantity = 1) => {
       await withLoading(async () => {
         try {
-          const updated = await saleService.addItem(sessionToken, type, code);
+          const updated = await saleService.addItem(
+            sessionToken,
+            type,
+            code,
+            quantity,
+          );
           setSale(updated);
         } catch (err) {
           handleError(err, "Falha ao adicionar produto.");

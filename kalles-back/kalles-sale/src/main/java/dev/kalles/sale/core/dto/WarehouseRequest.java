@@ -13,4 +13,21 @@ public record WarehouseRequest(
     @Schema(description = "Endereço físico do depósito", example = "Rua das Flores, 100")
     @Size(max = 255)
     String address
-) {}
+) {
+    public WarehouseRequest {
+        name = normalizeRequired(name);
+        address = normalizeOptional(address);
+    }
+
+    private static String normalizeRequired(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+}

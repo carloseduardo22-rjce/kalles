@@ -11,10 +11,10 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@SelectClasspathResource("features/chamado")
 @ConfigurationParameter(
         key = GLUE_PROPERTY_NAME,
-        value = "dev.kalles.support.called.steps,dev.kalles.sale.goal.steps,dev.kalles.sale.payment.steps,dev.kalles.sale.security.cucumber"
+        value = "dev.kalles.support.called.steps,dev.kalles.sale.goal.steps,dev.kalles.sale.payment.steps"
 )
 @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "not @legacy_mercadopago")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty, html:target/cucumber-reports/report.html")

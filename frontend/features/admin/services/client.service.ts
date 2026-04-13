@@ -1,10 +1,17 @@
 import { api } from "@/shared/services/api";
 import type { ClientRequest, ClientResponse } from "@/features/admin/types";
+import type { PaginatedResponse } from "@/shared/types";
 
 const BASE = "/api/clients";
 
 export const clientService = {
   listAll: (): Promise<ClientResponse[]> => api.get<ClientResponse[]>(BASE),
+
+  listPage: (
+    page: number,
+    size: number,
+  ): Promise<PaginatedResponse<ClientResponse>> =>
+    api.get<PaginatedResponse<ClientResponse>>(`${BASE}/page?page=${page}&size=${size}`),
 
   findById: (id: string): Promise<ClientResponse> =>
     api.get<ClientResponse>(`${BASE}/${id}`),

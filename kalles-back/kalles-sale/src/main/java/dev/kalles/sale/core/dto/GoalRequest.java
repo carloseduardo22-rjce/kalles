@@ -2,6 +2,7 @@ package dev.kalles.sale.core.dto;
 
 import dev.kalles.sale.core.enums.goal.Periodicity;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -26,4 +27,9 @@ public record GoalRequest(
     @NotNull(message = "A data de fim é obrigatória")
     @Schema(description = "Data de fim do período", example = "2026-03-31")
     LocalDate endDate
-) {}
+) {
+    @AssertTrue(message = "A data de fim deve ser igual ou posterior Ã  data de inÃ­cio")
+    public boolean isDateRangeValid() {
+        return startDate == null || endDate == null || !endDate.isBefore(startDate);
+    }
+}

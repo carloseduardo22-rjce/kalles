@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class StonePaymentWebhookAdapterTest {
 
-    private final StonePaymentWebhookAdapter adapter = new StonePaymentWebhookAdapter();
+    private final StonePaymentWebhookAdapter adapter = new StonePaymentWebhookAdapter("test-secret");
 
     @Test
     void shouldTranslateChargePaidWebhookIntoApprovedEvent() {

@@ -18,6 +18,8 @@ import java.util.UUID;
     schema = "support",
     comment = "Support tickets — core aggregate of the helpdesk domain",
     indexes = {
+        @Index(name = "idx_tickets_tenant_id", columnList = "tenant_id"),
+        @Index(name = "idx_tickets_company_id", columnList = "company_id"),
         @Index(name = "idx_tickets_status", columnList = "status"),
         @Index(name = "idx_tickets_user_id", columnList = "user_id"),
         @Index(name = "idx_tickets_agent_id", columnList = "agent_id"),
@@ -31,6 +33,12 @@ public class TicketEntity extends BaseAuditableEntity {
 
     @Id
     private UUID id;
+
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
+    @Column(name = "company_id")
+    private UUID companyId;
 
     @Column(nullable = false, length = 255)
     private String title;

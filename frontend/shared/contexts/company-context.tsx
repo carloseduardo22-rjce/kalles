@@ -2,6 +2,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/shared/services/api";
+import {
+  getSessionScopedItem,
+  removeSessionScopedItem,
+  setSessionScopedItem,
+} from "@/shared/utils/session-storage";
 
 export interface Company {
   id: string;
@@ -32,9 +37,31 @@ export const CompanyProvider = ({
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const ensureValidSelection = (loadedCompanies: Company[]) => {
+    if (!loadedCompanies.length) {
+      setActiveCompanyIdState(null);
+      removeSessionScopedItem(STORAGE_KEY);
+      return;
+    }
+
+    const currentId = getSessionScopedItem(STORAGE_KEY);
+    const currentStillExists = currentId
+      ? loadedCompanies.some((company) => company.id === currentId)
+      : false;
+
+    if (currentStillExists && currentId) {
+      setActiveCompanyIdState(currentId);
+      return;
+    }
+
+    const fallbackId = loadedCompanies[0].id;
+    setActiveCompanyIdState(fallbackId);
+    setSessionScopedItem(STORAGE_KEY, fallbackId);
+  };
+
   // Initialize from local storage on mount and fetch companies to populate the switcher
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = getSessionScopedItem(STORAGE_KEY);
     if (stored) {
       setActiveCompanyIdState(stored);
     }
@@ -45,12 +72,7 @@ export const CompanyProvider = ({
       .then((data) => {
         if (data && Array.isArray(data)) {
           setCompanies(data);
-          // Auto-select first company if none is selected
-          if (data.length > 0 && !stored) {
-            const firstId = data[0].id;
-            setActiveCompanyIdState(firstId);
-            localStorage.setItem(STORAGE_KEY, firstId);
-          }
+          ensureValidSelection(data);
         }
       })
       .catch((err) => {
@@ -66,13 +88,14 @@ export const CompanyProvider = ({
 
   const setActiveCompany = (id: string) => {
     setActiveCompanyIdState(id);
-    localStorage.setItem(STORAGE_KEY, id);
+    setSessionScopedItem(STORAGE_KEY, id);
     // Reload page to reflect new company data
     window.location.reload();
   };
 
   const loadCompanies = (loaded: Company[]) => {
     setCompanies(loaded);
+    ensureValidSelection(loaded);
   };
 
   const activeCompany = companies.find((c) => c.id === activeCompanyId) || null;

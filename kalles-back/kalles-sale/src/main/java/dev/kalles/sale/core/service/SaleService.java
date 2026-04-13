@@ -25,6 +25,9 @@ import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.repository.StockRepository;
+import dev.kalles.sale.core.state.CompletedState;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,37 +48,49 @@ public class SaleService {
 
     @Transactional
     public Sale addItemByInternalCode(String sessionToken, String internalCode) {
+        return addItemByInternalCode(sessionToken, internalCode, 1);
+    }
+
+    @Transactional
+    public Sale addItemByInternalCode(String sessionToken, String internalCode, int quantity) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 
         Sale sale = getOrCreateSale(sessionToken);
+        UUID tenantId = TenantContextHolder.getTenantId();
 
-        Product product = productRepository.findByInternalCode(internalCode)
+        Product product = productRepository.findByInternalCodeAndTenantId(internalCode, tenantId)
                 .orElseThrow(
                         () -> new NotFoundException("Produto não encontrado com o código interno: " + internalCode));
 
         CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(sale.getCompanyId(), product.getId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado na empresa"));
 
-        validateStock(product, sale);
-        sale.addItem(product, cp.getPrice());
+        validateStock(product, sale, quantity);
+        sale.addItem(product, cp.getPrice(), quantity);
 
         return saleRepository.save(sale);
     }
 
     @Transactional
     public Sale addItemByBarCode(String sessionToken, String barcode) {
+        return addItemByBarCode(sessionToken, barcode, 1);
+    }
+
+    @Transactional
+    public Sale addItemByBarCode(String sessionToken, String barcode, int quantity) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 
         Sale sale = getOrCreateSale(sessionToken);
+        UUID tenantId = TenantContextHolder.getTenantId();
 
-        Product product = productRepository.findByBarcode(barcode)
+        Product product = productRepository.findByBarcodeAndTenantId(barcode, tenantId)
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código de barras: " + barcode));
 
         CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(sale.getCompanyId(), product.getId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado na empresa"));
 
-        validateStock(product, sale);
-        sale.addItem(product, cp.getPrice());
+        validateStock(product, sale, quantity);
+        sale.addItem(product, cp.getPrice(), quantity);
 
         return saleRepository.save(sale);
     }
@@ -174,7 +189,7 @@ public class SaleService {
     }
 
     private Operator findOperator(UUID operatorId) {
-        return operatorRepository.findById(operatorId)
+        return operatorRepository.findByIdAndCompanyId(operatorId, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado com o id: " + operatorId));
     }
 
@@ -184,12 +199,12 @@ public class SaleService {
     }
 
     private Product findProductByBarCode(String barCode) {
-        return productRepository.findByBarcode(barCode)
+        return productRepository.findByBarcodeAndTenantId(barCode, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código de barras: " + barCode));
     }
 
     private Product findProductByInternalCode(String internalCode) {
-        return productRepository.findByInternalCode(internalCode)
+        return productRepository.findByInternalCodeAndTenantId(internalCode, TenantContextHolder.getTenantId())
                 .orElseThrow(
                         () -> new NotFoundException("Produto não encontrado com o código interno: " + internalCode));
     }
@@ -229,10 +244,18 @@ public class SaleService {
     public Sale associateClientWithSale(String sessionToken, UUID clientId) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
         Sale sale = findActiveSale(sessionToken);
-        Client client = clientRepository.findById(clientId)
+        Client client = clientRepository.findByIdAndCompanyId(clientId, sale.getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
         sale.setClient(client);
         return saleRepository.save(sale);
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 
     @Transactional
@@ -250,10 +273,7 @@ public class SaleService {
         return sale;
     }
 
-    @Transactional(readOnly = true)
-    public List<Product> searchProducts(String description) {
-        return productRepository.findByDescriptionContainingIgnoreCase(description);
-    }
+
 
     @Transactional
     public void applyItemDiscount(String sessionToken, UUID itemId, BigDecimal discountAmount) {
@@ -275,13 +295,17 @@ public class SaleService {
         }
 
         Sale sale = findActiveSale(sessionToken);
+        boolean stockWasDeducted = sale.getStateName().equals(CompletedState.NAME);
         sale.cancel();
-        restoreStock(sale);
+        if (stockWasDeducted) {
+            restoreStock(sale);
+        }
         if (sale.getClient() != null) {
             fidelityService.rollbackSale(
                     sale.getClient().getId(),
                     sale.getFidelityDiscountApplied(),
-                    sale.getPointsEarned());
+                    sale.getPointsEarned(),
+                    sale.getSubtotal());
         }
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, null));
@@ -301,13 +325,17 @@ public class SaleService {
         validateCancellationAuthorization(operator, authorizer);
 
         Sale sale = findActiveSale(sessionToken);
+        boolean stockWasDeducted = sale.getStateName().equals(CompletedState.NAME);
         sale.cancel();
-        restoreStock(sale);
+        if (stockWasDeducted) {
+            restoreStock(sale);
+        }
         if (sale.getClient() != null) {
             fidelityService.rollbackSale(
                     sale.getClient().getId(),
                     sale.getFidelityDiscountApplied(),
-                    sale.getPointsEarned());
+                    sale.getPointsEarned(),
+                    sale.getSubtotal());
         }
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, authorizer));
@@ -350,16 +378,22 @@ public class SaleService {
         saleRepository.save(sale);
     }
 
-    private void validateStock(Product product, Sale sale) {
+    private void validateStock(Product product, Sale sale, int quantityToAdd) {
         int currentQtyInCart = sale.getItemQuantity(product);
         int totalStock = stockRepository.sumQuantityByProductId(product.getId(), sale.getCompanyId());
-        if (totalStock <= currentQtyInCart) {
+        if (totalStock < currentQtyInCart + quantityToAdd) {
             throw new InsufficientStockException(product.getName(), totalStock);
         }
     }
 
     private void deductStock(Sale sale) {
         sale.getItems().forEach(item -> {
+            // Revalidate stock at the moment of deduction to prevent oversell
+            int totalStock = stockRepository.sumQuantityByProductId(item.getProduct().getId(), sale.getCompanyId());
+            if (totalStock < item.getQuantity()) {
+                throw new InsufficientStockException(item.getProduct().getName(), totalStock);
+            }
+
             int remaining = item.getQuantity();
             List<Stock> stocks = stockRepository.findAllByProductIdOrderByQuantityDesc(item.getProduct().getId(),
                     sale.getCompanyId());

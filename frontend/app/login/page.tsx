@@ -9,6 +9,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/shared/services/api";
+import {
+  getSessionScopedItem,
+  setSessionScopedItem,
+} from "@/shared/utils/session-storage";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,12 +25,25 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       setIsLoading(true);
-      await api.post("/api/auth/login", { email, password });
+      const tenantId =
+        typeof window !== "undefined"
+          ? getSessionScopedItem(`@kalles:tenantId:${email}`)
+          : null;
+      await api.post("/api/auth/login", {
+        email,
+        password,
+        tenantId: tenantId || undefined,
+      });
       toast.success("Login realizado com sucesso!");
 
       // Consulta o perfil para decidir o redirecionamento por role
       try {
-        const me = await api.get<{ role: string }>("/api/auth/me");
+        const me = await api.get<{ role: string; tenantId?: string }>(
+          "/api/auth/me",
+        );
+        if (me.tenantId) {
+          setSessionScopedItem(`@kalles:tenantId:${email}`, me.tenantId);
+        }
         if (me.role === "ADMIN") {
           router.push("/caixas");
         } else {

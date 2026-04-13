@@ -85,6 +85,17 @@ public class Sale {
         state.addItem(this, product, unitPrice);
     }
 
+    public void addItem(Product product, BigDecimal unitPrice, int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("A quantidade do item deve ser positiva.");
+        }
+        state.addItem(this, product, unitPrice);
+        if (quantity > 1) {
+            addOrIncrementItem(product, unitPrice, quantity - 1);
+            recalculateTotals();
+        }
+    }
+
     public void removeItem(Product product) {
         state.removeItem(this, product);
     }
@@ -191,13 +202,17 @@ public class Sale {
     }
 
     private void addOrIncrementItem(Product product, BigDecimal unitPrice) {
+        addOrIncrementItem(product, unitPrice, 1);
+    }
+
+    private void addOrIncrementItem(Product product, BigDecimal unitPrice, int quantityToAdd) {
         Optional<SaleItem> existing = items.stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
         if (existing.isPresent()) {
-            existing.get().incrementQuantity();
+            existing.get().incrementQuantity(quantityToAdd);
         } else {
-            this.items.add(new SaleItem(this, product, 1, unitPrice));
+            this.items.add(new SaleItem(this, product, quantityToAdd, unitPrice));
         }
     }
 

@@ -4,10 +4,13 @@ import dev.kalles.sale.core.dto.FidelityResponse;
 import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.entity.Fidelity;
 import dev.kalles.sale.core.entity.FidelityPolicy;
+import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.FidelityPolicyRepository;
 import dev.kalles.sale.core.repository.FidelityRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +34,8 @@ import static org.mockito.Mockito.*;
 @DisplayName("FidelityService - Serviço de Fidelidade")
 class FidelityServiceTest {
 
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
+
     @Mock
     private FidelityRepository fidelityRepository;
 
@@ -49,18 +54,26 @@ class FidelityServiceTest {
 
     @BeforeEach
     void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
         clientId = UUID.randomUUID();
         client = new Client();
         client.setId(clientId);
         client.setName("Ana Paula");
+        client.setCompanyId(COMPANY_ID);
 
         activePolicy = new FidelityPolicy();
         activePolicy.setId(UUID.randomUUID());
         activePolicy.setObjectivePoints(100);
         activePolicy.setConfiguredDiscount(new BigDecimal("20.00"));
         activePolicy.setValuePoint(1);
+        activePolicy.setDiscountType(FidelityDiscountType.FIXED);
         activePolicy.setActive(true);
         activePolicy.setCreatedAt(LocalDate.now());
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
     }
 
     private Fidelity buildFidelity(int points, BigDecimal discount) {
@@ -85,8 +98,8 @@ class FidelityServiceTest {
             Fidelity saved = buildFidelity(0, BigDecimal.ZERO);
 
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
-            when(fidelityPolicyRepository.findFirstByActiveTrue()).thenReturn(Optional.of(activePolicy));
-            when(clientRepository.findById(clientId)).thenReturn(Optional.of(client));
+            when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.of(activePolicy));
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(saved);
 
             FidelityResponse response = fidelityService.enrollClient(clientId);
@@ -111,7 +124,7 @@ class FidelityServiceTest {
         @DisplayName("Deve lançar exceção quando não existe política ativa")
         void shouldThrowWhenNoActivePolicyExists() {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
-            when(fidelityPolicyRepository.findFirstByActiveTrue()).thenReturn(Optional.empty());
+            when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.empty());
 
             assertThrows(IllegalStateException.class, () -> fidelityService.enrollClient(clientId));
             verify(fidelityRepository, never()).save(any());
@@ -121,8 +134,8 @@ class FidelityServiceTest {
         @DisplayName("Deve lançar exceção quando cliente não existe")
         void shouldThrowNotFoundWhenClientDoesNotExist() {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
-            when(fidelityPolicyRepository.findFirstByActiveTrue()).thenReturn(Optional.of(activePolicy));
-            when(clientRepository.findById(clientId)).thenReturn(Optional.empty());
+            when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.of(activePolicy));
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> fidelityService.enrollClient(clientId));
         }
@@ -142,6 +155,7 @@ class FidelityServiceTest {
 
             assertEquals(clientId, response.clientId());
             assertEquals(50, response.points());
+            assertEquals(FidelityDiscountType.FIXED, response.discountType());
         }
 
         @Test
@@ -283,6 +297,23 @@ class FidelityServiceTest {
             assertEquals(BigDecimal.ZERO, applied);
             verify(fidelityRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("Deve aplicar desconto percentual sobre o total da venda e consumir o premio")
+        void shouldApplyPercentageDiscountAndConsumeReward() {
+            activePolicy.setDiscountType(FidelityDiscountType.PERCENTAGE);
+            activePolicy.setConfiguredDiscount(new BigDecimal("10.00"));
+            Fidelity fidelity = buildFidelity(0, new BigDecimal("10.00"));
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
+
+            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("80.00"));
+
+            assertEquals(new BigDecimal("8.00"), applied);
+            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
+            verify(fidelityRepository).save(captor.capture());
+            assertEquals(BigDecimal.ZERO, captor.getValue().getAvailableDiscount());
+        }
     }
 
     @Nested
@@ -338,6 +369,26 @@ class FidelityServiceTest {
 
             assertDoesNotThrow(() -> fidelityService.rollbackSale(clientId, new BigDecimal("20.00"), 30));
             verify(fidelityRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Deve recompor premio percentual com base no subtotal original")
+        void shouldRollbackPercentageRewardUsingOriginalSubtotal() {
+            activePolicy.setDiscountType(FidelityDiscountType.PERCENTAGE);
+            activePolicy.setConfiguredDiscount(new BigDecimal("10.00"));
+            Fidelity fidelity = buildFidelity(0, BigDecimal.ZERO);
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
+
+            fidelityService.rollbackSale(
+                    clientId,
+                    new BigDecimal("8.00"),
+                    0,
+                    new BigDecimal("80.00"));
+
+            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
+            verify(fidelityRepository).save(captor.capture());
+            assertEquals(new BigDecimal("10.00"), captor.getValue().getAvailableDiscount());
         }
     }
 }

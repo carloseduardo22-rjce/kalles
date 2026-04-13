@@ -9,7 +9,9 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
-    Optional<UserEntity> findByEmail(String email);
+    Optional<UserEntity> findByTenantIdAndEmailIgnoreCase(UUID tenantId, String email);
 
-    List<UserEntity> findAllByOrderByNameAsc();
+    List<UserEntity> findAllByTenantIdOrderByNameAsc(UUID tenantId);
+
+    Optional<UserEntity> findByIdAndTenantId(UUID id, UUID tenantId);
 }

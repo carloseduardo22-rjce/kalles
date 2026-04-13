@@ -5,6 +5,7 @@ import dev.kalles.sale.security.repository.PosDeviceSessionRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,9 @@ public class PosSetupController {
     private final PosDeviceSessionRepository repository;
     private final GeneratePosPairingTokenUseCase generateTokenUseCase;
 
+    @Value("${app.security.cookies.secure:false}")
+    private boolean secureCookies;
+
     @PostMapping("/setup")
     public ResponseEntity<?> setup(@RequestBody Map<String, String> request, HttpServletResponse response) {
         String pairingToken = request.get("pairingToken");
@@ -30,7 +34,7 @@ public class PosSetupController {
         // Injeta o cookie seguro HttpOnly
         Cookie cookie = new Cookie("kalles_pos_token", pairingToken);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true); // Requer HTTPS em produção. Ajustar se necessário para local.
+        cookie.setSecure(secureCookies);
         cookie.setPath("/");
         cookie.setMaxAge(7 * 24 * 60 * 60); // 7 dias
         cookie.setAttribute("SameSite", "Strict");

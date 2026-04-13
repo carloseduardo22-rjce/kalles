@@ -39,11 +39,14 @@ import {
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { productAdminService } from "@/features/admin/services/product-admin.service";
+import { stockService } from "@/features/admin/services/stock.service";
 import { formatCurrency } from "@/shared/utils/formatters";
 import type {
   ProductAdminResponse,
   ProductRequest,
 } from "@/features/admin/types";
+import { normalizeProductRequest } from "@/features/admin/utils/form-normalization";
+import { useCompany } from "@/shared/contexts/company-context";
 
 function ProductForm({
   defaultValues,
@@ -71,7 +74,15 @@ function ProductForm({
           <Label htmlFor="name">Nome *</Label>
           <Input
             id="name"
-            {...register("name", { required: "Nome e obrigatorio" })}
+            {...register("name", {
+              required: "Nome e obrigatorio",
+              validate: (value) =>
+                value.trim().length >= 3 || "Nome deve ter ao menos 3 caracteres",
+              maxLength: {
+                value: 150,
+                message: "Nome deve ter no maximo 150 caracteres",
+              },
+            })}
             placeholder="Nome do produto"
           />
           {errors.name && (
@@ -85,6 +96,13 @@ function ProductForm({
             id="internalCode"
             {...register("internalCode", {
               required: "Codigo interno e obrigatorio",
+              maxLength: {
+                value: 50,
+                message: "Codigo interno deve ter no maximo 50 caracteres",
+              },
+              validate: (value) =>
+                /^[A-Za-z0-9._/-]+$/.test(value.trim()) ||
+                "Use apenas letras, numeros, ponto, underscore, barra ou hifen",
             })}
             placeholder="Ex: PROD-001"
             className="font-mono"
@@ -100,10 +118,18 @@ function ProductForm({
           <Label htmlFor="barcode">Codigo de Barras</Label>
           <Input
             id="barcode"
-            {...register("barcode")}
+            {...register("barcode", {
+              maxLength: {
+                value: 50,
+                message: "Codigo de barras deve ter no maximo 50 caracteres",
+              },
+            })}
             placeholder="EAN-13 ou outro"
             className="font-mono"
           />
+          {errors.barcode && (
+            <p className="text-xs text-destructive">{errors.barcode.message}</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -150,10 +176,21 @@ function ProductForm({
           <Label htmlFor="description">Descricao</Label>
           <Textarea
             id="description"
-            {...register("description")}
+            {...register("description", {
+              maxLength: {
+                value: 1000,
+                message: "Descricao deve ter no maximo 1000 caracteres",
+              },
+            })}
             placeholder="Descricao detalhada do produto..."
             rows={3}
+            className="h-24 min-h-24 max-h-24 resize-none overflow-y-auto [field-sizing:fixed]"
           />
+          {errors.description && (
+            <p className="text-xs text-destructive">
+              {errors.description.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -175,8 +212,10 @@ function ProductForm({
 }
 
 export default function AdminProdutosPage() {
+  const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductAdminResponse | null>(
     null,
@@ -185,15 +224,16 @@ export default function AdminProdutosPage() {
     useState<ProductAdminResponse | null>(null);
 
   const {
-    data: products = [],
+    data: productPage,
     isLoading,
     error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["admin-produtos"],
-    queryFn: () => productAdminService.listAll(),
+    queryKey: ["admin-produtos", page],
+    queryFn: () => productAdminService.listPage(page, 25),
   });
+  const products = productPage?.content ?? [];
 
   const createMutation = useMutation({
     mutationFn: (data: ProductRequest) => productAdminService.create(data),
@@ -252,18 +292,69 @@ export default function AdminProdutosPage() {
       })
     : products;
 
+  const { data: stockSummaryByProduct = {} } = useQuery({
+    queryKey: [
+      "admin-produtos-stock-summary",
+      products.map((product) => product.id).join(","),
+    ],
+    enabled: products.length > 0,
+    queryFn: async () => {
+      const summaryEntries = await Promise.all(
+        products.map(async (product) => {
+          const stocks = await stockService
+            .getByProduct(product.id)
+            .catch(() => []);
+          const totalQuantity = stocks.reduce(
+            (accumulator, item) => accumulator + Number(item.quantity || 0),
+            0,
+          );
+          const primaryLocation = [...stocks].sort(
+            (a, b) => b.quantity - a.quantity,
+          )[0];
+
+          return [
+            product.id,
+            {
+              stockQuantity: totalQuantity,
+              warehouse: primaryLocation?.warehouseName ?? null,
+              location: primaryLocation?.locationCode ?? null,
+            },
+          ] as const;
+        }),
+      );
+
+      return Object.fromEntries(summaryEntries) as Record<
+        string,
+        {
+          stockQuantity: number;
+          warehouse: string | null;
+          location: string | null;
+        }
+      >;
+    },
+    staleTime: 60_000,
+  });
+
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm">
+    <div
+      className="flex h-full flex-col overflow-hidden"
+      data-onboarding="admin-products-page"
+    >
+      <header
+        className="flex items-center gap-3 border-b bg-card px-4 py-3 shadow-sm"
+        data-onboarding="admin-products-header"
+      >
         <Package className="h-5 w-5 text-primary" />
         <div>
-          <h1 className="text-sm font-semibold leading-none">
-            Cadastro de Produtos
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {isLoading ? "Carregando..." : `${products.length} produto(s)`}
-          </p>
-        </div>
+            <h1 className="text-sm font-semibold leading-none">
+              Cadastro de Produtos
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isLoading
+                ? "Carregando..."
+                : `${productPage?.totalElements ?? 0} produto(s)`}
+            </p>
+          </div>
         <div className="ml-auto flex items-center gap-2">
           <Button
             variant="ghost"
@@ -283,7 +374,17 @@ export default function AdminProdutosPage() {
         </div>
       </header>
 
-      <div className="border-b bg-muted/30 px-4 py-3">
+      <div className="border-b bg-primary/5 px-4 py-2 text-xs">
+        <span className="font-semibold text-primary">Filial ativa:</span>{" "}
+        <span className="text-foreground">
+          {activeCompany?.name ?? "Nenhuma filial selecionada"}
+        </span>
+      </div>
+
+      <div
+        className="border-b bg-muted/30 px-4 py-3"
+        data-onboarding="admin-products-filters"
+      >
         <div className="relative max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -295,7 +396,7 @@ export default function AdminProdutosPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" data-onboarding="admin-products-content">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando produtos..." />
@@ -343,81 +444,125 @@ export default function AdminProdutosPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((product, i) => (
-                <tr
-                  key={product.id}
-                  className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
-                >
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {product.internalCode}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {product.barcode ?? <span className="opacity-40">-</span>}
-                  </td>
-                  <td className="px-4 py-3 font-medium">{product.name}</td>
-                  <td className="px-4 py-3 text-center font-medium">
-                    {product.stockQuantity ?? <span className="opacity-40">0</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {product.warehouse ? (
-                      <span className="inline-flex flex-col">
-                        <span className="font-semibold text-foreground">
-                          {product.warehouse}
-                        </span>
-                        <span>{product.location}</span>
-                      </span>
-                    ) : (
-                      <span className="opacity-40">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                    {formatCurrency(product.price)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-amber-700">
-                    {formatCurrency(product.costPrice)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <Badge
-                      variant={product.active ? "outline" : "secondary"}
-                      className={
-                        product.active
-                          ? "border-green-300 text-green-700 dark:border-green-800 dark:text-green-400"
-                          : ""
-                      }
+              {filtered.map((product, i) =>
+                (() => {
+                  const stockSummary = stockSummaryByProduct[product.id];
+                  const quantity =
+                    stockSummary?.stockQuantity ?? product.stockQuantity ?? 0;
+                  const warehouse =
+                    stockSummary?.warehouse ?? product.warehouse;
+                  const location = stockSummary?.location ?? product.location;
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
                     >
-                      {product.active ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setEditTarget(product)}
-                        title="Editar"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      {product.active && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeactivateTarget(product)}
-                          title="Desativar"
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {product.internalCode}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {product.barcode ?? (
+                          <span className="opacity-40">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-medium">{product.name}</td>
+                      <td className="px-4 py-3 text-center font-medium">
+                        {quantity}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {warehouse ? (
+                          <span className="inline-flex flex-col">
+                            <span className="font-semibold text-foreground">
+                              {warehouse}
+                            </span>
+                            <span>{location}</span>
+                          </span>
+                        ) : (
+                          <span className="opacity-40">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {formatCurrency(product.price)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-amber-700">
+                        {formatCurrency(product.costPrice)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge
+                          variant={product.active ? "outline" : "secondary"}
+                          className={
+                            product.active
+                              ? "border-green-300 text-green-700 dark:border-green-800 dark:text-green-400"
+                              : ""
+                          }
                         >
-                          <PowerOff className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          {product.active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setEditTarget(product)}
+                            title="Editar"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          {product.active && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setDeactivateTarget(product)}
+                              title="Desativar"
+                            >
+                              <PowerOff className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })(),
+              )}
             </tbody>
           </table>
         )}
       </div>
+
+      <footer className="flex items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground">
+        <span>
+          Pagina {productPage ? productPage.page + 1 : 1} de{" "}
+          {productPage?.totalPages || 1}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((current) => Math.max(current - 1, 0))}
+            disabled={page === 0 || isFetching}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setPage((current) =>
+                productPage && current + 1 < productPage.totalPages
+                  ? current + 1
+                  : current,
+              )
+            }
+            disabled={!productPage || page + 1 >= productPage.totalPages || isFetching}
+          >
+            Proxima
+          </Button>
+        </div>
+      </footer>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
@@ -428,7 +573,11 @@ export default function AdminProdutosPage() {
             </DialogDescription>
           </DialogHeader>
           <ProductForm
-            onSubmit={(data) => createMutation.mutate({ ...data, active: true })}
+            onSubmit={(data) =>
+              createMutation.mutate(
+                normalizeProductRequest({ ...data, active: true }),
+              )
+            }
             isPending={createMutation.isPending}
             onCancel={() => setCreateOpen(false)}
           />
@@ -450,7 +599,10 @@ export default function AdminProdutosPage() {
               onSubmit={(data) =>
                 updateMutation.mutate({
                   id: editTarget.id,
-                  data: { ...data, active: editTarget.active },
+                  data: normalizeProductRequest({
+                    ...data,
+                    active: editTarget.active,
+                  }),
                 })
               }
               isPending={updateMutation.isPending}

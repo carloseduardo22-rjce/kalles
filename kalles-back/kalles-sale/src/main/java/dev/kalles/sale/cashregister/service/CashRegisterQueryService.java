@@ -8,6 +8,7 @@ import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Consultas de leitura para o gerenciamento de caixas pelo ADMIN.
@@ -31,7 +33,8 @@ public class CashRegisterQueryService {
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
-        List<CashRegister> registers = cashRegisterRepository.findAllByActiveTrueOrderByCodeAsc();
+        UUID companyId = getCompanyId();
+        List<CashRegister> registers = cashRegisterRepository.findAllByCompanyIdAndActiveTrueOrderByCodeAsc(companyId);
 
         List<String> registeredExternalIds = jdbcTemplate.queryForList(
             "SELECT external_id FROM mercadopago_caixa WHERE mp_pos_id IS NOT NULL", 
@@ -49,7 +52,7 @@ public class CashRegisterQueryService {
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listOperators() {
-        return operatorRepository.findAllByActiveTrueOrderByNameAsc()
+        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(getCompanyId())
             .stream()
             .map(OperatorResponse::fromEntity)
             .toList();
@@ -71,5 +74,13 @@ public class CashRegisterQueryService {
             activeSession.map(CashRegisterSession::getOpenedAt).orElse(null),
             paymentConfigured
         );
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 }

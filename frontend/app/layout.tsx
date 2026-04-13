@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AppearanceProvider } from "@/components/appearance-provider";
+import { PageOnboarding } from "@/components/onboarding/page-onboarding";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -52,7 +53,10 @@ export default function RootLayout({
         >
           <AppearanceProvider>
             <QueryProvider>
-              <CompanyProvider>{children}</CompanyProvider>
+              <CompanyProvider>
+                {children}
+                <PageOnboarding />
+              </CompanyProvider>
             </QueryProvider>
             <Toaster richColors position="top-right" />
           </AppearanceProvider>

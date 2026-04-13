@@ -62,6 +62,7 @@ import { EmptyState } from "@/shared/components/empty-state";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { goalService } from "@/features/admin/services/goal.service";
+import { normalizeGoalRequest } from "@/features/admin/utils/form-normalization";
 import type {
   GoalAssessmentResult,
   GoalRequest,
@@ -70,9 +71,6 @@ import type {
   Periodicity,
 } from "@/features/admin/types";
 import { formatCurrency } from "@/shared/utils/formatters";
-
-const CELEBRATED_KEY = "kalles:celebrated-goals";
-
 const CONFETTI_COLORS = [
   "#f43f5e",
   "#3b82f6",
@@ -437,7 +435,7 @@ export default function MetasPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
-  const celebratedRef = useRef<Set<string>>(new Set());
+  const celebratedRef = useRef<string>("");
 
   const {
     data: goals,
@@ -475,39 +473,21 @@ export default function MetasPage() {
   }, [assessableGoals, progressQueries]);
 
   useEffect(() => {
-    if (Object.keys(progressMap).length === 0) return;
-    let stored: string[] = [];
-    try {
-      const raw = localStorage.getItem(CELEBRATED_KEY);
-      stored = raw ? (JSON.parse(raw) as string[]) : [];
-    } catch {
-      // ignore
-    }
-    const alreadyCelebrated = new Set(stored);
-    const newlyMet = Object.entries(progressMap)
-      .filter(
-        ([id, r]) =>
-          r.gap === 0 &&
-          !alreadyCelebrated.has(id) &&
-          !celebratedRef.current.has(id),
-      )
-      .map(([id]) => id);
+    const achievedIds = Object.entries(progressMap)
+      .filter(([, result]) => result.gap === 0)
+      .map(([id]) => id)
+      .sort();
 
-    if (newlyMet.length > 0) {
+    const nextCelebrationKey = achievedIds.join("|");
+    if (!nextCelebrationKey) {
+      celebratedRef.current = "";
+      return;
+    }
+
+    if (celebratedRef.current !== nextCelebrationKey) {
+      celebratedRef.current = nextCelebrationKey;
       setShowConfetti(true);
       setShowCelebration(true);
-      newlyMet.forEach((id) => {
-        celebratedRef.current.add(id);
-        alreadyCelebrated.add(id);
-      });
-      try {
-        localStorage.setItem(
-          CELEBRATED_KEY,
-          JSON.stringify([...alreadyCelebrated]),
-        );
-      } catch {
-        // ignore
-      }
     }
   }, [progressMap]);
 
@@ -775,7 +755,9 @@ export default function MetasPage() {
             </DialogDescription>
           </DialogHeader>
           <GoalFormFields
-            onSubmit={(data) => createMutation.mutate(data as GoalRequest)}
+            onSubmit={(data) =>
+              createMutation.mutate(normalizeGoalRequest(data as GoalRequest))
+            }
             isPending={createMutation.isPending}
             onCancel={() => setFormOpen(false)}
           />
@@ -799,7 +781,7 @@ export default function MetasPage() {
               onSubmit={(data) =>
                 updateMutation.mutate({
                   id: editingGoal.id,
-                  data: data as GoalRequest,
+                  data: normalizeGoalRequest(data as GoalRequest),
                 })
               }
               isPending={updateMutation.isPending}

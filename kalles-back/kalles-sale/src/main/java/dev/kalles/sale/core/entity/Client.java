@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +18,11 @@ import lombok.Setter;
 
 @Entity
 @Table(
-    indexes = @Index(name = "idx_client_cpf", columnList = "cpf"),
+    indexes = {
+        @Index(name = "idx_client_cpf", columnList = "cpf"),
+        @Index(name = "idx_client_company_id", columnList = "company_id")
+    },
+    uniqueConstraints = @UniqueConstraint(name = "uk_client_cpf_company", columnNames = {"cpf", "company_id"}),
     comment = "Clientes cadastrados na loja"
 )
 @Getter
@@ -30,6 +35,9 @@ public class Client {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -39,7 +47,7 @@ public class Client {
     @Column(length = 1)
     private Character gender;
 
-    @Column(length = 14, unique = true)
+    @Column(length = 14)
     private String cpf;
 
     @Column(name = "code_country", length = 5)

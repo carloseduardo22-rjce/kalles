@@ -1,5 +1,6 @@
 package dev.kalles.sale.api.client;
 
+import dev.kalles.sale.api.dto.PageResponse;
 import dev.kalles.sale.core.dto.ClientRequest;
 import dev.kalles.sale.core.dto.ClientResponse;
 import dev.kalles.sale.core.service.ClientService;
@@ -11,7 +12,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -37,6 +38,14 @@ public class ClientController {
     @Operation(summary = "Listar todos os clientes", description = "Retorna todos os clientes cadastrados ordenados por nome.")
     public ResponseEntity<List<ClientResponse>> listAll() {
         return ResponseEntity.ok(clientService.listAll());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "Listar clientes com paginação", description = "Retorna clientes paginados, ordenados por nome.")
+    public ResponseEntity<PageResponse<ClientResponse>> listPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size) {
+        return ResponseEntity.ok(PageResponse.from(clientService.listPage(page, size)));
     }
 
     @PostMapping

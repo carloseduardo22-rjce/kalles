@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -52,6 +53,7 @@ import type {
   FidelityResponse,
   ClientResponse,
 } from "@/features/admin/types";
+import { normalizeFidelityPolicyRequest } from "@/features/admin/utils/form-normalization";
 const enrollmentChartConfig = {
   enrolled: { label: "Inscritos", color: "#10b981" },
   notEnrolled: {
@@ -73,11 +75,19 @@ function PolicyForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm<FidelityPolicyRequest>();
+  } = useForm<FidelityPolicyRequest>({
+    defaultValues: {
+      discountType: "FIXED",
+    },
+  });
+  const discountType = watch("discountType");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <input type="hidden" {...register("discountType")} />
       <div className="space-y-1.5">
         <Label htmlFor="objectivePoints">Meta de Pontos *</Label>
         <Input
@@ -103,7 +113,11 @@ function PolicyForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="configuredDiscount">Desconto Configurado (R$) *</Label>
+        <Label htmlFor="configuredDiscount">
+          {discountType === "PERCENTAGE"
+            ? "Desconto Configurado (%) *"
+            : "Desconto Configurado (R$) *"}
+        </Label>
         <Input
           id="configuredDiscount"
           type="number"
@@ -114,10 +128,13 @@ function PolicyForm({
             valueAsNumber: true,
             min: { value: 0.01, message: "Desconto deve ser positivo" },
           })}
-          placeholder="Ex: 20.00"
+          max={discountType === "PERCENTAGE" ? 100 : undefined}
+          placeholder={discountType === "PERCENTAGE" ? "Ex: 10" : "Ex: 20.00"}
         />
         <p className="text-xs text-muted-foreground">
-          Valor de desconto em reais que o cliente recebe ao atingir a meta.
+          {discountType === "PERCENTAGE"
+            ? "Percentual aplicado na proxima compra quando o cliente atingir a meta."
+            : "Valor de desconto em reais que o cliente recebe ao atingir a meta."}
         </p>
         {errors.configuredDiscount && (
           <p className="text-xs text-destructive">
@@ -126,19 +143,51 @@ function PolicyForm({
         )}
       </div>
 
+      <div className="space-y-2">
+        <Label>Tipo de desconto *</Label>
+        <RadioGroup
+          value={discountType}
+          onValueChange={(value) =>
+            setValue("discountType", value as FidelityPolicyRequest["discountType"])
+          }
+          className="grid gap-2"
+        >
+          <label className="flex items-start gap-3 rounded-md border p-3">
+            <RadioGroupItem value="FIXED" id="discount-type-fixed" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Valor fixo</p>
+              <p className="text-xs text-muted-foreground">
+                Mantem um saldo em reais e preserva o restante para compras futuras.
+              </p>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 rounded-md border p-3">
+            <RadioGroupItem value="PERCENTAGE" id="discount-type-percentage" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Percentual</p>
+              <p className="text-xs text-muted-foreground">
+                Aplica um percentual sobre a venda, mais seguro para tickets pequenos.
+              </p>
+            </div>
+          </label>
+        </RadioGroup>
+      </div>
+
       <div className="space-y-1.5">
         <Label htmlFor="valuePoint">Valor por Ponto (R$) *</Label>
         <Input
           id="valuePoint"
           type="number"
-          min={0.01}
-          step={0.01}
+          min={1}
+          step={1}
           {...register("valuePoint", {
             required: "Valor por ponto é obrigatório",
             valueAsNumber: true,
-            min: { value: 0.01, message: "Valor deve ser positivo" },
+            min: { value: 1, message: "Valor deve ser inteiro e positivo" },
+            validate: (value) =>
+              Number.isInteger(value) || "Valor por ponto deve ser inteiro",
           })}
-          placeholder="Ex: 1.00"
+          placeholder="Ex: 1"
         />
         <p className="text-xs text-muted-foreground">
           Valor em reais de cada compra que equivale a 1 ponto.
@@ -209,7 +258,9 @@ function ClientFidelityRow({
             </span>
             {fidelity.availableDiscount > 0 && (
               <span className="text-xs font-medium text-green-600">
-                {formatCurrency(fidelity.availableDiscount)} disponível
+                {fidelity.discountType === "PERCENTAGE"
+                  ? `${fidelity.availableDiscount}% disponível`
+                  : `${formatCurrency(fidelity.availableDiscount)} disponível`}
               </span>
             )}
           </div>
@@ -427,7 +478,9 @@ export default function FidelidadePage() {
                   </div>
                   <div className="rounded-md border bg-muted/30 p-3 text-center">
                     <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(activePolicy.configuredDiscount)}
+                      {activePolicy.discountType === "PERCENTAGE"
+                        ? `${activePolicy.configuredDiscount}%`
+                        : formatCurrency(activePolicy.configuredDiscount)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Desconto ao atingir meta
@@ -509,7 +562,9 @@ export default function FidelidadePage() {
                           {p.objectivePoints}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {formatCurrency(p.configuredDiscount)}
+                          {p.discountType === "PERCENTAGE"
+                            ? `${p.configuredDiscount}%`
+                            : formatCurrency(p.configuredDiscount)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {formatCurrency(p.valuePoint)}
@@ -706,7 +761,9 @@ export default function FidelidadePage() {
             </DialogDescription>
           </DialogHeader>
           <PolicyForm
-            onSubmit={(data) => createPolicyMutation.mutate(data)}
+            onSubmit={(data) =>
+              createPolicyMutation.mutate(normalizeFidelityPolicyRequest(data))
+            }
             isPending={createPolicyMutation.isPending}
             onCancel={() => setPolicyFormOpen(false)}
           />

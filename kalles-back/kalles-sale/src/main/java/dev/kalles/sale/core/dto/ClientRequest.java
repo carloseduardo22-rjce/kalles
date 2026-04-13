@@ -3,6 +3,7 @@ package dev.kalles.sale.core.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ public record ClientRequest(
     String name,
 
     @Schema(description = "Data de nascimento", example = "1990-05-20")
+    @PastOrPresent(message = "Data de nascimento nÃ£o pode estar no futuro")
     LocalDate birthDate,
 
     @Schema(description = "Gênero: M (Masculino), F (Feminino), O (Outro)", example = "M")
@@ -54,4 +56,35 @@ public record ClientRequest(
 
     @Schema(description = "Observações gerais sobre o cliente")
     String observations
-) {}
+) {
+    public ClientRequest {
+        name = normalizeRequired(name);
+        cpf = digitsOnly(cpf);
+        codeCountry = normalizeOptional(codeCountry);
+        cellphone = digitsOnly(cellphone);
+        rg = normalizeOptional(rg);
+        nameFather = normalizeOptional(nameFather);
+        nameMother = normalizeOptional(nameMother);
+        observations = normalizeOptional(observations);
+    }
+
+    private static String normalizeRequired(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private static String digitsOnly(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replaceAll("\\D", "");
+        return normalized.isEmpty() ? null : normalized;
+    }
+}

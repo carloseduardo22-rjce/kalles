@@ -10,12 +10,15 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 @DisplayName("GoalAssessmentService — Domain Tests")
 class GoalAssessmentServiceTest {
+
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
     private final GoalAssessmentService assessmentService =
             new GoalAssessmentService(mock(SaleRepository.class));
@@ -24,6 +27,7 @@ class GoalAssessmentServiceTest {
     @DisplayName("Should calculate achieved value and gap correctly")
     void shouldAssessGoalSuccessfully() {
         Goal goal = Goal.create(
+            COMPANY_ID,
                 new BigDecimal("100000.00"),
                 Periodicity.MONTHLY,
                 LocalDate.of(2026, 3, 1),
@@ -41,6 +45,7 @@ class GoalAssessmentServiceTest {
     @DisplayName("Should return zero gap when goal is exceeded")
     void shouldReturnZeroGapWhenGoalExceeded() {
         Goal goal = Goal.create(
+            COMPANY_ID,
                 new BigDecimal("100000.00"),
                 Periodicity.MONTHLY,
                 LocalDate.of(2026, 3, 1),

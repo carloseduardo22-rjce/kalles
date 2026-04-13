@@ -1,5 +1,6 @@
 package dev.kalles.sale.core.dto;
 
+import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import dev.kalles.sale.core.entity.Fidelity;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ public record FidelityResponse(
         UUID clientId,
         Integer points,
         BigDecimal availableDiscount,
+        FidelityDiscountType discountType,
         LocalDate createdAt,
         boolean expired
 ) {
@@ -20,6 +22,7 @@ public record FidelityResponse(
                 fidelity.getClient().getId(),
                 fidelity.getPoints(),
                 fidelity.getAvailableDiscount(),
+                fidelity.getPolicy().getDiscountType(),
                 fidelity.getCreatedAt(),
                 fidelity.isExpired() || fidelity.isActuallyExpired()
         );

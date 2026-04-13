@@ -5,6 +5,9 @@ import dev.kalles.sale.core.dto.WarehouseResponse;
 import dev.kalles.sale.core.entity.Warehouse;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.WarehouseRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,17 +28,29 @@ import static org.mockito.Mockito.*;
 @DisplayName("WarehouseService - Serviço de Depósitos")
 class WarehouseServiceTest {
 
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
+
     @Mock
     private WarehouseRepository warehouseRepository;
 
     @InjectMocks
     private WarehouseService warehouseService;
 
+    @BeforeEach
+    void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
+    }
+
     @Test
     @DisplayName("Deve criar depósito como ativo por padrão")
     void shouldCreateWarehouseWithActiveTrueByDefault() {
         WarehouseRequest request = new WarehouseRequest("Depósito Central", "Rua das Flores, 100");
-        Warehouse saved = new Warehouse(UUID.randomUUID(), "Depósito Central", "Rua das Flores, 100", true);
+        Warehouse saved = new Warehouse(UUID.randomUUID(), "Depósito Central", COMPANY_ID, "Rua das Flores, 100", true);
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(saved);
 
         WarehouseResponse response = warehouseService.createWarehouse(request);
@@ -53,7 +68,7 @@ class WarehouseServiceTest {
     @DisplayName("Deve persistir nome e endereço ao criar o depósito")
     void shouldPersistNameAndAddressOnCreate() {
         WarehouseRequest request = new WarehouseRequest("Dep A", "Av. Brasil, 10");
-        Warehouse saved = new Warehouse(UUID.randomUUID(), "Dep A", "Av. Brasil, 10", true);
+        Warehouse saved = new Warehouse(UUID.randomUUID(), "Dep A", COMPANY_ID, "Av. Brasil, 10", true);
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(saved);
 
         WarehouseResponse response = warehouseService.createWarehouse(request);
@@ -65,20 +80,20 @@ class WarehouseServiceTest {
     @Test
     @DisplayName("Deve retornar apenas os depósitos ativos")
     void shouldReturnOnlyActiveWarehouses() {
-        Warehouse w1 = new Warehouse(UUID.randomUUID(), "Dep A", null, true);
-        Warehouse w2 = new Warehouse(UUID.randomUUID(), "Dep B", null, true);
-        when(warehouseRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of(w1, w2));
+        Warehouse w1 = new Warehouse(UUID.randomUUID(), "Dep A", COMPANY_ID, null, true);
+        Warehouse w2 = new Warehouse(UUID.randomUUID(), "Dep B", COMPANY_ID, null, true);
+        when(warehouseRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(COMPANY_ID)).thenReturn(List.of(w1, w2));
 
         List<WarehouseResponse> result = warehouseService.listActiveWarehouses();
 
         assertEquals(2, result.size());
-        verify(warehouseRepository).findAllByActiveTrueOrderByNameAsc();
+        verify(warehouseRepository).findAllByCompanyIdAndActiveTrueOrderByNameAsc(COMPANY_ID);
     }
 
     @Test
     @DisplayName("Deve retornar lista vazia quando não há depósitos ativos")
     void shouldReturnEmptyListWhenNoActiveWarehouses() {
-        when(warehouseRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(warehouseRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(COMPANY_ID)).thenReturn(List.of());
 
         List<WarehouseResponse> result = warehouseService.listActiveWarehouses();
 
@@ -89,8 +104,8 @@ class WarehouseServiceTest {
     @DisplayName("Deve encontrar depósito pelo ID")
     void shouldFindWarehouseById() {
         UUID id = UUID.randomUUID();
-        Warehouse warehouse = new Warehouse(id, "Dep X", "Rua Y", true);
-        when(warehouseRepository.findById(id)).thenReturn(Optional.of(warehouse));
+        Warehouse warehouse = new Warehouse(id, "Dep X", COMPANY_ID, "Rua Y", true);
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(warehouse));
 
         WarehouseResponse response = warehouseService.findWarehouseById(id);
 
@@ -102,7 +117,7 @@ class WarehouseServiceTest {
     @DisplayName("Deve lançar exceção quando depósito não existe")
     void shouldThrowNotFoundWhenWarehouseDoesNotExist() {
         UUID id = UUID.randomUUID();
-        when(warehouseRepository.findById(id)).thenReturn(Optional.empty());
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         NotFoundException ex = assertThrows(NotFoundException.class,
                 () -> warehouseService.findWarehouseById(id));
@@ -113,11 +128,11 @@ class WarehouseServiceTest {
     @DisplayName("Deve atualizar nome e endereço do depósito")
     void shouldUpdateWarehouseNameAndAddress() {
         UUID id = UUID.randomUUID();
-        Warehouse existing = new Warehouse(id, "Nome Antigo", "End. Antigo", true);
+        Warehouse existing = new Warehouse(id, "Nome Antigo", COMPANY_ID, "End. Antigo", true);
         WarehouseRequest request = new WarehouseRequest("Nome Novo", "End. Novo");
-        Warehouse updated = new Warehouse(id, "Nome Novo", "End. Novo", true);
+        Warehouse updated = new Warehouse(id, "Nome Novo", COMPANY_ID, "End. Novo", true);
 
-        when(warehouseRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(updated);
 
         WarehouseResponse response = warehouseService.updateWarehouse(id, request);
@@ -130,7 +145,7 @@ class WarehouseServiceTest {
     @DisplayName("Deve lançar exceção ao atualizar depósito inexistente")
     void shouldThrowNotFoundWhenUpdatingNonExistentWarehouse() {
         UUID id = UUID.randomUUID();
-        when(warehouseRepository.findById(id)).thenReturn(Optional.empty());
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> warehouseService.updateWarehouse(id, new WarehouseRequest("X", null)));
@@ -141,8 +156,8 @@ class WarehouseServiceTest {
     @DisplayName("Deve marcar depósito como inativo ao desativá-lo")
     void shouldSetActiveToFalseOnDeactivate() {
         UUID id = UUID.randomUUID();
-        Warehouse warehouse = new Warehouse(id, "Dep Z", null, true);
-        when(warehouseRepository.findById(id)).thenReturn(Optional.of(warehouse));
+        Warehouse warehouse = new Warehouse(id, "Dep Z", COMPANY_ID, null, true);
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(warehouse));
         when(warehouseRepository.save(any())).thenReturn(warehouse);
 
         warehouseService.deactivateWarehouse(id);
@@ -155,7 +170,7 @@ class WarehouseServiceTest {
     @DisplayName("Deve lançar exceção ao desativar depósito inexistente")
     void shouldThrowNotFoundWhenDeactivatingNonExistentWarehouse() {
         UUID id = UUID.randomUUID();
-        when(warehouseRepository.findById(id)).thenReturn(Optional.empty());
+        when(warehouseRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> warehouseService.deactivateWarehouse(id));

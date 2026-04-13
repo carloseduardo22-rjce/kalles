@@ -10,12 +10,15 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Goal — Domain Tests")
 class GoalTest {
+
+        private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
     @Nested
     @DisplayName("Goal Creation")
@@ -25,6 +28,7 @@ class GoalTest {
         @DisplayName("Should create a Goal with DRAFT status and correct data")
         void shouldCreateGoalSuccessfully() {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -42,6 +46,7 @@ class GoalTest {
         @DisplayName("Should reject Goal with null target value")
         void shouldRejectNullTargetValue() {
             assertThatThrownBy(() -> Goal.create(
+                    COMPANY_ID,
                     null,
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -55,6 +60,7 @@ class GoalTest {
         @DisplayName("Should reject Goal with zero or negative target value")
         void shouldRejectNonPositiveTargetValue() {
             assertThatThrownBy(() -> Goal.create(
+                    COMPANY_ID,
                     BigDecimal.ZERO,
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -68,6 +74,7 @@ class GoalTest {
         @DisplayName("Should reject Goal with end date before start date")
         void shouldRejectInvalidPeriod() {
             assertThatThrownBy(() -> Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 31),
@@ -86,6 +93,7 @@ class GoalTest {
         @DisplayName("Should reject target value change on ACTIVE Goal")
         void shouldRejectTargetValueChangeOnActiveGoal() {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -102,6 +110,7 @@ class GoalTest {
         @DisplayName("Should reject period change on ACTIVE Goal")
         void shouldRejectPeriodChangeOnActiveGoal() {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -126,6 +135,7 @@ class GoalTest {
         @DisplayName("Should transition from DRAFT to ACTIVE")
         void shouldActivateGoal() {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),
@@ -141,6 +151,7 @@ class GoalTest {
         @DisplayName("Should transition from ACTIVE to CLOSED")
         void shouldCloseGoal() {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal("100000.00"),
                     Periodicity.MONTHLY,
                     LocalDate.of(2026, 3, 1),

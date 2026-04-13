@@ -25,4 +25,8 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
     List<Stock> findAllByProductIdOrderByQuantityDesc(@Param("productId") UUID productId, @Param("companyId") UUID companyId);
 
     List<Stock> findAllByLocationId(UUID locationId);
+
+    @Query("SELECT s FROM Stock s JOIN s.location l JOIN l.warehouse w " +
+           "WHERE l.id = :locationId AND w.companyId = :companyId")
+    List<Stock> findAllByLocationIdAndCompanyId(@Param("locationId") UUID locationId, @Param("companyId") UUID companyId);
 }

@@ -9,7 +9,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "cash_registers")
+@Table(name = "cash_registers",
+    uniqueConstraints = @UniqueConstraint(name = "uk_cash_register_code_company", columnNames = {"code", "company_id"})
+)
 @Getter
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
@@ -19,10 +21,10 @@ public class CashRegister {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String code;
 
-    @Column(name = "company_id")
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     @Column(nullable = false)

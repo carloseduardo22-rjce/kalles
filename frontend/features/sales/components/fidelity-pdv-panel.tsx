@@ -43,6 +43,10 @@ function normalizeCpf(cpf: string): string {
   return cpf.replace(/\D/g, "");
 }
 
+function formatFidelityReward(value: number, type: "FIXED" | "PERCENTAGE") {
+  return type === "PERCENTAGE" ? `${value}%` : formatCurrency(value);
+}
+
 export function FidelityPdvPanel({
   sale,
   disabled,
@@ -262,7 +266,11 @@ export function FidelityPdvPanel({
             <div className="rounded-md bg-green-50 border border-green-200 p-2 space-y-1.5">
               <p className="text-xs font-medium text-green-800">
                 <Star className="inline mr-1 h-3 w-3" />
-                {formatCurrency(fidelity.availableDiscount)} de desconto
+                {formatFidelityReward(
+                  fidelity.availableDiscount,
+                  fidelity.discountType,
+                )}{" "}
+                de desconto
                 disponível
               </p>
               <Button
@@ -294,7 +302,11 @@ export function FidelityPdvPanel({
                   {fidelity.points} / {activePolicy.objectivePoints} pts
                 </span>
                 <span>
-                  {formatCurrency(activePolicy.configuredDiscount)} ao completar
+                  {formatFidelityReward(
+                    activePolicy.configuredDiscount,
+                    activePolicy.discountType,
+                  )}{" "}
+                  ao completar
                 </span>
               </div>
               <Progress

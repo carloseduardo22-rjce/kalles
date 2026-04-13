@@ -13,7 +13,7 @@ import java.util.UUID;
     schema = "support",
     comment = "Support agents who handle tickets",
     indexes = {
-        @Index(name = "idx_agents_employee_id", columnList = "employee_id", unique = true)
+        @Index(name = "idx_agents_tenant_employee_id", columnList = "tenant_id, employee_id", unique = true)
     }
 )
 @Getter
@@ -25,7 +25,10 @@ public class AgentEntity extends BaseAuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "employee_id", nullable = false, unique = true, length = 100)
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
+    @Column(name = "employee_id", nullable = false, length = 100)
     private String employeeId;
 
     @Column(nullable = false, length = 255)

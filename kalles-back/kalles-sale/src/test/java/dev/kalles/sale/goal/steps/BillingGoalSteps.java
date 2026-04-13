@@ -19,11 +19,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class BillingGoalSteps {
+
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
     private final List<Goal> registeredGoals = new ArrayList<>();
     private final GoalAssessmentService assessmentService =
@@ -43,6 +46,7 @@ public class BillingGoalSteps {
     @Given("que existe uma Meta com Periodicidade {string} e status {string} entre {string} e {string}")
     public void activeGoalExists(String periodicity, String status, String startDate, String endDate) {
         Goal goal = Goal.create(
+            COMPANY_ID,
                 new BigDecimal("90000.00"),
                 Periodicity.valueOf(periodicity),
                 LocalDate.parse(startDate),
@@ -58,6 +62,7 @@ public class BillingGoalSteps {
     @Given("que existe uma Meta com Periodicidade {string} e status {string} com valor alvo de {string} entre {string} e {string}")
     public void activeGoalExistsWithTargetValue(String periodicity, String status, String targetValue, String startDate, String endDate) {
         Goal goal = Goal.create(
+            COMPANY_ID,
                 new BigDecimal(targetValue),
                 Periodicity.valueOf(periodicity),
                 LocalDate.parse(startDate),
@@ -83,6 +88,7 @@ public class BillingGoalSteps {
         Map<String, String> data = dataTable.asMap();
         try {
             Goal goal = Goal.create(
+                    COMPANY_ID,
                     new BigDecimal(data.get("valorAlvo")),
                     Periodicity.valueOf(data.get("periodicidade")),
                     LocalDate.parse(data.get("dataInicio")),

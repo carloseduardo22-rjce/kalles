@@ -101,18 +101,9 @@ export default function PaymentSettingsPage() {
   const selectedProvider = getPaymentProvider(selectedProviderId);
 
   // Em produção, isso viraria de variáveis de ambiente (.env)
-  const MP_APP_ID = process.env.NEXT_PUBLIC_MP_APP_ID || "448684586415948";
-  const REDIRECT_URI =
-    process.env.NEXT_PUBLIC_MP_REDIRECT_URI ||
-    "https://3ffc-2804-1494-dbb-aa00-a54d-cb78-3de9-27c6.ngrok-free.app/admin/pagamentos/mp-callback";
 
   // O state é usado para passarmos o ID do Tenant/Dono do sistema e validar o callback
-  const [tenantId, setTenantId] = useState<string>("");
 
-  const providerAuthUrl =
-    selectedProvider.auth.mode === "oauth" && tenantId
-      ? (selectedProvider.auth.buildAuthorizationUrl?.(tenantId) ?? "")
-      : "";
 
   const [loading, setLoading] = useState(false);
   const [storeConfigured, setStoreConfigured] = useState(false);
@@ -134,13 +125,6 @@ export default function PaymentSettingsPage() {
       })
       .catch((err) => console.error("Error fetching cash registers", err));
 
-    // Busca o tenantId do usuário logado
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.tenantId) setTenantId(data.tenantId);
-      })
-      .catch(console.error);
   }, []);
 
   // Verifica se a conta do MP já está conectada ao entrar na aba "criar".
@@ -265,11 +249,30 @@ export default function PaymentSettingsPage() {
 
   const isLoadingData = isLoadingStores;
 
+  const handleStartProviderAuthorization = async () => {
+    try {
+      setLoading(true);
+      const authorizationUrl =
+        await selectedProvider.auth.startAuthorization?.();
+
+      if (!authorizationUrl) {
+        throw new Error("Nao foi possivel iniciar a autorizacao do provider.");
+      }
+
+      window.location.assign(authorizationUrl);
+    } catch (error: any) {
+      toast.error(error.message || "Falha ao iniciar a autorizacao segura.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className={`flex-1 min-h-screen p-4 pt-6 md:p-8 ${
         selectedProviderId === "STONE" ? "bg-slate-950" : "bg-[#009EE3]"
       }`}
+      data-onboarding="payments-page"
     >
       <div className="flex items-center gap-4 mb-2">
         <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
@@ -293,6 +296,11 @@ export default function PaymentSettingsPage() {
         )}
       </div>
 
+      <div className="mb-4 rounded-md border border-white/50 bg-white/20 px-4 py-2 text-sm text-white backdrop-blur-sm">
+        <span className="font-semibold">Filial ativa:</span>{" "}
+        <span>{activeCompany?.name ?? "Nenhuma filial selecionada"}</span>
+      </div>
+
       {selectedProviderId !== "MERCADO_PAGO" && (
         <p className="text-white/90 w-full mb-8 font-medium">
           {selectedProvider.presentation.description}
@@ -308,7 +316,10 @@ export default function PaymentSettingsPage() {
         </p>
       )}
 
-      <div className="mb-8 grid gap-3 md:grid-cols-2">
+      <div
+        className="mb-8 grid gap-3 md:grid-cols-2"
+        data-onboarding="payments-provider-selector"
+      >
         {paymentProviders.map((provider) => {
           const isSelected = provider.id === selectedProviderId;
 
@@ -418,6 +429,7 @@ export default function PaymentSettingsPage() {
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
           className="w-full mt-6"
+          data-onboarding="payments-tabs"
         >
           <TabsList className="bg-white/20 text-white border border-white/30 backdrop-blur-sm mb-6 h-12 p-1">
             <TabsTrigger
@@ -436,7 +448,11 @@ export default function PaymentSettingsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="listar" className="pb-20">
+          <TabsContent
+            value="listar"
+            className="pb-20"
+            data-onboarding="payments-content"
+          >
             <div className="grid gap-6">
               {isLoadingData ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center text-white">
@@ -531,7 +547,7 @@ export default function PaymentSettingsPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="criar">
+          <TabsContent value="criar" data-onboarding="payments-content">
             {/* Tabs / Stepper Header for Creation */}
             <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
               <button
@@ -584,25 +600,19 @@ export default function PaymentSettingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {tenantId ? (
-                      <Button
-                        asChild
-                        className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
-                      >
-                        <Link href={providerAuthUrl}>
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          Conectar Mercado Pago
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        disabled
-                        className="w-auto bg-[#009EE3]/70 text-white cursor-not-allowed"
-                      >
+                    <Button
+                      type="button"
+                      onClick={handleStartProviderAuthorization}
+                      disabled={loading}
+                      className="w-auto bg-[#009EE3] hover:bg-[#0089C7] text-white"
+                    >
+                      {loading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Preparando conexão...
-                      </Button>
-                    )}
+                      ) : (
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                      )}
+                      Conectar Mercado Pago
+                    </Button>
                   </CardContent>
                 </Card>
               )}

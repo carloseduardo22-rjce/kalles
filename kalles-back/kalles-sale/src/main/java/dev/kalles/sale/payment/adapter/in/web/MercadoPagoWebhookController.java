@@ -35,16 +35,18 @@ public class MercadoPagoWebhookController {
             @RequestParam(value = "data.id", required = false) String dataId,
             @RequestBody Map<String, Object> payload
     ) {
-        if (!webhookSecret.isBlank() && xSignature != null && xRequestId != null && dataId != null) {
-            boolean isValid = processPaymentWebhookUseCase.validateSignature(
-                    PaymentProvider.MERCADO_PAGO,
-                    xSignature,
-                    xRequestId,
-                    dataId
-            );
-            if (!isValid) {
-                return ResponseEntity.status(403).build();
-            }
+        if (webhookSecret.isBlank() || xSignature == null || xRequestId == null || dataId == null) {
+            return ResponseEntity.status(403).build();
+        }
+
+        boolean isValid = processPaymentWebhookUseCase.validateSignature(
+                PaymentProvider.MERCADO_PAGO,
+                xSignature,
+                xRequestId,
+                dataId
+        );
+        if (!isValid) {
+            return ResponseEntity.status(403).build();
         }
 
         processPaymentWebhookUseCase.execute(PaymentProvider.MERCADO_PAGO, payload);

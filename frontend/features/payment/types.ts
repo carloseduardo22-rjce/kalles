@@ -22,7 +22,7 @@ export interface PaymentProviderPresentation {
 export interface PaymentProviderAuthConfig {
   mode: PaymentProviderLinkMode;
   callbackPath?: string;
-  buildAuthorizationUrl?: (tenantId: string) => string;
+  startAuthorization?: () => Promise<string>;
 }
 
 export interface PaymentProviderStatus {

@@ -1,7 +1,10 @@
 package dev.kalles.sale.core.entity;
 
+import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,7 +30,7 @@ public class FidelityPolicy {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "company_id")
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     @Column(name = "objective_points", nullable = false)
@@ -35,6 +38,10 @@ public class FidelityPolicy {
 
     @Column(name = "configured_discount", nullable = false, precision = 10, scale = 2)
     private BigDecimal configuredDiscount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", nullable = false, length = 20)
+    private FidelityDiscountType discountType = FidelityDiscountType.FIXED;
 
     @Column(name = "value_point", nullable = false)
     private Integer valuePoint;

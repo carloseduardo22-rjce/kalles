@@ -5,9 +5,14 @@ const BACKEND_URL =
 
 const AUTH_COOKIE_NAME = "kalles_auth_token";
 const REFRESH_COOKIE_NAME = "kalles_refresh_token";
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
 
 type CookieAttributes = {
-  maxAge: number;
+  maxAge?: number;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: "lax" | "strict" | "none";
+  path: string;
 };
 
 function splitSetCookieHeader(value: string | null): string[] {
@@ -52,12 +57,27 @@ function parseCookieHeader(cookieHeader: string): {
     part.toLowerCase().startsWith("max-age="),
   );
   const maxAge = maxAgePart ? Number.parseInt(maxAgePart.split("=")[1], 10) : undefined;
+  const sameSitePart = attributes.find((part) =>
+    part.toLowerCase().startsWith("samesite="),
+  );
+  const sameSite =
+    sameSitePart?.split("=")[1]?.toLowerCase() === "strict"
+      ? "strict"
+      : sameSitePart?.split("=")[1]?.toLowerCase() === "none"
+        ? "none"
+        : "lax";
 
   return {
     name,
     value,
     attributes: {
-      maxAge: Number.isFinite(maxAge) ? (maxAge as number) : 60 * 60 * 12,
+      maxAge: Number.isFinite(maxAge) ? (maxAge as number) : undefined,
+      httpOnly: attributes.some((part) => part.toLowerCase() === "httponly"),
+      secure: attributes.some((part) => part.toLowerCase() === "secure"),
+      sameSite,
+      path:
+        attributes.find((part) => part.toLowerCase().startsWith("path="))?.split("=")[1] ||
+        "/",
     },
   };
 }
@@ -73,10 +93,7 @@ function applyCookieHeaders(
       continue;
     }
 
-    if (
-      parsed.name !== AUTH_COOKIE_NAME &&
-      parsed.name !== REFRESH_COOKIE_NAME
-    ) {
+    if (![AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME, CSRF_COOKIE_NAME].includes(parsed.name)) {
       continue;
     }
 
@@ -85,11 +102,11 @@ function applyCookieHeaders(
     response.cookies.set({
       name: parsed.name,
       value: isExpiring ? "" : parsed.value,
-      httpOnly: true,
-      secure: request.nextUrl.protocol === "https:",
-      path: "/",
+      httpOnly: parsed.attributes.httpOnly,
+      secure: parsed.attributes.secure || request.nextUrl.protocol === "https:",
+      path: parsed.attributes.path,
       maxAge: isExpiring ? 0 : parsed.attributes.maxAge,
-      sameSite: "lax",
+      sameSite: parsed.attributes.sameSite,
     });
   }
 }
@@ -97,9 +114,11 @@ function applyCookieHeaders(
 function buildBackendCookieHeader(request: NextRequest): string | undefined {
   const authToken = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   const refreshToken = request.cookies.get(REFRESH_COOKIE_NAME)?.value;
+  const csrfToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   const cookies = [
     authToken ? `${AUTH_COOKIE_NAME}=${authToken}` : null,
     refreshToken ? `${REFRESH_COOKIE_NAME}=${refreshToken}` : null,
+    csrfToken ? `${CSRF_COOKIE_NAME}=${csrfToken}` : null,
   ].filter(Boolean);
 
   return cookies.length > 0 ? cookies.join("; ") : undefined;
@@ -117,6 +136,10 @@ async function proxyToBackend(
 
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
+  }
+  const csrfHeader = request.headers.get("x-xsrf-token");
+  if (csrfHeader) {
+    headers["X-XSRF-TOKEN"] = csrfHeader;
   }
 
   if (cookieHeader) {

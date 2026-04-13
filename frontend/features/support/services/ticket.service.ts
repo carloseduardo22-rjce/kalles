@@ -7,6 +7,7 @@ import type {
   TicketResponse,
   TicketStatus,
 } from "@/features/support/types";
+import type { PaginatedResponse } from "@/shared/types";
 
 const BASE = "/api/tickets";
 
@@ -14,6 +15,21 @@ export const ticketService = {
   listAll: (status?: TicketStatus): Promise<TicketResponse[]> => {
     const path = status ? `${BASE}?status=${status}` : BASE;
     return api.get<TicketResponse[]>(path);
+  },
+
+  listPage: (
+    page: number,
+    size: number,
+    status?: TicketStatus,
+  ): Promise<PaginatedResponse<TicketResponse>> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+    if (status) {
+      params.set("status", status);
+    }
+    return api.get<PaginatedResponse<TicketResponse>>(`${BASE}/page?${params.toString()}`);
   },
 
   findById: (id: string): Promise<TicketResponse> =>

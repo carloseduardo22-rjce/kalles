@@ -146,6 +146,7 @@ public class AuthAndPosSetupSteps {
         accountRepository.save(operatorAccount);
 
         Operator operator = new Operator("Operador Caixa 01", "OP-CAIXA-01");
+        operator.setCompanyId(companyId);
         operator.setPermissionLevel(PermissionLevel.BASIC);
         operatorRepository.save(operator);
     }
@@ -179,7 +180,8 @@ public class AuthAndPosSetupSteps {
     public void thenResponseDefinesAuthCookie(String cookieName) {
         assertThat(cookieName).isEqualTo("kalles_auth_token");
         assertThat(currentAuthCookie).isNotBlank();
-        assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).contains("kalles_auth_token=");
+        assertThat(response.getHeaders().getValues(HttpHeaders.SET_COOKIE))
+                .anyMatch(header -> header.contains("kalles_auth_token="));
     }
 
     @Entao("o login nao deve exigir pareamento de terminal para o perfil administrador")

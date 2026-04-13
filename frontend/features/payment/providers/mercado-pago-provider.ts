@@ -11,9 +11,6 @@ import type {
 } from "../types";
 
 const PROVIDER = "MERCADO_PAGO" as const;
-const DEFAULT_APP_ID = "448684586415948";
-const DEFAULT_REDIRECT_URI =
-  "https://3ffc-2804-1494-dbb-aa00-a54d-cb78-3de9-27c6.ngrok-free.app/admin/pagamentos/mp-callback";
 
 export const mercadoPagoProvider: PaymentProviderAdapter = {
   id: PROVIDER,
@@ -36,12 +33,11 @@ export const mercadoPagoProvider: PaymentProviderAdapter = {
   auth: {
     mode: "oauth",
     callbackPath: "/admin/pagamentos/mp-callback",
-    buildAuthorizationUrl: (tenantId: string) => {
-      const appId = process.env.NEXT_PUBLIC_MP_APP_ID || DEFAULT_APP_ID;
-      const redirectUri =
-        process.env.NEXT_PUBLIC_MP_REDIRECT_URI || DEFAULT_REDIRECT_URI;
-
-      return `https://auth.mercadopago.com/authorization?client_id=${appId}&response_type=code&platform_id=mp&state=${tenantId}&redirect_uri=${redirectUri}`;
+    startAuthorization: async () => {
+      const response = await api.get<{ authorizationUrl: string }>(
+        `/api/payment-providers/${PROVIDER}/oauth-authorization-url`,
+      );
+      return response.authorizationUrl;
     },
   },
   getProviderStatus: (): Promise<PaymentProviderStatus> =>

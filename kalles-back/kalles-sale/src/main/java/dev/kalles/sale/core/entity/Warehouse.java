@@ -28,7 +28,7 @@ public class Warehouse {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(name = "company_id")
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     @Column(length = 255)
@@ -37,11 +37,5 @@ public class Warehouse {
     @Column(nullable = false)
     private boolean active = true;
 
-    public Warehouse(UUID id, String name, String address, boolean active) {
-        this.id = id;
-        this.name = name;
-        this.address = address;
-        this.active = active;
-        this.companyId = null;
-    }
+
 }

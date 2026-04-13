@@ -5,6 +5,7 @@ import dev.kalles.sale.cashregister.dto.OperatorResponse;
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +21,7 @@ public class OperatorService {
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listAll() {
-        return operatorRepository.findAllByActiveTrueOrderByNameAsc()
+        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(getCompanyId())
                 .stream()
                 .map(OperatorResponse::fromEntity)
                 .toList();
@@ -28,17 +29,19 @@ public class OperatorService {
 
     @Transactional(readOnly = true)
     public OperatorResponse findById(UUID id) {
-        return operatorRepository.findById(id)
+        return operatorRepository.findByIdAndCompanyId(id, getCompanyId())
                 .map(OperatorResponse::fromEntity)
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
     }
 
     @Transactional
     public OperatorResponse create(OperatorRequest request) {
-        operatorRepository.findByCode(request.code()).ifPresent(existing -> {
-            throw new IllegalArgumentException("Já existe um operador com o código informado.");
+        UUID companyId = getCompanyId();
+        operatorRepository.findByCodeAndCompanyId(request.code(), companyId).ifPresent(existing -> {
+            throw new IllegalArgumentException("Já existe um operador com o código informado nesta filial.");
         });
         Operator operator = new Operator();
+        operator.setCompanyId(companyId);
         operator.setName(request.name());
         operator.setCode(request.code());
         operator.setPermissionLevel(request.permissionLevel());
@@ -48,11 +51,12 @@ public class OperatorService {
 
     @Transactional
     public OperatorResponse update(UUID id, OperatorRequest request) {
-        Operator operator = operatorRepository.findById(id)
+        UUID companyId = getCompanyId();
+        Operator operator = operatorRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
-        operatorRepository.findByCode(request.code()).ifPresent(existing -> {
+        operatorRepository.findByCodeAndCompanyId(request.code(), companyId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException("Já existe um operador com o código informado.");
+                throw new IllegalArgumentException("Já existe um operador com o código informado nesta filial.");
             }
         });
         operator.setName(request.name());
@@ -63,9 +67,17 @@ public class OperatorService {
 
     @Transactional
     public void deactivate(UUID id) {
-        Operator operator = operatorRepository.findById(id)
+        Operator operator = operatorRepository.findByIdAndCompanyId(id, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
         operator.setActive(false);
         operatorRepository.save(operator);
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        }
+        return companyId;
     }
 }

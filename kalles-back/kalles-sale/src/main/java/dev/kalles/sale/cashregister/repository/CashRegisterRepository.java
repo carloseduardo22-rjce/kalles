@@ -11,5 +11,11 @@ import java.util.UUID;
 public interface CashRegisterRepository extends JpaRepository<CashRegister, UUID> {
     Optional<CashRegister> findByCode(String code);
 
+    Optional<CashRegister> findByCodeAndCompanyId(String code, UUID companyId);
+
+    Optional<CashRegister> findByIdAndCompanyId(UUID id, UUID companyId);
+
     List<CashRegister> findAllByActiveTrueOrderByCodeAsc();
+
+    List<CashRegister> findAllByCompanyIdAndActiveTrueOrderByCodeAsc(UUID companyId);
 }

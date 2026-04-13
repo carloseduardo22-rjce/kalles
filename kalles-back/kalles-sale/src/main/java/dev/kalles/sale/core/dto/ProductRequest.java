@@ -32,4 +32,23 @@ public record ProductRequest(
     @Schema(description = "Custo unitario da mercadoria", example = "3.40")
     @NotNull @DecimalMin(value = "0.01", message = "Custo deve ser maior que zero")
     BigDecimal costPrice
-) {}
+) {
+    public ProductRequest {
+        name = normalizeRequired(name);
+        internalCode = normalizeRequired(internalCode).toUpperCase();
+        barcode = normalizeOptional(barcode);
+        description = normalizeOptional(description);
+    }
+
+    private static String normalizeRequired(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+}

@@ -31,13 +31,12 @@ public class PaymentProviderAccountService implements
 
     @Override
     public void execute(LinkPaymentProviderAccountCommand command) {
-        UUID tenantId = UUID.fromString(command.state());
         PaymentProviderAuthorization authorization = portFactory.providerAccount(command.provider())
                 .exchangeAuthorizationCode(command.authorizationCode());
 
-        PaymentProviderAccount account = paymentAccountRepository.findByTenantIdAndProvider(tenantId, command.provider())
+        PaymentProviderAccount account = paymentAccountRepository.findByTenantIdAndProvider(command.tenantId(), command.provider())
                 .orElseGet(() -> new PaymentProviderAccount(
-                        tenantId,
+                        command.tenantId(),
                         command.provider(),
                         null,
                         null,

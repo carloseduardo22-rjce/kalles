@@ -36,6 +36,7 @@ public class TicketMapper {
     public InteractionEntity toInteractionEntity(Interaction interaction, TicketEntity ticketEntity) {
         InteractionEntity entity = new InteractionEntity();
         entity.setId(UUID.fromString(interaction.getId()));
+        entity.setTenantId(ticketEntity.getTenantId());
         entity.setTicket(ticketEntity);
         entity.setContent(interaction.getContent());
         entity.setType(interaction.getType());

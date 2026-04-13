@@ -92,8 +92,8 @@ public class SaleController {
         System.out.print("Requisição addItem: " + request);
 
         Sale sale = switch (request.type()) {
-            case INTERNAL_CODE -> saleService.addItemByInternalCode(sessionToken, request.code());
-            case BAR_CODE -> saleService.addItemByBarCode(sessionToken, request.code());
+            case INTERNAL_CODE -> saleService.addItemByInternalCode(sessionToken, request.code(), request.quantity());
+            case BAR_CODE -> saleService.addItemByBarCode(sessionToken, request.code(), request.quantity());
         };
 
         return ResponseEntity.ok(SaleResponse.from(sale));

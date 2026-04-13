@@ -23,6 +23,7 @@ import dev.kalles.sale.payment.application.port.in.ProcessPaymentUseCase;
 import dev.kalles.sale.payment.application.port.in.RefundPaymentUseCase;
 import dev.kalles.sale.payment.application.port.in.command.CreatePaymentStoreCommand;
 import dev.kalles.sale.payment.application.port.in.command.LinkPaymentProviderAccountCommand;
+import dev.kalles.sale.payment.application.service.PaymentProviderOAuthStateService;
 import dev.kalles.sale.payment.domain.PaymentCommand;
 import dev.kalles.sale.payment.domain.PaymentDocumentPrintCommand;
 import dev.kalles.sale.payment.domain.PaymentDocumentType;
@@ -32,10 +33,17 @@ import dev.kalles.sale.payment.domain.PaymentProvider;
 import dev.kalles.sale.payment.domain.PaymentResult;
 import dev.kalles.sale.payment.domain.PaymentStatus;
 import dev.kalles.sale.payment.domain.PaymentStore;
+import dev.kalles.sale.security.context.TenantContextHolder;
+import dev.kalles.sale.security.domain.Account;
+import dev.kalles.sale.security.domain.AccountRole;
+import dev.kalles.sale.security.repository.AccountRepository;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;
 import io.cucumber.java.pt.Quando;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -73,11 +81,19 @@ public class GenericPaymentControllerSteps {
             mock(PrintPaymentDocumentUseCase.class);
     private final RefundPaymentUseCase refundPaymentUseCase =
             mock(RefundPaymentUseCase.class);
+    private final PaymentProviderOAuthStateService paymentProviderOAuthStateService =
+            mock(PaymentProviderOAuthStateService.class);
+    private final AccountRepository accountRepository =
+            mock(AccountRepository.class);
+    private final Authentication authentication = mock(Authentication.class);
+    private final HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
 
     private final PaymentProviderAccountController paymentProviderAccountController =
             new PaymentProviderAccountController(
                     linkPaymentProviderAccountUseCase,
-                    getPaymentProviderAccountStatusUseCase
+                    getPaymentProviderAccountStatusUseCase,
+                    paymentProviderOAuthStateService,
+                    accountRepository
             );
     private final PaymentStoreController paymentStoreController =
             new PaymentStoreController(
@@ -114,6 +130,7 @@ public class GenericPaymentControllerSteps {
     private String currentOrderIdForClose;
     private PaymentProvider currentProviderForPrint;
     private String currentOrderIdForPrint;
+    private Account authenticatedAccount;
 
     private ResponseEntity<Void> linkResponse;
     private ResponseEntity<CreatePaymentStoreResponse> createStoreResponse;
@@ -133,12 +150,29 @@ public class GenericPaymentControllerSteps {
     ) {
         reset(linkPaymentProviderAccountUseCase);
         capturedLinkCommand = null;
+        authenticatedAccount = new Account(UUID.randomUUID(), "Conta Teste", "conta@kalles.local", "encoded", AccountRole.ADMIN);
+        authenticatedAccount.setId(UUID.randomUUID());
         linkRequest = new LinkPaymentProviderAccountRequest(
                 PaymentProvider.valueOf(provider),
                 authorizationCode,
                 state,
                 Map.of(metadataKey, metadataValue)
         );
+        TenantContextHolder.setTenantId(authenticatedAccount.getTenantId());
+        when(authentication.getName()).thenReturn(authenticatedAccount.getEmail());
+        when(accountRepository.findByTenantIdAndEmailIgnoreCase(authenticatedAccount.getTenantId(), authenticatedAccount.getEmail()))
+                .thenReturn(Optional.of(authenticatedAccount));
+        when(paymentProviderOAuthStateService.cookieName(linkRequest.provider()))
+                .thenReturn("oauth_state_cookie");
+        when(httpServletRequest.getCookies())
+                .thenReturn(new Cookie[]{new Cookie("oauth_state_cookie", state)});
+        when(paymentProviderOAuthStateService.validateState(linkRequest.provider(), authenticatedAccount, state, state))
+                .thenReturn(authenticatedAccount.getTenantId());
+        when(paymentProviderOAuthStateService.buildExpiredStateCookie(linkRequest.provider()))
+                .thenReturn(org.springframework.http.ResponseCookie.from("oauth_state_cookie", "")
+                        .path("/")
+                        .maxAge(0)
+                        .build());
         doAnswer(invocation -> {
             capturedLinkCommand = invocation.getArgument(0);
             return null;
@@ -147,7 +181,11 @@ public class GenericPaymentControllerSteps {
 
     @Quando("o controller generico de vinculacao processar a solicitacao")
     public void whenLinkControllerProcessesRequest() {
-        linkResponse = paymentProviderAccountController.linkAccount(linkRequest);
+        try {
+            linkResponse = paymentProviderAccountController.linkAccount(linkRequest, authentication, httpServletRequest);
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     @Entao("o caso de uso de vinculacao deve receber o provider {string}")
@@ -164,8 +202,8 @@ public class GenericPaymentControllerSteps {
 
     @Entao("o caso de uso de vinculacao deve receber o state {string}")
     public void thenLinkUseCaseReceivesState(String state) {
-        assertThat(capturedLinkCommand).isNotNull();
-        assertThat(capturedLinkCommand.state()).isEqualTo(state);
+        assertThat(linkRequest).isNotNull();
+        assertThat(linkRequest.state()).isEqualTo(state);
     }
 
     @Entao("o caso de uso de vinculacao deve receber metadata {string} {string}")

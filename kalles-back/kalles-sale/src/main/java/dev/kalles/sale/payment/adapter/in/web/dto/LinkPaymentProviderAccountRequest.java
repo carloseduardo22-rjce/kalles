@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.Map;
+import java.util.UUID;
 
 public record LinkPaymentProviderAccountRequest(
         @NotNull(message = "provider is required")
@@ -20,7 +21,7 @@ public record LinkPaymentProviderAccountRequest(
         Map<String, Object> metadata
 ) {
 
-    public LinkPaymentProviderAccountCommand toCommand() {
-        return new LinkPaymentProviderAccountCommand(provider, authorizationCode, state, metadata);
+    public LinkPaymentProviderAccountCommand toCommand(UUID tenantId) {
+        return new LinkPaymentProviderAccountCommand(provider, authorizationCode, tenantId, metadata);
     }
 }

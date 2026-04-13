@@ -38,7 +38,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 
 /* ─── Individual nav link ─── */
@@ -48,20 +53,37 @@ interface NavLinkProps {
   children: React.ReactNode;
   active: boolean;
   soon?: boolean;
+  disabled?: boolean;
   sub?: boolean;
 }
 
-function NavLink({ href, icon, children, active, soon, sub }: NavLinkProps) {
+function NavLink({
+  href,
+  icon,
+  children,
+  active,
+  soon,
+  disabled,
+  sub,
+}: NavLinkProps) {
+  const isBlocked = Boolean(soon || disabled);
+
   return (
     <Link
-      href={soon ? "#" : href}
+      href={isBlocked ? "#" : href}
+      onClick={(event) => {
+        if (isBlocked) {
+          event.preventDefault();
+        }
+      }}
+      aria-disabled={isBlocked}
       className={cn(
         "flex items-center gap-2.5 py-2 text-sm transition-colors",
         sub ? "pl-8 pr-4" : "px-4",
         active
           ? "border-primary bg-primary/10 font-medium text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
-        soon && "pointer-events-none opacity-40",
+        isBlocked && "opacity-50 cursor-not-allowed",
       )}
     >
       <span className="shrink-0">{icon}</span>
@@ -157,7 +179,10 @@ function SidebarInner() {
   const isAdminSection = pathname.startsWith("/admin");
 
   return (
-    <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-card">
+    <aside
+      className="flex h-screen w-56 shrink-0 flex-col border-r bg-card"
+      data-onboarding="sidebar"
+    >
       {/* Brand */}
       <Link
         href="/"
@@ -197,6 +222,18 @@ function SidebarInner() {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="mt-2 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Filial ativa
+            </p>
+            <p className="text-xs font-semibold text-primary truncate">
+              {activeCompanyId
+                ? (companies.find((company) => company.id === activeCompanyId)
+                    ?.name ?? "Filial selecionada")
+                : "Nenhuma filial selecionada"}
+            </p>
+          </div>
         </div>
       )}
 
@@ -389,15 +426,16 @@ function SidebarInner() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className={!hasIntegrationPrereqs ? "opacity-50 pointer-events-none" : ""}>
+                  <div>
                     <NavLink
-              href="/admin/pagamentos"
-              icon={<Store className="h-4 w-4" />}
-              active={pathname === "/admin/pagamentos"}
-              sub
-            >
-              Mercado Pago e PDV
-            </NavLink>
+                      href="/admin/pagamentos"
+                      icon={<Store className="h-4 w-4" />}
+                      active={pathname === "/admin/pagamentos"}
+                      disabled={!hasIntegrationPrereqs}
+                      sub
+                    >
+                      Mercado Pago e PDV
+                    </NavLink>
                   </div>
                 </TooltipTrigger>
                 {!hasIntegrationPrereqs && (
@@ -418,15 +456,16 @@ function SidebarInner() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className={!hasIntegrationPrereqs ? "opacity-50 pointer-events-none" : ""}>
+                  <div>
                     <NavLink
-              href="/admin/integrar-maquininha"
-              icon={<SmartphoneNfc className="h-4 w-4" />}
-              active={pathname === "/admin/integrar-maquininha"}
-              sub
-            >
-              Integrar maquininha a PDV
-            </NavLink>
+                      href="/admin/integrar-maquininha"
+                      icon={<SmartphoneNfc className="h-4 w-4" />}
+                      active={pathname === "/admin/integrar-maquininha"}
+                      disabled={!hasIntegrationPrereqs}
+                      sub
+                    >
+                      Integrar maquininha a PDV
+                    </NavLink>
                   </div>
                 </TooltipTrigger>
                 {!hasIntegrationPrereqs && (

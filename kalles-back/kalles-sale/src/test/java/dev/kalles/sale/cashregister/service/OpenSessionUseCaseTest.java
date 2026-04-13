@@ -12,6 +12,8 @@ import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.cashregister.validator.SessionValidator;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -29,6 +32,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OpenSessionUseCase - Caso de Uso de Abertura de Sessão")
 class OpenSessionUseCaseTest {
+
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
     @Mock
     private CashRegisterRepository cashRegisterRepository;
@@ -49,6 +54,7 @@ class OpenSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
         useCase = new OpenSessionUseCase(
             cashRegisterRepository,
             operatorRepository,
@@ -56,6 +62,11 @@ class OpenSessionUseCaseTest {
             validatorChain,
             pairedDeviceSessionGuard
         );
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
     }
 
     @Test
@@ -76,9 +87,9 @@ class OpenSessionUseCaseTest {
         Operator operator = new Operator("João Silva", operatorCode);
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, initialAmount);
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCode(operatorCode))
+        when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
             .thenReturn(Optional.of(operator));
         when(sessionRepository.save(any(CashRegisterSession.class)))
             .thenReturn(session);
@@ -94,9 +105,9 @@ class OpenSessionUseCaseTest {
         assertEquals(SessionStatus.OPEN.name(), response.status());
 
         verify(validatorChain).validate(request);
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
-        verify(operatorRepository).findByCode(operatorCode);
+        verify(operatorRepository).findByCodeAndCompanyId(operatorCode, COMPANY_ID);
 
         ArgumentCaptor<CashRegisterSession> captor = ArgumentCaptor.forClass(CashRegisterSession.class);
         verify(sessionRepository).save(captor.capture());
@@ -117,7 +128,7 @@ class OpenSessionUseCaseTest {
             new BigDecimal("100.00")
         );
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.empty());
 
         // When & Then
@@ -129,7 +140,7 @@ class OpenSessionUseCaseTest {
         assertEquals("Caixa não encontrado: PDV-99", exception.getMessage());
 
         verify(validatorChain).validate(request);
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verifyNoInteractions(pairedDeviceSessionGuard);
         verifyNoInteractions(operatorRepository);
         verifyNoInteractions(sessionRepository);
@@ -149,9 +160,9 @@ class OpenSessionUseCaseTest {
 
         CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCode(operatorCode))
+        when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
             .thenReturn(Optional.empty());
 
         // When & Then
@@ -163,9 +174,9 @@ class OpenSessionUseCaseTest {
         assertEquals("Operador não encontrado: OP999", exception.getMessage());
 
         verify(validatorChain).validate(request);
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
-        verify(operatorRepository).findByCode(operatorCode);
+        verify(operatorRepository).findByCodeAndCompanyId(operatorCode, COMPANY_ID);
         verifyNoInteractions(sessionRepository);
     }
 
@@ -183,9 +194,9 @@ class OpenSessionUseCaseTest {
         Operator operator = new Operator("João Silva", "OP001");
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
 
-        when(cashRegisterRepository.findByCode(anyString()))
+        when(cashRegisterRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCode(anyString()))
+        when(operatorRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(operator));
         when(sessionRepository.save(any(CashRegisterSession.class)))
             .thenReturn(session);
@@ -209,7 +220,7 @@ class OpenSessionUseCaseTest {
 
         CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
 
-        when(cashRegisterRepository.findByCode("PDV-01"))
+        when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
         doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operação."))
             .when(pairedDeviceSessionGuard)
@@ -223,7 +234,7 @@ class OpenSessionUseCaseTest {
         assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
 
         verify(validatorChain).validate(request);
-        verify(cashRegisterRepository).findByCode("PDV-01");
+        verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
         verifyNoInteractions(operatorRepository);
         verifyNoInteractions(sessionRepository);

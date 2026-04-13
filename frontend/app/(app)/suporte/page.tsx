@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronRight,
@@ -109,7 +109,12 @@ export default function SuportePage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "ALL">("ALL");
+  const [page, setPage] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusFilter]);
 
   const { data: me, isLoading: loadingMe } = useQuery({
     queryKey: ["support-me"],
@@ -117,16 +122,22 @@ export default function SuportePage() {
   });
 
   const {
-    data: tickets = [],
+    data: ticketPage,
     isLoading,
     error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["support-tickets", statusFilter],
-    queryFn: () => ticketService.listAll(statusFilter !== "ALL" ? statusFilter : undefined),
+    queryKey: ["support-tickets", statusFilter, page],
+    queryFn: () =>
+      ticketService.listPage(
+        page,
+        20,
+        statusFilter !== "ALL" ? statusFilter : undefined,
+      ),
     enabled: !!me,
   });
+  const tickets = ticketPage?.content ?? [];
 
   const { mutate: openTicket, isPending } = useMutation({
     mutationFn: (data: OpenTicketRequest) => ticketService.open(data),
@@ -161,8 +172,11 @@ export default function SuportePage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <header className="border-b bg-card px-4 py-3 shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden" data-onboarding="support-page">
+      <header
+        className="border-b bg-card px-4 py-3 shadow-sm"
+        data-onboarding="support-header"
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <LifeBuoy className="h-5 w-5 text-muted-foreground" />
@@ -195,7 +209,7 @@ export default function SuportePage() {
         </div>
       </header>
 
-      <div className="border-b bg-muted/30 px-4 py-3">
+      <div className="border-b bg-muted/30 px-4 py-3" data-onboarding="support-filters">
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -222,7 +236,7 @@ export default function SuportePage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" data-onboarding="support-content">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <LoadingSpinner size="lg" label="Carregando chamados..." />
@@ -273,8 +287,37 @@ export default function SuportePage() {
       </div>
 
       <footer className="border-t bg-card px-4 py-2 text-xs text-muted-foreground">
-        {filtered.length} chamado{filtered.length !== 1 ? "s" : ""} exibido
-        {tickets.length !== filtered.length ? ` de ${tickets.length} no total` : ""}
+        <div className="flex items-center justify-between gap-3">
+          <span>
+            {filtered.length} chamado{filtered.length !== 1 ? "s" : ""} exibido
+            {tickets.length !== filtered.length ? ` de ${tickets.length} na pagina` : ""}
+            {ticketPage ? `, ${ticketPage.totalElements} no total` : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((current) => Math.max(current - 1, 0))}
+              disabled={page === 0 || isFetching}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setPage((current) =>
+                  ticketPage && current + 1 < ticketPage.totalPages
+                    ? current + 1
+                    : current,
+                )
+              }
+              disabled={!ticketPage || page + 1 >= ticketPage.totalPages || isFetching}
+            >
+              Proxima
+            </Button>
+          </div>
+        </div>
       </footer>
 
       <OpenTicketDialog open={openDialog} onOpenChange={setOpenDialog} onSubmit={openTicket} isPending={isPending} />

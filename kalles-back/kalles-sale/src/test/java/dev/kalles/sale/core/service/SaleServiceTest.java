@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,6 +32,8 @@ import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.repository.StockRepository;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.TenantContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SaleService - Serviço de Venda")
@@ -69,6 +72,8 @@ class SaleServiceTest {
     private static final String SESSION_TOKEN = "session-123";
     private static final String INTERNAL_CODE = "PRD-001";
     private static final String BAR_CODE = "7891234567890";
+    private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
+    private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 
     private Product product;
     private Sale sale;
@@ -78,11 +83,15 @@ class SaleServiceTest {
 
     @BeforeEach
     void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
+        TenantContextHolder.setTenantId(TENANT_ID);
+
         product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto Teste");
         product.setInternalCode(INTERNAL_CODE);
         product.setBarcode(BAR_CODE);
+        product.setTenantId(TENANT_ID);
 
 
 
@@ -93,15 +102,23 @@ class SaleServiceTest {
         supervisorOperator = new Operator();
         supervisorOperator.setId(UUID.randomUUID());
         supervisorOperator.setName("Supervisor");
+        supervisorOperator.setCompanyId(COMPANY_ID);
         supervisorOperator.setPermissionLevel(PermissionLevel.SUPERVISOR);
 
         basicOperator = new Operator();
         basicOperator.setId(UUID.randomUUID());
         basicOperator.setName("Operador Básico");
+        basicOperator.setCompanyId(COMPANY_ID);
         basicOperator.setPermissionLevel(PermissionLevel.BASIC);
 
         session = mock(Session.class);
         lenient().when(session.isOpen()).thenReturn(true);
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
+        TenantContextHolder.clear();
     }
 
     @Nested
@@ -112,10 +129,10 @@ class SaleServiceTest {
         @DisplayName("Deve remover item por código interno quando operador tem permissão")
         void deveRemoverItemPorCodigoInternoComPermissao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByInternalCode(INTERNAL_CODE)).thenReturn(Optional.of(product));
+            when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             assertDoesNotThrow(() -> 
@@ -129,10 +146,10 @@ class SaleServiceTest {
         @DisplayName("Deve remover item por código de barras quando operador tem permissão")
         void deveRemoverItemPorCodigoDeBarrasComPermissao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByBarcode(BAR_CODE)).thenReturn(Optional.of(product));
+            when(productRepository.findByBarcodeAndTenantId(BAR_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             assertDoesNotThrow(() -> 
@@ -146,10 +163,10 @@ class SaleServiceTest {
         @DisplayName("Deve recalcular totais após remoção do item")
         void deveRecalcularTotaisAposRemocao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByInternalCode(INTERNAL_CODE)).thenReturn(Optional.of(product));
+            when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.removeItemByInternalCode(SESSION_TOKEN, INTERNAL_CODE, supervisorOperator.getId());
@@ -167,7 +184,7 @@ class SaleServiceTest {
         @DisplayName("Deve impedir remoção por código interno quando operador não tem permissão")
         void deveImpedirRemocaoPorCodigoInternoSemPermissao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(permissionService.canRemoveItens(basicOperator)).thenReturn(false);
 
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
@@ -182,7 +199,7 @@ class SaleServiceTest {
         @DisplayName("Deve impedir remoção por código de barras quando operador não tem permissão")
         void deveImpedirRemocaoPorCodigoDeBarrasSemPermissao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(permissionService.canRemoveItens(basicOperator)).thenReturn(false);
 
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
@@ -202,11 +219,11 @@ class SaleServiceTest {
         @DisplayName("Deve remover item por código interno com autorização válida")
         void deveRemoverPorCodigoInternoComAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeRemoval(supervisorOperator, basicOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByInternalCode(INTERNAL_CODE)).thenReturn(Optional.of(product));
+            when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             assertDoesNotThrow(() -> 
@@ -221,11 +238,11 @@ class SaleServiceTest {
         @DisplayName("Deve remover item por código de barras com autorização válida")
         void deveRemoverPorCodigoDeBarrasComAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeRemoval(supervisorOperator, basicOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByBarcode(BAR_CODE)).thenReturn(Optional.of(product));
+            when(productRepository.findByBarcodeAndTenantId(BAR_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             assertDoesNotThrow(() -> 
@@ -242,11 +259,12 @@ class SaleServiceTest {
             Operator outroBasic = new Operator();
             outroBasic.setId(UUID.randomUUID());
             outroBasic.setName("Outro Operador Básico");
+            outroBasic.setCompanyId(COMPANY_ID);
             outroBasic.setPermissionLevel(PermissionLevel.BASIC);
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(outroBasic.getId())).thenReturn(Optional.of(outroBasic));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(outroBasic.getId(), COMPANY_ID)).thenReturn(Optional.of(outroBasic));
             when(permissionService.canAuthorizeRemoval(outroBasic, basicOperator)).thenReturn(false);
 
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
@@ -267,7 +285,7 @@ class SaleServiceTest {
         @DisplayName("Cenário 1 - Supervisor pode cancelar venda sem autorização")
         void supervisorPodeCancelarVendaSemAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
@@ -282,7 +300,7 @@ class SaleServiceTest {
         @DisplayName("Cenário 2 - Operador básico não pode cancelar sem autorização")
         void operadorBasicoNaoPodeCancelarSemAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(permissionService.canCancelSale(basicOperator)).thenReturn(false);
 
             ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () -> 
@@ -297,8 +315,8 @@ class SaleServiceTest {
         @DisplayName("Cenário 3 - Operador básico pode cancelar com autorização de supervisor")
         void operadorBasicoPodeCancelarComAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
@@ -314,7 +332,7 @@ class SaleServiceTest {
         @DisplayName("Cenário 4 - Deve registrar auditoria do cancelamento sem autorização")
         void deveRegistrarAuditoriaCancelamentoSemAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
@@ -328,8 +346,8 @@ class SaleServiceTest {
         @DisplayName("Cenário 4 - Deve registrar auditoria do cancelamento com autorização")
         void deveRegistrarAuditoriaCancelamentoComAutorizacao() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
@@ -346,11 +364,12 @@ class SaleServiceTest {
             Operator outroBasic = new Operator();
             outroBasic.setId(UUID.randomUUID());
             outroBasic.setName("Outro Operador Básico");
+            outroBasic.setCompanyId(COMPANY_ID);
             outroBasic.setPermissionLevel(PermissionLevel.BASIC);
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(basicOperator.getId())).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findById(outroBasic.getId())).thenReturn(Optional.of(outroBasic));
+            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
+            when(operatorRepository.findByIdAndCompanyId(outroBasic.getId(), COMPANY_ID)).thenReturn(Optional.of(outroBasic));
             when(permissionService.canAuthorizeCancellation(outroBasic, basicOperator)).thenReturn(false);
 
             ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () -> 
@@ -384,7 +403,7 @@ class SaleServiceTest {
         @DisplayName("Deve lançar exceção quando não há venda em andamento")
         void deveLancarExcecaoQuandoNaoHaVendaEmAndamento() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
 
@@ -399,10 +418,10 @@ class SaleServiceTest {
         @DisplayName("Deve lançar exceção quando produto não é encontrado por código interno")
         void deveLancarExcecaoQuandoProdutoNaoEncontradoPorCodigoInterno() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(supervisorOperator.getId())).thenReturn(Optional.of(supervisorOperator));
+            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
             when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-            when(productRepository.findByInternalCode("INVALIDO")).thenReturn(Optional.empty());
+            when(productRepository.findByInternalCodeAndTenantId("INVALIDO", TENANT_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> 
                 saleService.removeItemByInternalCode(SESSION_TOKEN, "INVALIDO", supervisorOperator.getId())
@@ -414,7 +433,7 @@ class SaleServiceTest {
         void deveLancarExcecaoQuandoOperadorNaoEncontrado() {
             UUID operadorInexistente = UUID.randomUUID();
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findById(operadorInexistente)).thenReturn(Optional.empty());
+            when(operatorRepository.findByIdAndCompanyId(operadorInexistente, COMPANY_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> 
                 saleService.removeItemByInternalCode(SESSION_TOKEN, INTERNAL_CODE, operadorInexistente)
@@ -440,6 +459,9 @@ class SaleServiceTest {
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findPaidSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+                when(stockRepository.sumQuantityByProductId(product.getId(), COMPANY_ID)).thenReturn(10);
+                when(stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), COMPANY_ID))
+                    .thenReturn(java.util.List.of(new dev.kalles.sale.core.entity.Stock(UUID.randomUUID(), null, product, null, 10)));
 
             saleService.completeSale(SESSION_TOKEN);
 
