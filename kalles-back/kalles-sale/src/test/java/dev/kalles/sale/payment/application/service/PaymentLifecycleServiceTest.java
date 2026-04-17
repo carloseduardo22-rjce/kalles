@@ -1,5 +1,6 @@
 package dev.kalles.sale.payment.application.service;
 
+import dev.kalles.sale.core.service.CheckoutSessionService;
 import dev.kalles.sale.payment.application.port.out.PaymentGatewayPort;
 import dev.kalles.sale.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.sale.payment.domain.PaymentCommand;
@@ -15,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +30,7 @@ class PaymentLifecycleServiceTest {
     private PaymentProviderPortFactory paymentProviderPortFactory;
     private PaymentOrderRepository paymentOrderRepository;
     private PaymentGatewayPort paymentGatewayPort;
+    private CheckoutSessionService checkoutSessionService;
     private PaymentLifecycleService paymentLifecycleService;
 
     @BeforeEach
@@ -35,9 +38,15 @@ class PaymentLifecycleServiceTest {
         paymentProviderPortFactory = mock(PaymentProviderPortFactory.class);
         paymentOrderRepository = mock(PaymentOrderRepository.class);
         paymentGatewayPort = mock(PaymentGatewayPort.class);
-        paymentLifecycleService = new PaymentLifecycleService(paymentProviderPortFactory, paymentOrderRepository);
+        checkoutSessionService = mock(CheckoutSessionService.class);
+        paymentLifecycleService = new PaymentLifecycleService(
+            paymentProviderPortFactory,
+            paymentOrderRepository,
+            checkoutSessionService
+        );
 
         when(paymentProviderPortFactory.gateway(PaymentProvider.MERCADO_PAGO)).thenReturn(paymentGatewayPort);
+        when(checkoutSessionService.findByToken(any())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -117,3 +126,4 @@ class PaymentLifecycleServiceTest {
         assertThat(commandCaptor.getValue().idempotencyKey()).isEqualTo("idem-qr-001");
     }
 }
+

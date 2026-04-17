@@ -215,6 +215,8 @@ export default function PdvPage() {
               operatorName: openRegister.activeOperatorName ?? "",
               initialAmount: openRegister.initialAmount ?? 0,
               openedAt: openRegister.openedAt ?? new Date().toISOString(),
+              cashOnlyOperation:
+                openRegister.activeSessionCashOnlyOperation ?? false,
             };
             setSessionScopedItem(STORAGE_KEY, JSON.stringify(synced));
             stored = synced;
@@ -501,13 +503,17 @@ export default function PdvPage() {
 
             {/* Sale complete banner */}
             {isSaleComplete && (
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
+              <div
+                data-testid="sale-finished-banner"
+                className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center"
+              >
                 <p className="font-semibold">
                   {sale!.state === "COMPLETED"
                     ? "✅ Venda concluída com sucesso!"
                     : "❌ Venda cancelada."}
                 </p>
                 <Button
+                  data-testid="new-sale"
                   variant="outline"
                   size="sm"
                   className="mt-3"
@@ -566,6 +572,7 @@ export default function PdvPage() {
               {/* Cancel sale button */}
               {sale.state === "OPEN" && sale.items.length > 0 && (
                 <Button
+                  data-testid="cancel-sale-trigger"
                   variant="ghost"
                   size="sm"
                   className="mt-1 w-full text-base font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -627,6 +634,7 @@ export default function PdvPage() {
                 isLoading={isLoading}
                 error={saleError}
                 cashRegisterCode={sessionData.cashRegisterCode}
+                cashOnlyOperation={sessionData.cashOnlyOperation}
                 onAddPayment={addPayment}
                 onCompleteSale={completeSale}
                 onRefreshSale={refreshSale}

@@ -2,6 +2,7 @@ package dev.kalles.sale.api.company;
 
 import dev.kalles.sale.core.entity.Company;
 import dev.kalles.sale.core.service.CompanyService;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import dev.kalles.sale.security.context.TenantContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,9 @@ public class CompanyController {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
             return ResponseEntity.status(401).build();
+        }
+        if (CompanyContextHolder.getCompanyId() != null) {
+            return ResponseEntity.status(403).build();
         }
 
         Company company = new Company();
@@ -48,7 +52,8 @@ public class CompanyController {
             return ResponseEntity.status(401).build();
         }
 
-        List<CompanyResponse> responses = companyService.listCompaniesByTenant(tenantId)
+        List<CompanyResponse> responses = companyService
+                .listCompaniesByTenantAndOptionalCompany(tenantId, CompanyContextHolder.getCompanyId())
                 .stream()
                 .map(CompanyResponse::new)
                 .toList();

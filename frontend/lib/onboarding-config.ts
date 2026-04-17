@@ -50,6 +50,13 @@ const configs: Array<{
           side: "bottom",
         },
         {
+          selector: "[data-onboarding='caixas-create-button']",
+          title: "Cadastrar um novo caixa",
+          description:
+            "Use este botão quando a empresa ainda precisa criar um caixa físico novo no sistema. Ele é diferente de abrir sessão: primeiro você cadastra o caixa, depois começa a operação nele.",
+          side: "left",
+        },
+        {
           selector: "[data-onboarding='caixas-content']",
           title: "Abrir sessão do jeito certo",
           description:

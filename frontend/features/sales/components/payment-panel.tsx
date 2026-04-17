@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,19 +36,21 @@ const amountSchema = z.object({
     .string()
     .min(1, "Informe o valor")
     .refine(
-      (v) =>
-        !isNaN(parseFloat(v.replace(",", "."))) &&
-        parseFloat(v.replace(",", ".")) > 0,
+      (value) =>
+        !isNaN(parseFloat(value.replace(",", "."))) &&
+        parseFloat(value.replace(",", ".")) > 0,
       "Valor deve ser maior que zero",
     ),
 });
+
 type AmountForm = z.infer<typeof amountSchema>;
 
 interface PaymentPanelProps {
   sale: SaleResponse;
   isLoading: boolean;
   error: string | null;
-  cashRegisterCode?: string; // â† Add this for PIX integration
+  cashRegisterCode?: string;
+  cashOnlyOperation?: boolean;
   onAddPayment: (method: PaymentMethod, amount: number) => Promise<void>;
   onCompleteSale: () => Promise<void>;
   onRefreshSale?: () => Promise<void>;
@@ -72,12 +74,12 @@ const PAYMENT_METHODS: {
   },
   {
     value: "CREDIT_CARD",
-    label: "Crédito",
+    label: "Credito",
     icon: <CreditCard className="h-4 w-4" />,
   },
   {
     value: "DEBIT_CARD",
-    label: "Débito",
+    label: "Debito",
     icon: <Landmark className="h-4 w-4" />,
   },
 ];
@@ -87,6 +89,7 @@ export function PaymentPanel({
   isLoading,
   error,
   cashRegisterCode,
+  cashOnlyOperation = false,
   onAddPayment,
   onCompleteSale,
   onRefreshSale,
@@ -94,9 +97,9 @@ export function PaymentPanel({
 }: PaymentPanelProps) {
   const [method, setMethod] = useState<PaymentMethod>("CASH");
   const pixProvider = getDefaultQrCodeProvider();
-  const pixProviderName = pixProvider?.presentation.displayName ?? "provider configurado";
+  const pixProviderName =
+    pixProvider?.presentation.displayName ?? "provider configurado";
 
-    // Dynamic PIX QR Code variables
   const [qrData, setQrData] = useState<string | null>(null);
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
@@ -105,18 +108,22 @@ export function PaymentPanel({
     "pending" | "success"
   >("pending");
 
-  // Polling check for external payments
+  useEffect(() => {
+    if (cashOnlyOperation && method !== "CASH") {
+      setMethod("CASH");
+    }
+  }, [cashOnlyOperation, method]);
+
   useEffect(() => {
     if (!showQrDialog || !onRefreshSale) return;
 
     const intervalId = setInterval(() => {
       onRefreshSale();
-    }, 3000); // Poll every 3 seconds
+    }, 3000);
 
     return () => clearInterval(intervalId);
   }, [showQrDialog, onRefreshSale]);
 
-  // Handle auto-close QR Dialog on Payment
   useEffect(() => {
     if (
       showQrDialog &&
@@ -127,24 +134,22 @@ export function PaymentPanel({
     }
   }, [sale.state, showQrDialog, pixPaymentStatus]);
 
-  // Trigger completion after showing success animation
   useEffect(() => {
-    let t: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
     if (pixPaymentStatus === "success" && showQrDialog) {
-      t = setTimeout(async () => {
+      timeoutId = setTimeout(async () => {
         setShowQrDialog(false);
         try {
           await onCompleteSale();
-          if (onStartNewSale) {
-            onStartNewSale();
-          }
+          onStartNewSale?.();
         } catch (err) {
           console.error(err);
         }
-      }, 3000); // 3 seconds to show the pretty animation
+      }, 3000);
     }
+
     return () => {
-      if (t) clearTimeout(t);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [pixPaymentStatus, showQrDialog, onCompleteSale, onStartNewSale]);
 
@@ -168,9 +173,12 @@ export function PaymentPanel({
     resolver: zodResolver(amountSchema),
   });
 
-  // PAID = backend settled the balance, amountDue is 0 AND state is PAID
   const isPaid = sale.state === "PAID";
   const canPay = sale.state === "OPEN" || sale.state === "PAYMENT_IN_PROGRESS";
+  const effectiveAmount = sale.amountDue > 0 ? sale.amountDue : sale.total;
+  const availablePaymentMethods = cashOnlyOperation
+    ? PAYMENT_METHODS.filter((paymentMethod) => paymentMethod.value === "CASH")
+    : PAYMENT_METHODS;
 
   async function handlePay(data: AmountForm) {
     const amount = parseFloat(data.amount.replace(",", "."));
@@ -180,7 +188,6 @@ export function PaymentPanel({
 
   async function handlePixPayment(amount: number) {
     if (cashRegisterCode && pixProvider?.processQrPayment) {
-      // Generate dynamic QR Code via configured Integration
       setPixPaymentStatus("pending");
       setIsGeneratingQr(true);
       try {
@@ -199,17 +206,24 @@ export function PaymentPanel({
         reset({ amount: "" });
       }
     } else {
-      // If there is no configured provider flow, just add local PIX payment.
       await onAddPayment("PIX", amount);
       reset({ amount: "" });
     }
   }
 
-  const effectiveAmount = sale.amountDue > 0 ? sale.amountDue : sale.total;
-
   return (
     <div className="space-y-4">
-      {/* Summary */}
+      {cashOnlyOperation && (
+        <div
+          data-testid="cash-only-banner"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          Esta sessao esta operando em modo somente dinheiro. PIX, vouchers e
+          cartoes ficam indisponiveis ate a abertura de uma nova sessao com
+          pagamento configurado.
+        </div>
+      )}
+
       <div className="space-y-1.5 rounded-lg border bg-card p-3">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Subtotal</span>
@@ -227,28 +241,27 @@ export function PaymentPanel({
         )}
         {isPaid && (
           <div className="flex justify-between text-sm font-medium text-green-600 dark:text-green-400">
-            <span>Pagamento completo ✓</span>
+            <span>Pagamento completo</span>
           </div>
         )}
       </div>
 
-      {/* Payments already registered */}
       {sale.payments.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Pagamentos
           </p>
-          {sale.payments.map((p) => (
+          {sale.payments.map((payment) => (
             <div
-              key={p.id}
+              key={payment.id}
               className="flex justify-between text-xs text-muted-foreground"
             >
-              <span>{formatPaymentMethod(p.method)}</span>
+              <span>{formatPaymentMethod(payment.method)}</span>
               <span>
-                {formatCurrency(p.amount)}
-                {p.changeAmount > 0 && (
+                {formatCurrency(payment.amount)}
+                {payment.changeAmount > 0 && (
                   <span className="ml-1 text-amber-600">
-                    (troco: {formatCurrency(p.changeAmount)})
+                    (troco: {formatCurrency(payment.changeAmount)})
                   </span>
                 )}
               </span>
@@ -259,34 +272,32 @@ export function PaymentPanel({
 
       <Separator />
 
-      {/* Payment input — only when still needs payment */}
       {canPay && (
         <form onSubmit={handleSubmit(handlePay)} className="space-y-3">
-          {/* Method selector */}
           <div className="grid grid-cols-4 gap-1.5">
-            {PAYMENT_METHODS.map((m) => (
+            {availablePaymentMethods.map((paymentMethod) => (
               <Button
-                key={m.value}
+                key={paymentMethod.value}
+                data-testid={`payment-method-${paymentMethod.value.toLowerCase()}`}
                 type="button"
-                variant={method === m.value ? "default" : "outline"}
+                variant={method === paymentMethod.value ? "default" : "outline"}
                 size="sm"
-                className="flex flex-col h-auto py-2 gap-1 text-xs"
-                onClick={() => setMethod(m.value)}
+                className="flex h-auto flex-col gap-1 py-2 text-xs"
+                onClick={() => setMethod(paymentMethod.value)}
               >
-                {m.icon}
-                {m.label}
+                {paymentMethod.icon}
+                {paymentMethod.label}
               </Button>
             ))}
           </div>
 
-          {/* Amount / Submit */}
           {method !== "CASH" ? (
             <div className="space-y-3 pt-2">
-              <div className="flex justify-between items-center bg-muted/60 p-3 rounded-lg border text-sm">
+              <div className="flex items-center justify-between rounded-lg border bg-muted/60 p-3 text-sm">
                 <span className="text-muted-foreground">
                   Valor via {formatPaymentMethod(method)}
                 </span>
-                <span className="font-semibold text-base">
+                <span className="text-base font-semibold">
                   {formatCurrency(effectiveAmount)}
                 </span>
               </div>
@@ -309,8 +320,7 @@ export function PaymentPanel({
                   type="button"
                   className="w-full"
                   onClick={() => {
-                    const amount = effectiveAmount;
-                    onAddPayment(method, amount);
+                    onAddPayment(method, effectiveAmount);
                     reset();
                   }}
                   disabled={isLoading || effectiveAmount <= 0}
@@ -327,14 +337,12 @@ export function PaymentPanel({
               <div className="flex gap-2">
                 <div className="flex-1 space-y-1">
                   <Input
+                    data-testid="payment-amount-input"
                     id="payment-amount"
                     {...register("amount")}
                     placeholder={
                       effectiveAmount > 0
-                        ? formatCurrency(effectiveAmount).replace(
-                            "R$\u00a0",
-                            "",
-                          )
+                        ? formatCurrency(effectiveAmount).replace("R$\u00a0", "")
                         : "0,00"
                     }
                     inputMode="decimal"
@@ -346,7 +354,11 @@ export function PaymentPanel({
                     </p>
                   )}
                 </div>
-                <Button type="submit" disabled={isLoading}>
+                <Button
+                  data-testid="payment-submit-cash"
+                  type="submit"
+                  disabled={isLoading}
+                >
                   {isLoading ? <LoadingSpinner size="sm" label="" /> : "Pagar"}
                 </Button>
               </div>
@@ -355,28 +367,28 @@ export function PaymentPanel({
         </form>
       )}
 
-      {/* Complete button */}
       {isPaid && sale.state !== "COMPLETED" && (
         <Button
+          data-testid="complete-sale"
           className="w-full"
           size="lg"
           onClick={onCompleteSale}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <LoadingSpinner size="sm" label="" />
-          ) : (
-            "Concluir Venda ✓"
-          )}
+          {isLoading ? <LoadingSpinner size="sm" label="" /> : "Concluir venda"}
         </Button>
       )}
 
       {error && <ErrorAlert error={error} className="mt-2" />}
 
-      {/* Provider PIX QR Code Dialog */}
       <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-        <DialogContent className={`sm:max-w-md transition-all duration-500 overflow-hidden ${pixPaymentStatus === "success" ? "bg-green-50/50 dark:bg-green-950/10 border-green-200 dark:border-green-900" : ""}`}>
-          
+        <DialogContent
+          className={`overflow-hidden transition-all duration-500 sm:max-w-md ${
+            pixPaymentStatus === "success"
+              ? "border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/10"
+              : ""
+          }`}
+        >
           {pixPaymentStatus === "pending" && (
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -384,8 +396,8 @@ export function PaymentPanel({
                 Pagamento via {pixProviderName}
               </DialogTitle>
               <DialogDescription>
-                Escaneie o QR Code abaixo com o aplicativo do {pixProviderName} para
-                pagar o valor de{" "}
+                Escaneie o QR Code abaixo com o aplicativo do {pixProviderName}
+                para pagar o valor de{" "}
                 <strong className="text-foreground">
                   R$ {pendingPixAmount.toFixed(2).replace(".", ",")}
                 </strong>
@@ -395,40 +407,43 @@ export function PaymentPanel({
           )}
 
           {pixPaymentStatus === "success" ? (
-            <div className="flex flex-col items-center justify-center p-12 min-h-[300px] animate-in zoom-in-95 duration-500">
+            <div className="animate-in zoom-in-95 flex min-h-[300px] flex-col items-center justify-center p-12 duration-500">
               <div className="relative mb-6">
-                <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20 duration-1000" />
-                <div className="relative bg-green-500 text-white p-4 rounded-full shadow-lg shadow-green-500/30">
-                  <CheckCircle2 className="h-12 w-12 animate-in fade-in zoom-in duration-500 delay-150 fill-none" strokeWidth={2.5} />
+                <div className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-20 duration-1000" />
+                <div className="relative rounded-full bg-green-500 p-4 text-white shadow-lg shadow-green-500/30">
+                  <CheckCircle2
+                    className="animate-in fade-in zoom-in h-12 w-12 fill-none duration-500 delay-150"
+                    strokeWidth={2.5}
+                  />
                 </div>
               </div>
-              <div className="text-center space-y-2">
-                <h3 className="text-2xl font-bold tracking-tight text-green-700 dark:text-green-500 animate-in slide-in-from-bottom-2 duration-500 delay-200">
-                  Pagamento Confirmado!
+              <div className="space-y-2 text-center">
+                <h3 className="animate-in slide-in-from-bottom-2 text-2xl font-bold tracking-tight text-green-700 duration-500 delay-200 dark:text-green-500">
+                  Pagamento confirmado!
                 </h3>
-                <p className="text-green-600/80 dark:text-green-400/80 font-medium animate-in slide-in-from-bottom-2 duration-500 delay-300">
+                <p className="animate-in slide-in-from-bottom-2 font-medium text-green-600/80 duration-500 delay-300 dark:text-green-400/80">
                   Valor de {formatCurrency(pendingPixAmount)} recebido
                 </p>
-                <div className="flex items-center justify-center gap-2 mt-6 pt-4 text-sm text-muted-foreground animate-in fade-in duration-500 delay-500">
+                <div className="animate-in fade-in mt-6 flex items-center justify-center gap-2 pt-4 text-sm text-muted-foreground duration-500 delay-500">
                   <LoadingSpinner size="sm" label="" />
-                  Concluindo a venda e preparando o próximo caixa...
+                  Concluindo a venda e preparando o proximo caixa...
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg border border-border/50 min-h-[300px]">
+            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-border/50 bg-muted/30 p-6">
               {qrData ? (
-                <div className="bg-white p-4 rounded-xl shadow-sm">
+                <div className="rounded-xl bg-white p-4 shadow-sm">
                   <QRCodeSVG value={qrData} size={200} level="H" />
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground p-8">
+                <div className="flex flex-col items-center gap-2 p-8 text-muted-foreground">
                   <LoadingSpinner size="md" label="Gerando QR Code Pix..." />
                 </div>
               )}
-              <p className="mt-4 text-xs text-muted-foreground text-center">
-                O modelo de QR Code configurado é dinâmico. O valor a ser
-                cobrado será preenchido automaticamente ao escanear.
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                O modelo de QR Code configurado e dinamico. O valor a ser
+                cobrado sera preenchido automaticamente ao escanear.
               </p>
             </div>
           )}
@@ -436,16 +451,15 @@ export function PaymentPanel({
           {pixPaymentStatus === "pending" && (
             <DialogFooter className="sm:justify-between">
               <Button variant="outline" onClick={() => setShowQrDialog(false)}>
-                Cancelar ou Voltar
+                Cancelar ou voltar
               </Button>
               <Button
                 onClick={async () => {
-                  // Simulate that the payment was processed after they scanned
                   setShowQrDialog(false);
                   await onAddPayment("PIX", pendingPixAmount);
                 }}
               >
-                Simular Confirmação Webhook
+                Simular confirmacao webhook
               </Button>
             </DialogFooter>
           )}

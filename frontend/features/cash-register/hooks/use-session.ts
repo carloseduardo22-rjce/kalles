@@ -42,6 +42,7 @@ interface UseSessionReturn {
     cashRegisterCode: string,
     operatorCode: string,
     initialAmount: number,
+    allowCashOnlyOperation?: boolean,
   ) => Promise<void>;
   closeSession: (
     request: CloseSessionRequest,
@@ -54,7 +55,6 @@ export function useSession(): UseSessionReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     setSession(readSession());
   }, []);
@@ -64,6 +64,7 @@ export function useSession(): UseSessionReturn {
       cashRegisterCode: string,
       operatorCode: string,
       initialAmount: number,
+      allowCashOnlyOperation = false,
     ) => {
       setIsLoading(true);
       setError(null);
@@ -72,6 +73,7 @@ export function useSession(): UseSessionReturn {
           cashRegisterCode,
           operatorCode,
           initialAmount,
+          allowCashOnlyOperation,
         });
 
         const active: ActiveSession = {
@@ -81,13 +83,14 @@ export function useSession(): UseSessionReturn {
           operatorName: response.operatorName,
           initialAmount: response.initialAmount,
           openedAt: response.openedAt,
+          cashOnlyOperation: response.cashOnlyOperation,
         };
 
         saveSession(active);
         setSession(active);
       } catch (err) {
         setError(
-          err instanceof ApiError ? err.message : "Falha ao abrir sessão.",
+          err instanceof ApiError ? err.message : "Falha ao abrir sessao.",
         );
         throw err;
       } finally {
@@ -109,7 +112,7 @@ export function useSession(): UseSessionReturn {
         return result;
       } catch (err) {
         setError(
-          err instanceof ApiError ? err.message : "Falha ao fechar sessão.",
+          err instanceof ApiError ? err.message : "Falha ao fechar sessao.",
         );
         throw err;
       } finally {

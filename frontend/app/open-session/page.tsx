@@ -12,8 +12,14 @@ export default function OpenSessionPage() {
     cashRegisterCode: string,
     operatorCode: string,
     initialAmount: number,
+    allowCashOnlyOperation = false,
   ) {
-    await openSession(cashRegisterCode, operatorCode, initialAmount);
+    await openSession(
+      cashRegisterCode,
+      operatorCode,
+      initialAmount,
+      allowCashOnlyOperation,
+    );
     router.push("/pdv");
   }
 

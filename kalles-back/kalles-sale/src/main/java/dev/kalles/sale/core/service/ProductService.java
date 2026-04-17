@@ -4,9 +4,9 @@ import dev.kalles.sale.core.dto.CompanyProductListItem;
 import dev.kalles.sale.core.dto.ProductCatalogResponse;
 import dev.kalles.sale.core.dto.ProductRequest;
 import dev.kalles.sale.core.dto.ProductStockSummary;
+import dev.kalles.sale.core.entity.CompanyProduct;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.exception.NotFoundException;
-import dev.kalles.sale.core.entity.CompanyProduct;
 import dev.kalles.sale.core.repository.CompanyProductReadRepository;
 import dev.kalles.sale.core.repository.CompanyProductRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
@@ -63,12 +63,13 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductCatalogResponse findById(UUID id) {
+        findTenantProduct(id);
         UUID companyId = getCompanyId();
         List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, true);
         CompanyProductListItem item = catalog.stream()
                 .filter(c -> c.productId().equals(id))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
+                .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + id));
         Map<UUID, Long> stockMap = buildStockMap(companyId, List.of(id));
         return ProductCatalogResponse.from(item, stockMap.getOrDefault(id, 0L));
     }
@@ -82,15 +83,14 @@ public class ProductService {
 
     @Transactional
     public ProductCatalogResponse create(ProductRequest request) {
-        UUID tenantId = TenantContextHolder.getTenantId();
+        UUID tenantId = getTenantId();
 
-        // Tenant-scoped uniqueness check
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
-            throw new IllegalArgumentException("Já existe um produto com o código interno informado.");
+            throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
             productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
-                throw new IllegalArgumentException("Já existe um produto com o código de barras informado.");
+                throw new IllegalArgumentException("Ja existe um produto com o codigo de barras informado.");
             });
         }
 
@@ -115,20 +115,18 @@ public class ProductService {
 
     @Transactional
     public ProductCatalogResponse update(UUID id, ProductRequest request) {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        Product product = productRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new NotFoundException("Produto não encontrado: " + id));
+        UUID tenantId = getTenantId();
+        Product product = findTenantProduct(id);
 
-        // Tenant-scoped uniqueness check
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException("Já existe um produto com o código interno informado.");
+                throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
             }
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
             productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
-                    throw new IllegalArgumentException("Já existe um produto com o código de barras informado.");
+                    throw new IllegalArgumentException("Ja existe um produto com o codigo de barras informado.");
                 }
             });
         }
@@ -157,7 +155,7 @@ public class ProductService {
     @Transactional
     public void deactivate(UUID id) {
         CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), id)
-                .orElseThrow(() -> new NotFoundException("Produto não configurado nesta filial."));
+                .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial."));
         cp.setActive(false);
         companyProductRepository.save(cp);
     }
@@ -165,13 +163,28 @@ public class ProductService {
     private UUID getCompanyId() {
         UUID companyId = CompanyContextHolder.getCompanyId();
         if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
         }
         return companyId;
     }
 
+    private UUID getTenantId() {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Nenhum tenant selecionado no contexto da operacao.");
+        }
+        return tenantId;
+    }
+
+    private Product findTenantProduct(UUID productId) {
+        return productRepository.findByIdAndTenantId(productId, getTenantId())
+                .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + productId));
+    }
+
     private List<ProductCatalogResponse> enrichWithStock(UUID companyId, List<CompanyProductListItem> catalog) {
-        if (catalog.isEmpty()) return Collections.emptyList();
+        if (catalog.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<UUID> productIds = catalog.stream().map(CompanyProductListItem::productId).toList();
         Map<UUID, Long> stockMap = buildStockMap(companyId, productIds);
         return catalog.stream()

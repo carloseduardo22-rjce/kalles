@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MonitorSmartphone, Plus, Loader2 } from "lucide-react";
+import {
+  MonitorSmartphone,
+  Plus,
+  Loader2,
+  CreditCard,
+  Banknote,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +44,7 @@ type CashRegisterStatusResponse = {
   initialAmount: number | null;
   openedAt: string | null;
   paymentIntegrationConfigured: boolean;
+  activeSessionCashOnlyOperation: boolean | null;
 };
 
 export default function CaixasPage() {
@@ -195,6 +202,34 @@ export default function CaixasPage() {
                       <p className="text-sm text-muted-foreground mt-0.5">
                         {cx.description}
                       </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium shadow-sm ${
+                            cx.paymentIntegrationConfigured
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                          }`}
+                        >
+                          {cx.paymentIntegrationConfigured ? (
+                            <>
+                              <CreditCard className="mr-1 h-3 w-3" />
+                              Pagamento configurado
+                            </>
+                          ) : (
+                            <>
+                              <Banknote className="mr-1 h-3 w-3" />
+                              Sem integração de pagamento
+                            </>
+                          )}
+                        </span>
+                        {cx.hasActiveSession &&
+                          cx.activeSessionCashOnlyOperation && (
+                            <span className="inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 shadow-sm dark:bg-amber-900 dark:text-amber-300">
+                              <Banknote className="mr-1 h-3 w-3" />
+                              Sessão somente dinheiro
+                            </span>
+                          )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

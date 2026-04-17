@@ -6,12 +6,15 @@ import {
   Monitor,
   Users,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   LockOpen,
   Lock,
   CalendarClock,
   User,
   BadgeDollarSign,
+  Banknote,
+  CreditCard,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -102,6 +105,8 @@ interface RegisterCardProps {
 
 function RegisterCard({ register, onOpen }: RegisterCardProps) {
   const isOpen = register.hasActiveSession;
+  const isCashOnlySession = register.activeSessionCashOnlyOperation === true;
+  const hasPaymentIntegration = register.paymentIntegrationConfigured;
 
   return (
     <Card
@@ -166,34 +171,76 @@ function RegisterCard({ register, onOpen }: RegisterCardProps) {
               <CalendarClock className="size-3.5 shrink-0" />
               <span>Abertura: {formatDatetime(register.openedAt)}</span>
             </div>
+            {isCashOnlySession && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-2 text-amber-900">
+                <Banknote className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  Sessão em modo somente dinheiro. PIX, vouchers e cartões
+                  ficam indisponíveis.
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           /* ── No session placeholder ── */
-          <div className="flex items-center gap-2 rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>Nenhuma sessão ativa neste caixa.</span>
+          <div
+            className={`flex items-start gap-2 rounded-md p-3 text-xs ${
+              hasPaymentIntegration
+                ? "bg-muted/30 text-muted-foreground"
+                : "border border-amber-300 bg-amber-50 text-amber-900"
+            }`}
+          >
+            {hasPaymentIntegration ? (
+              <AlertCircle className="size-3.5 shrink-0" />
+            ) : (
+              <AlertTriangle className="size-3.5 shrink-0" />
+            )}
+            <span>
+              {hasPaymentIntegration
+                ? "Nenhuma sessão ativa neste caixa."
+                : "Pagamento não configurado. Este caixa pode ser aberto para operar somente em dinheiro."}
+            </span>
           </div>
         )}
 
         <Separator />
 
+        <div className="flex flex-wrap gap-2">
+          <Badge
+            variant="outline"
+            className={
+              hasPaymentIntegration
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-300 bg-amber-50 text-amber-900"
+            }
+          >
+            {hasPaymentIntegration ? (
+              <>
+                <CreditCard className="mr-1 size-3" />
+                Pagamento configurado
+              </>
+            ) : (
+              <>
+                <Banknote className="mr-1 size-3" />
+                Somente dinheiro
+              </>
+            )}
+          </Badge>
+        </div>
+
         <Button
+          data-testid={`open-session-${register.code}`}
           size="sm"
           variant={isOpen ? "outline" : "default"}
           className="w-full"
           onClick={() => onOpen(register)}
-          disabled={isOpen || !register.paymentIntegrationConfigured}
-          title={
-            !isOpen && !register.paymentIntegrationConfigured
-              ? "É necessário configurar a integração de pagamento primeiro."
-              : undefined
-          }
+          disabled={isOpen}
         >
           {isOpen
             ? "Sessão em andamento"
-            : !register.paymentIntegrationConfigured
-              ? "Pagamento não configurado"
-              : "Abrir sessão"}
+            : hasPaymentIntegration
+              ? "Abrir sessão"
+              : "Abrir somente em dinheiro"}
         </Button>
       </CardContent>
     </Card>
@@ -223,6 +270,7 @@ function OpenSessionDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const isOpen = !!register;
+  const hasPaymentIntegration = register?.paymentIntegrationConfigured ?? false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -240,6 +288,7 @@ function OpenSessionDialog({
         cashRegisterCode: register.code,
         operatorCode,
         initialAmount: amount,
+        allowCashOnlyOperation: !register.paymentIntegrationConfigured,
       });
       toast.success(`Sessão aberta no caixa ${register.code} com sucesso!`);
       onSuccess();
@@ -282,6 +331,17 @@ function OpenSessionDialog({
           onSubmit={handleSubmit}
           className="space-y-4 pt-2"
         >
+          {!hasPaymentIntegration && (
+            <div
+              data-testid="cash-only-open-warning"
+              className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-900"
+            >
+              Pagamento não configurado, neste caixa você apenas poderá operar
+              com dinheiro mas não poderá receber pagamentos via pix, vouchers
+              e cartões de crédito.
+            </div>
+          )}
+
           {/* Operator */}
           <div className="space-y-1.5">
             <Label htmlFor="operator-select">
@@ -342,10 +402,15 @@ function OpenSessionDialog({
           <Button
             type="submit"
             form="open-session-form"
+            data-testid="open-session-confirm"
             disabled={!operatorCode || submitting}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {submitting ? "Abrindo…" : "Abrir sessão"}
+            {submitting
+              ? "Abrindo…"
+              : hasPaymentIntegration
+                ? "Abrir sessão"
+                : "Continuar somente em dinheiro"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -385,10 +450,8 @@ export default function CaixasPage() {
 
   /* ── Handlers ── */
   function handleOpenDialog(reg: CashRegisterStatusResponse) {
-    if (!reg.hasActiveSession && reg.paymentIntegrationConfigured) {
+    if (!reg.hasActiveSession) {
       setSelectedRegister(reg);
-    } else if (!reg.paymentIntegrationConfigured) {
-      toast.error("Integração de pagamento não configurada para este caixa.");
     }
   }
 
@@ -410,7 +473,9 @@ export default function CaixasPage() {
             Visualize e gerencie as sessões dos caixas registradores.
           </p>
         </div>
-        <CreateCashRegisterDialog />
+        <div data-onboarding="caixas-create-button">
+          <CreateCashRegisterDialog />
+        </div>
       </div>
 
       {/* Summary row */}

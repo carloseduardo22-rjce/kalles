@@ -1,6 +1,11 @@
-import { getSessionScopedItem } from "@/shared/utils/session-storage";
+import {
+  getSessionScopedItem,
+  removeSessionScopedItem,
+  setSessionScopedItem,
+} from "@/shared/utils/session-storage";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const COMPANY_STORAGE_KEY = "@kalles:activeCompanyId";
 
 export class ApiError extends Error {
   constructor(
@@ -17,6 +22,8 @@ type HttpHeaders = Record<string, string>;
 
 let refreshInFlight: Promise<boolean> | null = null;
 let csrfInFlight: Promise<void> | null = null;
+let csrfToken: string | null = null;
+let companyContextInFlight: Promise<string | null> | null = null;
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -70,24 +77,17 @@ async function tryRefreshSession(): Promise<boolean> {
   return refreshInFlight;
 }
 
-const getActiveCompanyHeader = (): HttpHeaders => {
+const getActiveCompanyHeader = (input?: string): HttpHeaders => {
   if (typeof window === "undefined") {
     return {};
   }
 
-  const activeCompanyId = getSessionScopedItem("@kalles:activeCompanyId");
-  return activeCompanyId ? { "X-Company-ID": activeCompanyId } : {};
-};
-
-const getCookieValue = (name: string): string | null => {
-  if (typeof document === "undefined") {
-    return null;
+  if (input && !isCompanyScopedApiRequest(input)) {
+    return {};
   }
 
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${name.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&")}=([^;]*)`),
-  );
-  return match ? decodeURIComponent(match[1]) : null;
+  const activeCompanyId = getSessionScopedItem(COMPANY_STORAGE_KEY);
+  return activeCompanyId ? { "X-Company-ID": activeCompanyId } : {};
 };
 
 async function ensureCsrfToken(): Promise<void> {
@@ -95,7 +95,7 @@ async function ensureCsrfToken(): Promise<void> {
     return;
   }
 
-  if (getCookieValue("XSRF-TOKEN")) {
+  if (csrfToken) {
     return;
   }
 
@@ -104,7 +104,14 @@ async function ensureCsrfToken(): Promise<void> {
       method: "GET",
       credentials: "include",
     })
-      .then(() => undefined)
+      .then(async (response) => {
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { token?: string };
+        csrfToken = data.token ?? null;
+      })
       .finally(() => {
         csrfInFlight = null;
       });
@@ -113,12 +120,10 @@ async function ensureCsrfToken(): Promise<void> {
   return csrfInFlight;
 }
 
-const buildHeaders = (headers?: HttpHeaders): HttpHeaders => {
-  const csrfToken = getCookieValue("XSRF-TOKEN");
-
+const buildHeaders = (headers?: HttpHeaders, input?: string): HttpHeaders => {
   return {
     "Content-Type": "application/json",
-    ...getActiveCompanyHeader(),
+    ...getActiveCompanyHeader(input),
     ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
     ...headers,
   };
@@ -142,35 +147,39 @@ const buildUrl = (
 
 export const api = {
   get<T>(path: string, headers?: HttpHeaders): Promise<T> {
-    return requestWithRefresh<T>(buildUrl(path), {
+    const url = buildUrl(path);
+    return requestWithRefresh<T>(url, {
       method: "GET",
-      headers: buildHeaders(headers),
+      headers,
       credentials: "include",
     });
   },
 
   post<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return requestWithRefresh<T>(buildUrl(path), {
+    const url = buildUrl(path);
+    return requestWithRefresh<T>(url, {
       method: "POST",
-      headers: buildHeaders(headers),
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
   },
 
   patch<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return requestWithRefresh<T>(buildUrl(path), {
+    const url = buildUrl(path);
+    return requestWithRefresh<T>(url, {
       method: "PATCH",
-      headers: buildHeaders(headers),
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
   },
 
   put<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
-    return requestWithRefresh<T>(buildUrl(path), {
+    const url = buildUrl(path);
+    return requestWithRefresh<T>(url, {
       method: "PUT",
-      headers: buildHeaders(headers),
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
@@ -181,13 +190,115 @@ export const api = {
     params?: Record<string, string>,
     headers?: HttpHeaders,
   ): Promise<T> {
-    return requestWithRefresh<T>(buildUrl(path, params), {
+    const url = buildUrl(path, params);
+    return requestWithRefresh<T>(url, {
       method: "DELETE",
-      headers: buildHeaders(headers),
+      headers,
       credentials: "include",
     });
   },
 };
+
+function getApiPath(input: string): string {
+  try {
+    return new URL(input).pathname;
+  } catch {
+    return input;
+  }
+}
+
+function isCompanyScopedApiRequest(input: string): boolean {
+  const path = getApiPath(input);
+
+  if (path.startsWith("/api/companies")) {
+    return false;
+  }
+
+  return [
+    "/api/products",
+    "/api/warehouses",
+    "/api/stocks",
+    "/api/operators",
+    "/api/cash-registers",
+    "/api/cash-register-sessions",
+    "/api/sales",
+    "/api/clients",
+    "/api/fidelity",
+    "/api/fidelity-policies",
+    "/api/goals",
+    "/api/reports",
+  ].some((prefix) => path.startsWith(prefix));
+}
+
+async function ensureCompanyContext(forceRefresh = false): Promise<string | null> {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const current = getSessionScopedItem(COMPANY_STORAGE_KEY);
+  if (current && !forceRefresh) {
+    return current;
+  }
+
+  if (forceRefresh) {
+    removeSessionScopedItem(COMPANY_STORAGE_KEY);
+  }
+
+  if (!companyContextInFlight) {
+    companyContextInFlight = resolveAuthenticatedCompanyId()
+      .then((companyId) => companyId ?? resolveFirstAccessibleCompanyId())
+      .then((companyId) => {
+        if (companyId) {
+          setSessionScopedItem(COMPANY_STORAGE_KEY, companyId);
+        }
+        return companyId;
+      })
+      .catch(() => null)
+      .finally(() => {
+        companyContextInFlight = null;
+      });
+  }
+
+  return companyContextInFlight;
+}
+
+async function resolveAuthenticatedCompanyId(hasRetried = false): Promise<string | null> {
+  const response = await fetch(buildUrl("/api/auth/me"), {
+    method: "GET",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (response.status === 401 && !hasRetried && (await tryRefreshSession())) {
+    return resolveAuthenticatedCompanyId(true);
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const account = (await response.json()) as { companyId?: string | null };
+  return account.companyId ?? null;
+}
+
+async function resolveFirstAccessibleCompanyId(hasRetried = false): Promise<string | null> {
+  const response = await fetch(buildUrl("/api/companies"), {
+    method: "GET",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (response.status === 401 && !hasRetried && (await tryRefreshSession())) {
+    return resolveFirstAccessibleCompanyId(true);
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const companies = (await response.json()) as Array<{ id?: string }>;
+  return companies.find((company) => company.id)?.id ?? null;
+}
 
 async function requestWithRefresh<T>(
   input: string,
@@ -195,15 +306,44 @@ async function requestWithRefresh<T>(
   hasRetried = false,
 ): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
-  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
-    await ensureCsrfToken();
-    init = {
-      ...init,
-      headers: buildHeaders(init.headers as HttpHeaders | undefined),
-    };
+  const needsCompanyContext = isCompanyScopedApiRequest(input);
+  const callerHeaders = stripManagedHeaders(init.headers as HttpHeaders | undefined);
+
+  if (needsCompanyContext) {
+    await ensureCompanyContext();
   }
 
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    await ensureCsrfToken();
+  }
+
+  init = {
+    ...init,
+    headers: buildHeaders(callerHeaders, input),
+  };
+
   const response = await fetch(input, init);
+
+  if (
+    response.status === 403 &&
+    needsCompanyContext &&
+    !hasRetried &&
+    (await isRecoverableCompanyContextForbidden(response))
+  ) {
+    await ensureCompanyContext(true);
+    return requestWithRefresh<T>(input, init, true);
+  }
+
+  if (
+    response.status === 403 &&
+    !["GET", "HEAD", "OPTIONS"].includes(method) &&
+    !hasRetried &&
+    (await isRecoverableCsrfForbidden(response))
+  ) {
+    csrfToken = null;
+    await ensureCsrfToken();
+    return requestWithRefresh<T>(input, init, true);
+  }
 
   if (
     response.status === 401 &&
@@ -219,4 +359,44 @@ async function requestWithRefresh<T>(
   }
 
   return handleResponse<T>(response);
+}
+
+async function isRecoverableCsrfForbidden(response: Response): Promise<boolean> {
+  try {
+    const data = (await response.clone().json()) as { code?: string };
+    return data.code === "CSRF_INVALID" || data.code === "CSRF_MISSING";
+  } catch {
+    return false;
+  }
+}
+
+async function isRecoverableCompanyContextForbidden(
+  response: Response,
+): Promise<boolean> {
+  if (response.headers.get("X-Kalles-Company-Context-Error") === "true") {
+    return true;
+  }
+
+  try {
+    const text = await response.clone().text();
+    return (
+      text.includes("Company header conflicts with authenticated company") ||
+      text.includes("Requested company is not accessible for authenticated tenant")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function stripManagedHeaders(headers?: HttpHeaders): HttpHeaders {
+  if (!headers) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(headers).filter(([key]) => {
+      const normalized = key.toLowerCase();
+      return normalized !== "x-company-id" && normalized !== "x-xsrf-token";
+    }),
+  );
 }

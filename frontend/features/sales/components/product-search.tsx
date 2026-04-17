@@ -151,6 +151,7 @@ export const ProductSearch = forwardRef<ProductSearchHandle, ProductSearchProps>
 
       <div className="flex gap-2">
         <Input
+          data-testid="product-search-input"
           ref={inputRef}
           value={code}
           onChange={(e) => handleChange(e.target.value)}
@@ -166,7 +167,11 @@ export const ProductSearch = forwardRef<ProductSearchHandle, ProductSearchProps>
           autoFocus
           className="font-mono"
         />
-        <Button type="submit" disabled={isLoading || !code.trim()}>
+        <Button
+          data-testid="product-search-submit"
+          type="submit"
+          disabled={isLoading || !code.trim()}
+        >
           {isLoading ? (
             <LoadingSpinner size="sm" label="" />
           ) : (

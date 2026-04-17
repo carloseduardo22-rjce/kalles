@@ -39,7 +39,11 @@ export function SaleItemsList({
   return (
     <div className="space-y-1">
       {items.map((item) => (
-        <div key={item.id} className="rounded-md border bg-card px-3 py-2.5">
+        <div
+          key={item.id}
+          data-testid={`sale-item-${item.productInternalCode}`}
+          className="rounded-md border bg-card px-3 py-2.5"
+        >
           {/* Row 1: name – code – action icons */}
           <div className="flex items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-base font-semibold">
@@ -51,6 +55,7 @@ export function SaleItemsList({
             {isEditable && (
               <div className="flex shrink-0 gap-0.5">
                 <Button
+                  data-testid={`sale-item-discount-${item.productInternalCode}`}
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-primary"
@@ -60,6 +65,7 @@ export function SaleItemsList({
                   <Tag className="h-3.5 w-3.5" />
                 </Button>
                 <Button
+                  data-testid={`sale-item-remove-${item.productInternalCode}`}
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
@@ -96,6 +102,7 @@ export function SaleItemsList({
             {isEditable ? (
               <div className="flex items-center gap-1">
                 <Button
+                  data-testid={`sale-item-decrement-${item.productInternalCode}`}
                   variant="outline"
                   size="icon"
                   className="h-6 w-6"
@@ -109,6 +116,7 @@ export function SaleItemsList({
                   {item.quantity}
                 </span>
                 <Button
+                  data-testid={`sale-item-increment-${item.productInternalCode}`}
                   variant="outline"
                   size="icon"
                   className="h-6 w-6"

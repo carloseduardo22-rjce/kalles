@@ -31,7 +31,7 @@ public class CashRegisterCheckoutSessionService implements CheckoutSessionServic
 
         return sessionRepository.findById(id)
                 .filter(CashRegisterSession::isOpen)
-                .map(s -> new CashRegisterSessionAdapter(s));
+                .map(CashRegisterSessionAdapter::new);
     }
 
     private static final class CashRegisterSessionAdapter implements Session {
@@ -49,6 +49,11 @@ public class CashRegisterCheckoutSessionService implements CheckoutSessionServic
         @Override
         public boolean isOpen() {
             return session.isOpen();
+        }
+
+        @Override
+        public boolean allowsElectronicPayments() {
+            return session.allowsElectronicPayments();
         }
     }
 }

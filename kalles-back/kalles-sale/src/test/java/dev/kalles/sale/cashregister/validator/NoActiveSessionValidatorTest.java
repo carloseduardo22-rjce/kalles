@@ -15,12 +15,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("NoActiveSessionValidator - Validador de Sessão Ativa")
+@DisplayName("NoActiveSessionValidator - Validador de Sessao Ativa")
 class NoActiveSessionValidatorTest {
 
     @Mock
@@ -37,24 +42,23 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve passar a validação quando não existe sessão ativa")
+    @DisplayName("Deve passar a validacao quando nao existe sessao ativa")
     void shouldPassWhenNoActiveSessionExists() {
-        // Given
         String cashRegisterCode = "PDV-01";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.of(cashRegister));
         when(activeSessionSpec.isSatisfiedBy(cashRegister))
             .thenReturn(false);
 
-        // When & Then
         assertDoesNotThrow(() -> validator.validate(request));
 
         verify(cashRegisterRepository).findByCode(cashRegisterCode);
@@ -62,24 +66,23 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando existe sessão ativa")
+    @DisplayName("Deve lancar excecao quando existe sessao ativa")
     void shouldThrowExceptionWhenActiveSessionExists() {
-        // Given
         String cashRegisterCode = "PDV-01";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.of(cashRegister));
         when(activeSessionSpec.isSatisfiedBy(cashRegister))
             .thenReturn(true);
 
-        // When & Then
         ActiveSessionAlreadyExistsException exception = assertThrows(
             ActiveSessionAlreadyExistsException.class,
             () -> validator.validate(request)
@@ -92,20 +95,19 @@ class NoActiveSessionValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando caixa não encontrado")
+    @DisplayName("Deve lancar excecao quando caixa nao encontrado")
     void shouldThrowExceptionWhenCashRegisterNotFound() {
-        // Given
         String cashRegisterCode = "PDV-99";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
         when(cashRegisterRepository.findByCode(cashRegisterCode))
             .thenReturn(Optional.empty());
 
-        // When & Then
         CashRegisterNotFoundException exception = assertThrows(
             CashRegisterNotFoundException.class,
             () -> validator.validate(request)
@@ -117,3 +119,5 @@ class NoActiveSessionValidatorTest {
         verifyNoInteractions(activeSessionSpec);
     }
 }
+
+

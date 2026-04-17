@@ -29,6 +29,40 @@ class CashRegisterSessionTest {
     }
 
     @Test
+    @DisplayName("Deve abrir sessao em modo somente dinheiro e bloquear pagamentos eletronicos")
+    void shouldOpenCashOnlySessionAndDisableElectronicPayments() {
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
+        Operator operator = new Operator("João Silva", "OP001");
+
+        CashRegisterSession session = CashRegisterSession.open(
+            cashRegister,
+            operator,
+            new BigDecimal("100.00"),
+            true
+        );
+
+        assertTrue(session.isCashOnlyOperation());
+        assertFalse(session.allowsElectronicPayments());
+    }
+
+    @Test
+    @DisplayName("Deve permitir pagamentos eletronicos quando a sessao nao e somente dinheiro")
+    void shouldAllowElectronicPaymentsWhenSessionIsNotCashOnly() {
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
+        Operator operator = new Operator("João Silva", "OP001");
+
+        CashRegisterSession session = CashRegisterSession.open(
+            cashRegister,
+            operator,
+            new BigDecimal("100.00"),
+            false
+        );
+
+        assertFalse(session.isCashOnlyOperation());
+        assertTrue(session.allowsElectronicPayments());
+    }
+
+    @Test
     @DisplayName("Deve lançar exceção quando caixa é nulo")
     void shouldThrowExceptionWhenCashRegisterIsNull() {
         Operator operator = new Operator("João Silva", "OP001");
@@ -39,7 +73,7 @@ class CashRegisterSessionTest {
             () -> CashRegisterSession.open(null, operator, initialAmount)
         );
 
-        assertEquals("Caixa obrigatório", exception.getMessage());
+        assertEquals("Caixa obrigatorio", exception.getMessage());
     }
 
     @Test
@@ -53,7 +87,7 @@ class CashRegisterSessionTest {
             () -> CashRegisterSession.open(cashRegister, null, initialAmount)
         );
 
-        assertEquals("Operador obrigatório", exception.getMessage());
+        assertEquals("Operador obrigatorio", exception.getMessage());
     }
 
     @Test
@@ -107,6 +141,6 @@ class CashRegisterSessionTest {
             () -> session.close()
         );
 
-        assertEquals("Sessão já está fechada", exception.getMessage());
+        assertEquals("Sessao ja esta fechada", exception.getMessage());
     }
 }

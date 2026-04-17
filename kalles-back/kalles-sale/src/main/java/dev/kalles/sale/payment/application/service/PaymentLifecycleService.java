@@ -1,5 +1,7 @@
 package dev.kalles.sale.payment.application.service;
 
+import dev.kalles.sale.core.service.CheckoutSessionService;
+import dev.kalles.sale.core.service.Session;
 import dev.kalles.sale.payment.application.port.in.ProcessPaymentUseCase;
 import dev.kalles.sale.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.sale.payment.domain.PaymentCommand;
@@ -15,18 +17,22 @@ public class PaymentLifecycleService implements ProcessPaymentUseCase {
 
     private final PaymentProviderPortFactory portFactory;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final CheckoutSessionService checkoutSessionService;
 
     public PaymentLifecycleService(
             PaymentProviderPortFactory portFactory,
-            PaymentOrderRepository paymentOrderRepository
+            PaymentOrderRepository paymentOrderRepository,
+            CheckoutSessionService checkoutSessionService
     ) {
         this.portFactory = portFactory;
         this.paymentOrderRepository = paymentOrderRepository;
+        this.checkoutSessionService = checkoutSessionService;
     }
 
     @Override
     public PaymentResult execute(PaymentCommand command) {
         PaymentCommand normalizedCommand = ensureIdempotency(command);
+        validateSessionAllowsElectronicPayments(normalizedCommand);
         PaymentResult result = portFactory.gateway(normalizedCommand.provider()).processPayment(normalizedCommand);
 
         if (normalizedCommand.flow() == PaymentFlow.TERMINAL) {
@@ -62,5 +68,18 @@ public class PaymentLifecycleService implements ProcessPaymentUseCase {
                 command.methodType(),
                 command.metadata()
         );
+    }
+
+    private void validateSessionAllowsElectronicPayments(PaymentCommand command) {
+        checkoutSessionService.findByToken(command.externalReference())
+            .ifPresent(this::ensureElectronicPaymentsAllowed);
+    }
+
+    private void ensureElectronicPaymentsAllowed(Session session) {
+        if (!session.allowsElectronicPayments()) {
+            throw new IllegalStateException(
+                "Esta sessao foi aberta em modo somente dinheiro. PIX, vouchers e cartoes estao indisponiveis."
+            );
+        }
     }
 }

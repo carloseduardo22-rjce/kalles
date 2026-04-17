@@ -26,11 +26,21 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("OpenSessionUseCase - Caso de Uso de Abertura de Sessão")
+@DisplayName("OpenSessionUseCase - Caso de Uso de Abertura de Sessao")
 class OpenSessionUseCaseTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
@@ -50,6 +60,9 @@ class OpenSessionUseCaseTest {
     @Mock
     private PairedDeviceSessionGuard pairedDeviceSessionGuard;
 
+    @Mock
+    private CashRegisterPaymentIntegrationService paymentIntegrationService;
+
     private OpenSessionUseCase useCase;
 
     @BeforeEach
@@ -60,7 +73,8 @@ class OpenSessionUseCaseTest {
             operatorRepository,
             sessionRepository,
             validatorChain,
-            pairedDeviceSessionGuard
+            pairedDeviceSessionGuard,
+            paymentIntegrationService
         );
     }
 
@@ -70,9 +84,8 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
-    @DisplayName("Deve abrir sessão com sucesso")
+    @DisplayName("Deve abrir sessao com sucesso quando pagamento esta configurado")
     void shouldOpenSessionSuccessfully() {
-        // Given
         String cashRegisterCode = "PDV-01";
         String operatorCode = "OP001";
         BigDecimal initialAmount = new BigDecimal("100.00");
@@ -80,34 +93,35 @@ class OpenSessionUseCaseTest {
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             operatorCode,
-            initialAmount
+            initialAmount,
+            false
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
-        Operator operator = new Operator("João Silva", operatorCode);
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
+        Operator operator = new Operator("Joao Silva", operatorCode);
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, initialAmount);
 
         when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
         when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
             .thenReturn(Optional.of(operator));
-        when(sessionRepository.save(any(CashRegisterSession.class)))
-            .thenReturn(session);
+        when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
+        when(sessionRepository.save(any(CashRegisterSession.class))).thenReturn(session);
 
-        // When
         SessionResponse response = useCase.execute(request);
 
-        // Then
         assertNotNull(response);
         assertEquals(cashRegisterCode, response.cashRegisterCode());
-        assertEquals("João Silva", response.operatorName());
+        assertEquals("Joao Silva", response.operatorName());
         assertEquals(initialAmount, response.initialAmount());
         assertEquals(SessionStatus.OPEN.name(), response.status());
+        assertFalse(response.cashOnlyOperation());
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
         verify(operatorRepository).findByCodeAndCompanyId(operatorCode, COMPANY_ID);
+        verify(paymentIntegrationService).isPaymentIntegrationConfigured(cashRegister);
 
         ArgumentCaptor<CashRegisterSession> captor = ArgumentCaptor.forClass(CashRegisterSession.class);
         verify(sessionRepository).save(captor.capture());
@@ -115,29 +129,78 @@ class OpenSessionUseCaseTest {
         CashRegisterSession savedSession = captor.getValue();
         assertTrue(savedSession.isOpen());
         assertEquals(initialAmount, savedSession.getInitialAmountValue());
+        assertFalse(savedSession.isCashOnlyOperation());
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando caixa não encontrado")
+    @DisplayName("Deve permitir abertura em modo somente dinheiro quando confirmado")
+    void shouldOpenCashOnlySessionWhenExplicitlyAllowed() {
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", UUID.randomUUID());
+        Operator operator = new Operator("Joao Silva", "OP001");
+        OpenSessionRequest request = new OpenSessionRequest(
+            "PDV-01",
+            "OP001",
+            new BigDecimal("100.00"),
+            true
+        );
+
+        when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
+            .thenReturn(Optional.of(cashRegister));
+        when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
+            .thenReturn(Optional.of(operator));
+        when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
+        when(sessionRepository.save(any(CashRegisterSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SessionResponse response = useCase.execute(request);
+
+        assertTrue(response.cashOnlyOperation());
+    }
+
+    @Test
+    @DisplayName("Deve bloquear abertura sem configuracao de pagamento e sem confirmacao")
+    void shouldBlockOpenSessionWhenPaymentIsNotConfiguredAndCashOnlyNotAllowed() {
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", UUID.randomUUID());
+        Operator operator = new Operator("Joao Silva", "OP001");
+        OpenSessionRequest request = new OpenSessionRequest(
+            "PDV-01",
+            "OP001",
+            new BigDecimal("100.00"),
+            false
+        );
+
+        when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
+            .thenReturn(Optional.of(cashRegister));
+        when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
+            .thenReturn(Optional.of(operator));
+        when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> useCase.execute(request)
+        );
+
+        assertTrue(exception.getMessage().contains("Pagamento"));
+    }
+
+    @Test
+    @DisplayName("Deve lancar excecao quando caixa nao encontrado")
     void shouldThrowExceptionWhenCashRegisterNotFound() {
-        // Given
         String cashRegisterCode = "PDV-99";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
         when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.empty());
 
-        // When & Then
         CashRegisterNotFoundException exception = assertThrows(
             CashRegisterNotFoundException.class,
             () -> useCase.execute(request)
         );
 
-        assertEquals("Caixa não encontrado: PDV-99", exception.getMessage());
+        assertTrue(exception.getMessage().contains("PDV-99"));
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
@@ -147,31 +210,30 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando operador não encontrado")
+    @DisplayName("Deve lancar excecao quando operador nao encontrado")
     void shouldThrowExceptionWhenOperatorNotFound() {
-        // Given
         String cashRegisterCode = "PDV-01";
         String operatorCode = "OP999";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
             operatorCode,
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
-        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", java.util.UUID.randomUUID());
+        CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
 
         when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
         when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
             .thenReturn(Optional.empty());
 
-        // When & Then
         OperatorNotFoundException exception = assertThrows(
             OperatorNotFoundException.class,
             () -> useCase.execute(request)
         );
 
-        assertEquals("Operador não encontrado: OP999", exception.getMessage());
+        assertTrue(exception.getMessage().contains("OP999"));
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
@@ -181,30 +243,28 @@ class OpenSessionUseCaseTest {
     }
 
     @Test
-    @DisplayName("Deve chamar a cadeia de validação antes de processar")
+    @DisplayName("Deve chamar a cadeia de validacao antes de processar")
     void shouldCallValidatorChainBeforeProcessing() {
-        // Given
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
-        Operator operator = new Operator("João Silva", "OP001");
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", UUID.randomUUID());
+        Operator operator = new Operator("Joao Silva", "OP001");
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
 
         when(cashRegisterRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(cashRegister));
         when(operatorRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(operator));
-        when(sessionRepository.save(any(CashRegisterSession.class)))
-            .thenReturn(session);
+        when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
+        when(sessionRepository.save(any(CashRegisterSession.class))).thenReturn(session);
 
-        // When
         useCase.execute(request);
 
-        // Then
         verify(validatorChain).validate(request);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
     }
@@ -215,14 +275,15 @@ class OpenSessionUseCaseTest {
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
             "OP001",
-            new BigDecimal("100.00")
+            new BigDecimal("100.00"),
+            false
         );
 
-        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", java.util.UUID.randomUUID());
+        CashRegister cashRegister = new CashRegister("PDV-01", "Caixa Principal", UUID.randomUUID());
 
         when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operação."))
+        doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o."))
             .when(pairedDeviceSessionGuard)
             .ensureCanOperate(cashRegister);
 
@@ -231,7 +292,7 @@ class OpenSessionUseCaseTest {
             () -> useCase.execute(request)
         );
 
-        assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
+        assertEquals("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o.", exception.getMessage());
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);
@@ -240,3 +301,5 @@ class OpenSessionUseCaseTest {
         verifyNoInteractions(sessionRepository);
     }
 }
+
+

@@ -88,6 +88,7 @@ export function CancellationDialog({
                 ID do autorizador (UUID)
               </Label>
               <Input
+                data-testid="cancel-auth-id-input"
                 id="cancel-auth-id"
                 value={authorizerId}
                 onChange={(e) => setAuthorizerId(e.target.value)}
@@ -107,6 +108,7 @@ export function CancellationDialog({
             Voltar
           </Button>
           <Button
+            data-testid="cancel-sale-confirm"
             variant="destructive"
             onClick={handleConfirm}
             disabled={isLoading || (needsAuth && !authorizerId.trim())}

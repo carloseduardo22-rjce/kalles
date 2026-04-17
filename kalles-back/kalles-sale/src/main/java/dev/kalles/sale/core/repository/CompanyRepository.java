@@ -11,5 +11,6 @@ import java.util.List;
 @Repository
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
     List<Company> findByTenantId(UUID tenantId);
+    Optional<Company> findByIdAndTenantId(UUID id, UUID tenantId);
     boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 }

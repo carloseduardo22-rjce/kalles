@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CompanyRepository companyRepository;
     public static final String AUTH_COOKIE_NAME = "kalles_auth_token";
     public static final String COMPANY_HEADER_NAME = "x-company-id";
+    public static final String COMPANY_CONTEXT_ERROR_HEADER = "X-Kalles-Company-Context-Error";
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, 
@@ -62,23 +64,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String headerCompanyId = request.getHeader(COMPANY_HEADER_NAME);
                 if (companyId != null && !companyId.trim().isEmpty()) {
                     UUID tokenCompanyId = UUID.fromString(companyId);
-                    if (headerCompanyId != null && !headerCompanyId.isBlank()
-                            && !tokenCompanyId.equals(UUID.fromString(headerCompanyId))) {
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Company header conflicts with authenticated company");
-                        return;
+                    if (headerCompanyId != null && !headerCompanyId.isBlank()) {
+                        UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
+                        if (requestedCompanyId == null) {
+                            return;
+                        }
+                        if (!tokenCompanyId.equals(requestedCompanyId)) {
+                            sendCompanyContextForbidden(response, "Company header conflicts with authenticated company");
+                            return;
+                        }
                     }
                     CompanyContextHolder.setCompanyId(tokenCompanyId);
                 } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
-                    UUID requestedCompanyId;
-                    try {
-                        requestedCompanyId = UUID.fromString(headerCompanyId);
-                    } catch (IllegalArgumentException ex) {
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid company header");
+                    UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
+                    if (requestedCompanyId == null) {
                         return;
                     }
 
                     if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Requested company is not accessible for authenticated tenant");
+                        sendCompanyContextForbidden(response, "Requested company is not accessible for authenticated tenant");
                         return;
                     }
                     CompanyContextHolder.setCompanyId(requestedCompanyId);
@@ -93,7 +97,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (SecurityContextHolder.getContext().getAuthentication() != null
                 && requiresCompanyContext(request)
                 && CompanyContextHolder.getCompanyId() == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Company context is required for this endpoint");
+            writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
+                    "Contexto de filial obrigatorio",
+                    "Esta rota exige uma filial ativa. Envie X-Company-ID com uma filial acessivel para o tenant autenticado.");
             return;
         }
         
@@ -116,6 +122,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .orElse(null);
         }
         return null;
+    }
+
+    private UUID parseCompanyHeader(String headerCompanyId, HttpServletResponse response) throws IOException {
+        try {
+            return UUID.fromString(headerCompanyId);
+        } catch (IllegalArgumentException ex) {
+            writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_INVALID",
+                    "Header de filial invalido", "O header X-Company-ID deve conter um UUID valido.");
+            return null;
+        }
+    }
+
+    private void sendCompanyContextForbidden(HttpServletResponse response, String message) throws IOException {
+        response.setHeader(COMPANY_CONTEXT_ERROR_HEADER, "true");
+        writeProblem(response, HttpServletResponse.SC_FORBIDDEN, "COMPANY_CONTEXT_DENIED",
+                "Contexto de filial negado", message);
+    }
+
+    private void writeProblem(HttpServletResponse response, int status, String code, String title, String detail) throws IOException {
+        response.setStatus(status);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("application/problem+json");
+        response.getWriter().write("""
+                {"type":"about:blank","title":"%s","status":%d,"detail":"%s","code":"%s"}"""
+                .formatted(escapeJson(title), status, escapeJson(detail), escapeJson(code)));
+    }
+
+    private String escapeJson(String value) {
+        return value == null ? "" : value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 
     private boolean requiresCompanyContext(HttpServletRequest request) {

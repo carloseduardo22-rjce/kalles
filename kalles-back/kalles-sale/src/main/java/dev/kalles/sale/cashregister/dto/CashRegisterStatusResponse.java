@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Representa um caixa com o status da sessão atual.
+ * Representa um caixa com o status da sessao atual.
  * Usado pela tela de gerenciamento de caixas do ADMIN.
  */
 public record CashRegisterStatusResponse(
@@ -18,5 +18,6 @@ public record CashRegisterStatusResponse(
     String activeOperatorName,
     BigDecimal initialAmount,
     LocalDateTime openedAt,
-    boolean paymentIntegrationConfigured
+    boolean paymentIntegrationConfigured,
+    Boolean activeSessionCashOnlyOperation
 ) {}

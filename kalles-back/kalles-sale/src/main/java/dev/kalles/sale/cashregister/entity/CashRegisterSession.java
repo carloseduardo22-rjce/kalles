@@ -3,7 +3,19 @@ package dev.kalles.sale.cashregister.entity;
 import dev.kalles.sale.cashregister.valueobject.InitialAmount;
 import dev.kalles.sale.cashregister.valueobject.SessionPeriod;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,16 +55,29 @@ public class CashRegisterSession {
     @Column(nullable = false)
     private SessionStatus status;
 
+    @Column(name = "cash_only_operation", nullable = false)
+    private boolean cashOnlyOperation;
+
     public static CashRegisterSession open(
             CashRegister cashRegister,
             Operator operator,
             BigDecimal initialAmountValue
     ) {
+        return open(cashRegister, operator, initialAmountValue, false);
+    }
+
+    public static CashRegisterSession open(
+            CashRegister cashRegister,
+            Operator operator,
+            BigDecimal initialAmountValue,
+            boolean cashOnlyOperation
+    ) {
         return new CashRegisterSession(
             cashRegister,
             operator,
             new InitialAmount(initialAmountValue),
-            new SessionPeriod(LocalDateTime.now())
+            new SessionPeriod(LocalDateTime.now()),
+            cashOnlyOperation
         );
     }
 
@@ -60,13 +85,15 @@ public class CashRegisterSession {
             CashRegister cashRegister,
             Operator operator,
             InitialAmount initialAmount,
-            SessionPeriod sessionPeriod
+            SessionPeriod sessionPeriod,
+            boolean cashOnlyOperation
     ) {
-        this.cashRegister = Objects.requireNonNull(cashRegister, "Caixa obrigatório");
-        this.operator = Objects.requireNonNull(operator, "Operador obrigatório");
-        this.initialAmount = Objects.requireNonNull(initialAmount, "Valor inicial obrigatório");
-        this.sessionPeriod = Objects.requireNonNull(sessionPeriod, "Período obrigatório");
+        this.cashRegister = Objects.requireNonNull(cashRegister, "Caixa obrigatorio");
+        this.operator = Objects.requireNonNull(operator, "Operador obrigatorio");
+        this.initialAmount = Objects.requireNonNull(initialAmount, "Valor inicial obrigatorio");
+        this.sessionPeriod = Objects.requireNonNull(sessionPeriod, "Periodo obrigatorio");
         this.status = SessionStatus.OPEN;
+        this.cashOnlyOperation = cashOnlyOperation;
     }
 
     public boolean isOpen() {
@@ -75,7 +102,7 @@ public class CashRegisterSession {
 
     public void close() {
         if (!isOpen()) {
-            throw new IllegalStateException("Sessão já está fechada");
+            throw new IllegalStateException("Sessao ja esta fechada");
         }
         sessionPeriod.close(LocalDateTime.now());
         this.status = SessionStatus.CLOSED;
@@ -91,5 +118,9 @@ public class CashRegisterSession {
 
     public LocalDateTime getClosedAt() {
         return sessionPeriod.getClosedAt();
+    }
+
+    public boolean allowsElectronicPayments() {
+        return !cashOnlyOperation;
     }
 }

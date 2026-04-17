@@ -14,6 +14,7 @@ import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.StockEntryRepository;
 import dev.kalles.sale.core.repository.StockRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,12 +35,11 @@ public class StockService {
 
     @Transactional
     public StockResponse setStock(StockRequest request) {
-        Product product = productRepository.findById(request.productId())
-                .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + request.productId()));
-
         UUID companyId = getCompanyId();
+        Product product = findTenantProduct(request.productId());
+        CompanyProduct companyProduct = companyProductRepository.findByCompanyIdAndProductId(companyId, product.getId())
+                .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial: " + request.productId()));
 
-        // Validate location belongs to the current company
         Location location = locationRepository.findByIdAndCompanyId(request.locationId(), companyId)
                 .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + request.locationId()));
 
@@ -53,7 +53,7 @@ public class StockService {
         if (quantityAdded > 0) {
             BigDecimal unitCost = validateUnitCost(request.unitCost());
             registerStockEntry(companyId, product, location, quantityAdded, unitCost);
-            updateProductCostPrice(companyId, product, unitCost);
+            updateProductCostPrice(companyProduct, unitCost);
         }
 
         stock.setQuantity(request.quantity());
@@ -62,10 +62,8 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByProduct(UUID productId) {
-        if (!productRepository.existsById(productId)) {
-            throw new NotFoundException("Produto nao encontrado: " + productId);
-        }
-        return stockRepository.findAllByProductIdOrderByQuantityDesc(productId, getCompanyId())
+        Product product = findTenantProduct(productId);
+        return stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), getCompanyId())
                 .stream()
                 .map(StockResponse::from)
                 .toList();
@@ -73,10 +71,8 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public int getTotalStockByProduct(UUID productId) {
-        if (!productRepository.existsById(productId)) {
-            throw new NotFoundException("Produto nao encontrado: " + productId);
-        }
-        return stockRepository.sumQuantityByProductId(productId, getCompanyId());
+        Product product = findTenantProduct(productId);
+        return stockRepository.sumQuantityByProductId(product.getId(), getCompanyId());
     }
 
     private UUID getCompanyId() {
@@ -87,9 +83,16 @@ public class StockService {
         return companyId;
     }
 
+    private UUID getTenantId() {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Nenhum tenant selecionado no contexto da operacao.");
+        }
+        return tenantId;
+    }
+
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByLocation(UUID locationId) {
-        // Validate location belongs to the current company
         UUID companyId = getCompanyId();
         locationRepository.findByIdAndCompanyId(locationId, companyId)
                 .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + locationId));
@@ -117,11 +120,13 @@ public class StockService {
         stockEntryRepository.save(stockEntry);
     }
 
-    private void updateProductCostPrice(UUID companyId, Product product, BigDecimal unitCost) {
-        companyProductRepository.findByCompanyIdAndProductId(companyId, product.getId())
-                .ifPresent(companyProduct -> {
-                    companyProduct.setCostPrice(unitCost);
-                    companyProductRepository.save(companyProduct);
-                });
+    private Product findTenantProduct(UUID productId) {
+        return productRepository.findByIdAndTenantId(productId, getTenantId())
+                .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + productId));
+    }
+
+    private void updateProductCostPrice(CompanyProduct companyProduct, BigDecimal unitCost) {
+        companyProduct.setCostPrice(unitCost);
+        companyProductRepository.save(companyProduct);
     }
 }

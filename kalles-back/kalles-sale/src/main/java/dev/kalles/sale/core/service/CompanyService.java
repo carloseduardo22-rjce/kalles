@@ -28,6 +28,16 @@ public class CompanyService {
         return companyRepository.findByTenantId(tenantId);
     }
 
+    public List<Company> listCompaniesByTenantAndOptionalCompany(UUID tenantId, UUID companyId) {
+        if (companyId != null) {
+            return companyRepository.findByIdAndTenantId(companyId, tenantId)
+                    .map(List::of)
+                    .orElseGet(List::of);
+        }
+
+        return listCompaniesByTenant(tenantId);
+    }
+
     public Company getCompanyById(UUID id) {
         return companyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Company not found"));
     }

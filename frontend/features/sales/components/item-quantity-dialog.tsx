@@ -50,7 +50,7 @@ export function ItemQuantityDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" data-testid="item-quantity-dialog">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -59,6 +59,7 @@ export function ItemQuantityDialog({
 
           <div className="space-y-2">
             <Input
+              data-testid="item-quantity-input"
               type="number"
               min={1}
               step={1}
@@ -75,6 +76,7 @@ export function ItemQuantityDialog({
 
           <DialogFooter>
             <Button
+              data-testid="item-quantity-cancel"
               type="button"
               variant="outline"
               onClick={onClose}
@@ -82,7 +84,11 @@ export function ItemQuantityDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !parsedQuantity}>
+            <Button
+              data-testid="item-quantity-confirm"
+              type="submit"
+              disabled={isLoading || !parsedQuantity}
+            >
               Confirmar
             </Button>
           </DialogFooter>

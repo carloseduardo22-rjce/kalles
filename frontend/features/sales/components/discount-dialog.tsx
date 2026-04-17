@@ -69,6 +69,7 @@ export function DiscountDialog({
             Valor do desconto (R$)
           </Label>
           <Input
+            data-testid="discount-amount-input"
             id="discount-amount"
             value={discountStr}
             onChange={(e) => setDiscountStr(e.target.value)}
@@ -87,6 +88,7 @@ export function DiscountDialog({
             Cancelar
           </Button>
           <Button
+            data-testid="discount-confirm"
             onClick={handleConfirm}
             disabled={isLoading || !discountStr.trim()}
           >

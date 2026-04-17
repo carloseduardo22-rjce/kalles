@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { api } from "@/shared/services/api";
 import {
   getSessionScopedItem,
+  removeSessionScopedItem,
   setSessionScopedItem,
 } from "@/shared/utils/session-storage";
 
@@ -34,15 +35,23 @@ export default function LoginPage() {
         password,
         tenantId: tenantId || undefined,
       });
+      removeSessionScopedItem("@kalles:activeCompanyId");
       toast.success("Login realizado com sucesso!");
 
       // Consulta o perfil para decidir o redirecionamento por role
       try {
-        const me = await api.get<{ role: string; tenantId?: string }>(
+        const me = await api.get<{
+          role: string;
+          tenantId?: string;
+          companyId?: string | null;
+        }>(
           "/api/auth/me",
         );
         if (me.tenantId) {
           setSessionScopedItem(`@kalles:tenantId:${email}`, me.tenantId);
+        }
+        if (me.companyId) {
+          setSessionScopedItem("@kalles:activeCompanyId", me.companyId);
         }
         if (me.role === "ADMIN") {
           router.push("/caixas");
@@ -91,6 +100,7 @@ export default function LoginPage() {
                 </Label>
                 <Input
                   id="email"
+                  data-testid="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -107,6 +117,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    data-testid="login-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -137,6 +148,7 @@ export default function LoginPage() {
                 </Link>
                 <Button
                   type="submit"
+                  data-testid="login-submit"
                   disabled={isLoading}
                   className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 h-12 text-base"
                 >

@@ -7,14 +7,19 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record OpenSessionRequest(
-    @NotBlank(message = "Código do caixa obrigatório")
+    @NotBlank(message = "Codigo do caixa obrigatorio")
     String cashRegisterCode,
 
-    @NotBlank(message = "Código do operador obrigatório")
+    @NotBlank(message = "Codigo do operador obrigatorio")
     String operatorCode,
 
-    @NotNull(message = "Valor inicial obrigatório")
-    @DecimalMin(value = "0.0", inclusive = true, message = "Valor inicial não pode ser negativo")
-    BigDecimal initialAmount
+    @NotNull(message = "Valor inicial obrigatorio")
+    @DecimalMin(value = "0.0", inclusive = true, message = "Valor inicial nao pode ser negativo")
+    BigDecimal initialAmount,
+
+    Boolean allowCashOnlyOperation
 ) {
+    public boolean shouldAllowCashOnlyOperation() {
+        return Boolean.TRUE.equals(allowCashOnlyOperation);
+    }
 }

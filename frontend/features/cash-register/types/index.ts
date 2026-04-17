@@ -4,6 +4,7 @@ export interface OpenSessionRequest {
   cashRegisterCode: string;
   operatorCode: string;
   initialAmount: number;
+  allowCashOnlyOperation?: boolean;
 }
 
 export interface SessionResponse {
@@ -14,6 +15,7 @@ export interface SessionResponse {
   initialAmount: number;
   openedAt: string;
   status: SessionStatus;
+  cashOnlyOperation: boolean;
 }
 
 export interface SessionSummaryResponse {
@@ -53,9 +55,10 @@ export interface ActiveSession {
   operatorName: string;
   initialAmount: number;
   openedAt: string;
+  cashOnlyOperation: boolean;
 }
 
-/** Status de um caixa com dados da sessão ativa (se existir) */
+/** Status de um caixa com dados da sessao ativa (se existir) */
 export interface CashRegisterStatusResponse {
   cashRegisterId: string;
   code: string;
@@ -67,9 +70,10 @@ export interface CashRegisterStatusResponse {
   initialAmount: number | null;
   openedAt: string | null;
   paymentIntegrationConfigured: boolean;
+  activeSessionCashOnlyOperation: boolean | null;
 }
 
-/** Operador disponível para vinculação a uma sessão */
+/** Operador disponivel para vinculacao a uma sessao */
 export interface OperatorResponse {
   id: string;
   name: string;

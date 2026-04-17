@@ -914,6 +914,12 @@ VALUES
   ('d1000000-0000-0000-0000-000000000003'::uuid, '123e4567-e89b-12d3-a456-426614174000'::uuid, 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid, 'Pedro Costa', 'pedro.costa@empresa.com', '$2a$10$gGUGvOEla0U759O0Jbw4cu/mr3tlQFvOPYapX/TlvkPH4S4ikNu.i', 'ADMIN', true, '2026-03-01 08:10:00')
 ON CONFLICT (email, tenant_id) DO UPDATE SET company_id = EXCLUDED.company_id;
 
+UPDATE account
+SET company_id = NULL
+WHERE tenant_id = '123e4567-e89b-12d3-a456-426614174000'::uuid
+  AND role = 'ADMIN'
+  AND email IN ('admin@sistema.local', 'joao.silva@empresa.com', 'pedro.costa@empresa.com');
+
 -- ===============================================================
 -- BLOCO III — SUPORTE: AGENTES, USUÁRIOS E CHAMADOS
 -- ---------------------------------------------------------------

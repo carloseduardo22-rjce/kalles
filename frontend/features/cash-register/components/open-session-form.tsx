@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Unlock,
   Store,
   User,
   DollarSign,
-  Loader2,
   CreditCard,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +34,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
@@ -50,6 +59,7 @@ interface OpenSessionFormProps {
     cashRegisterCode: string,
     operatorCode: string,
     initialAmount: number,
+    allowCashOnlyOperation?: boolean,
   ) => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -62,6 +72,9 @@ export function OpenSessionForm({
   error,
   onClearError,
 }: OpenSessionFormProps) {
+  const [cashOnlyWarningOpen, setCashOnlyWarningOpen] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<FormValues | null>(null);
+
   const form = useForm<FormValues>({
     defaultValues: {
       cashRegisterCode: "",
@@ -87,7 +100,8 @@ export function OpenSessionForm({
       !form.getValues().cashRegisterCode
     ) {
       const suggestedRegister = registers.find(
-        (r) => r.paymentIntegrationConfigured && !r.hasActiveSession,
+        (register) =>
+          register.paymentIntegrationConfigured && !register.hasActiveSession,
       );
       if (suggestedRegister) {
         form.setValue("cashRegisterCode", suggestedRegister.code, {
@@ -105,22 +119,51 @@ export function OpenSessionForm({
     }
   }, [operators, form]);
 
-  async function onSubmit(values: FormValues) {
+  async function submitForm(
+    values: FormValues,
+    allowCashOnlyOperation = false,
+  ) {
     const amountStr = values.initialAmount
       ? values.initialAmount.replace(",", ".")
       : "0";
     const amount = parseFloat(amountStr);
     if (isNaN(amount) || amount < 0) {
       form.setError("initialAmount", {
-        message: "Informe um valor inicial vÃ¡lido (â‰¥ 0)",
+        message: "Informe um valor inicial valido (>= 0)",
       });
       return;
     }
+
     await onSuccess(
       values.cashRegisterCode.trim(),
       values.operatorCode.trim(),
       amount,
+      allowCashOnlyOperation,
     );
+  }
+
+  async function onSubmit(values: FormValues) {
+    const selectedRegister = registers?.find(
+      (register) => register.code === values.cashRegisterCode,
+    );
+
+    if (selectedRegister && !selectedRegister.paymentIntegrationConfigured) {
+      setPendingSubmit(values);
+      setCashOnlyWarningOpen(true);
+      return;
+    }
+
+    await submitForm(values, false);
+  }
+
+  async function confirmCashOnlyOperation() {
+    if (!pendingSubmit) return;
+    setCashOnlyWarningOpen(false);
+    try {
+      await submitForm(pendingSubmit, true);
+    } finally {
+      setPendingSubmit(null);
+    }
   }
 
   return (
@@ -132,7 +175,7 @@ export function OpenSessionForm({
             <CardTitle className="text-xl">Abertura de Caixa</CardTitle>
           </div>
           <CardDescription>
-            Informe os dados do caixa e do operador para iniciar a sessÃ£o.
+            Informe os dados do caixa e do operador para iniciar a sessao.
           </CardDescription>
         </CardHeader>
 
@@ -140,7 +183,7 @@ export function OpenSessionForm({
           {error && (
             <ErrorAlert
               error={error}
-              title="NÃ£o foi possÃ­vel abrir o caixa"
+              title="Nao foi possivel abrir o caixa"
               className="mb-4"
             />
           )}
@@ -154,16 +197,16 @@ export function OpenSessionForm({
               <FormField
                 control={form.control}
                 name="cashRegisterCode"
-                rules={{ required: "CÃ³digo do caixa obrigatÃ³rio" }}
+                rules={{ required: "Codigo do caixa obrigatorio" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <Store className="h-3.5 w-3.5" />
-                      CÃ³digo do Caixa
+                      Codigo do Caixa
                     </FormLabel>
                     <Select
-                      onValueChange={(val) => {
-                        field.onChange(val);
+                      onValueChange={(value) => {
+                        field.onChange(value);
                         onClearError();
                       }}
                       value={field.value}
@@ -180,24 +223,24 @@ export function OpenSessionForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {registers?.map((r) => (
+                        {registers?.map((register) => (
                           <SelectItem
-                            key={r.cashRegisterId}
-                            value={r.code}
-                            disabled={r.hasActiveSession}
+                            key={register.cashRegisterId}
+                            value={register.code}
+                            disabled={register.hasActiveSession}
                           >
                             <div className="flex items-center gap-2">
                               <span>
-                                {r.code} - {r.description}
+                                {register.code} - {register.description}
                               </span>
-                              {r.paymentIntegrationConfigured && (
-                                <span className="flex items-center text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm border border-emerald-200">
-                                  <CreditCard className="size-3 mr-1" />
+                              {register.paymentIntegrationConfigured && (
+                                <span className="flex items-center rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
+                                  <CreditCard className="mr-1 size-3" />
                                   MP Auth
                                 </span>
                               )}
-                              {r.hasActiveSession && (
-                                <span className="text-xs text-muted-foreground mr-1.5">
+                              {register.hasActiveSession && (
+                                <span className="mr-1.5 text-xs text-muted-foreground">
                                   (Em uso)
                                 </span>
                               )}
@@ -214,16 +257,16 @@ export function OpenSessionForm({
               <FormField
                 control={form.control}
                 name="operatorCode"
-                rules={{ required: "CÃ³digo do operador obrigatÃ³rio" }}
+                rules={{ required: "Codigo do operador obrigatorio" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <User className="h-3.5 w-3.5" />
-                      CÃ³digo do Operador
+                      Codigo do Operador
                     </FormLabel>
                     <Select
-                      onValueChange={(val) => {
-                        field.onChange(val);
+                      onValueChange={(value) => {
+                        field.onChange(value);
                         onClearError();
                       }}
                       value={field.value}
@@ -240,12 +283,12 @@ export function OpenSessionForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {operators?.map((op) => (
-                          <SelectItem key={op.id} value={op.code}>
-                            <span className="font-mono text-muted-foreground mr-2">
-                              {op.code}
+                        {operators?.map((operator) => (
+                          <SelectItem key={operator.id} value={operator.code}>
+                            <span className="mr-2 font-mono text-muted-foreground">
+                              {operator.code}
                             </span>
-                            {op.name}
+                            {operator.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -258,12 +301,12 @@ export function OpenSessionForm({
               <FormField
                 control={form.control}
                 name="initialAmount"
-                rules={{ required: "Valor inicial obrigatÃ³rio" }}
+                rules={{ required: "Valor inicial obrigatorio" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <DollarSign className="h-3.5 w-3.5" />
-                      Valor Inicial em EspÃ©cie (R$)
+                      Valor Inicial em Especie (R$)
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -291,6 +334,33 @@ export function OpenSessionForm({
           </Form>
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={cashOnlyWarningOpen}
+        onOpenChange={(open) => {
+          setCashOnlyWarningOpen(open);
+          if (!open) {
+            setPendingSubmit(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pagamento nao configurado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pagamento não configurado, neste caixa você apenas poderá operar
+              com dinheiro mas não poderá receber pagamentos via pix, vouchers
+              e cartões de crédito.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCashOnlyOperation}>
+              Continuar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -12,7 +12,6 @@ import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,26 +28,18 @@ public class CashRegisterQueryService {
     private final CashRegisterRepository cashRegisterRepository;
     private final CashRegisterSessionRepository sessionRepository;
     private final OperatorRepository operatorRepository;
-    private final JdbcTemplate jdbcTemplate;
+    private final CashRegisterPaymentIntegrationService paymentIntegrationService;
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
         UUID companyId = getCompanyId();
         List<CashRegister> registers = cashRegisterRepository.findAllByCompanyIdAndActiveTrueOrderByCodeAsc(companyId);
-
-        List<String> registeredExternalIds = jdbcTemplate.queryForList(
-            "SELECT external_id FROM mercadopago_caixa WHERE mp_pos_id IS NOT NULL", 
-            String.class
-        );
+        List<UUID> registersWithPaymentIntegration = paymentIntegrationService.listCashRegistersWithPaymentIntegration();
 
         return registers.stream()
-            .map(cr -> {
-                boolean hasPayment = registeredExternalIds.contains(cr.getCode().replace("-", ""));
-                return toStatusResponse(cr, hasPayment);
-            })
+            .map(cr -> toStatusResponse(cr, registersWithPaymentIntegration.contains(cr.getId())))
             .toList();
     }
-
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listOperators() {
@@ -72,14 +63,15 @@ public class CashRegisterQueryService {
             activeSession.map(s -> s.getOperator().getName()).orElse(null),
             activeSession.map(CashRegisterSession::getInitialAmountValue).orElse(null),
             activeSession.map(CashRegisterSession::getOpenedAt).orElse(null),
-            paymentConfigured
+            paymentConfigured,
+            activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null)
         );
     }
 
     private UUID getCompanyId() {
         UUID companyId = CompanyContextHolder.getCompanyId();
         if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
         }
         return companyId;
     }
