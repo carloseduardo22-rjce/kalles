@@ -20,11 +20,24 @@ public final class LocalHttpTestClient {
     }
 
     public static Response get(String url, Map<String, String> headers) {
+        return send(url, "GET", headers);
+    }
+
+    public static Response delete(String url, Map<String, String> headers) {
+        return send(url, "DELETE", headers);
+    }
+
+    private static Response send(String url, String method, Map<String, String> headers) {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .GET()
                     .timeout(Duration.ofSeconds(10));
+
+            if ("DELETE".equalsIgnoreCase(method)) {
+                requestBuilder.DELETE();
+            } else {
+                requestBuilder.GET();
+            }
 
             headers.forEach(requestBuilder::header);
 

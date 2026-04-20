@@ -159,4 +159,34 @@ class ProcessBillingWebhookUseCaseTest {
 
         verify(billingSubscriptionRepository).save(any(BillingSubscription.class));
     }
+
+    @Test
+    void shouldThrowWhenWebhookCannotResolveTenant() {
+        when(billingGateway.parseWebhook("{payload}", "signature"))
+                .thenReturn(new BillingGateway.WebhookNotification(
+                        "evt_125",
+                        "checkout.session.completed",
+                        BillingProvider.STRIPE,
+                        null,
+                        "cus_unknown",
+                        null,
+                        "cs_123",
+                        "prod_monthly",
+                        "price_monthly",
+                        BillingStatus.CHECKOUT_CREATED,
+                        BillingInterval.MONTHLY,
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.parse("2026-05-01T00:00:00Z"),
+                        false
+                ));
+        when(billingWebhookEventRepository.existsByProviderAndExternalEventId(BillingProvider.STRIPE, "evt_125"))
+                .thenReturn(false);
+        when(billingSubscriptionRepository.findByExternalCustomerId("cus_unknown")).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                useCase.execute("{payload}", "signature"));
+
+        verify(billingSubscriptionRepository, never()).save(any());
+        verify(billingWebhookEventRepository, never()).save(any());
+    }
 }

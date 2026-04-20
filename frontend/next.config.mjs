@@ -7,7 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   allowedDevOrigins: [
-    "e38c-2804-1494-df7-ad00-1547-5dbb-64eb-7748.ngrok-free.app",
+    "e6e3-2804-1494-dcd-7b00-e855-46bc-f072-c5c6.ngrok-free.app",
   ],
   async rewrites() {
     return {
