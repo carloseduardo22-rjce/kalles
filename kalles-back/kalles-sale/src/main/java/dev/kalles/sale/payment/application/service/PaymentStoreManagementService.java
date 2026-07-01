@@ -41,10 +41,12 @@ public class PaymentStoreManagementService implements
 
     @Override
     public PaymentStore execute(CreatePaymentStoreCommand command) {
-        Company company = companyRepository.findById(command.companyId())
+        UUID tenantId = getCurrentTenantId();
+        Company company = companyRepository.findByIdAndTenantId(command.companyId(), tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Company not found: " + command.companyId()));
 
-        PaymentStore store = paymentStoreRepository.findByExternalReferenceAndProvider(command.externalReference(), command.provider())
+        PaymentStore store = paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), command.provider())
+                .map(existing -> validateExternalReference(existing, command.externalReference()))
                 .orElseGet(() -> createDraftStore(command));
 
         if (store.hasProviderStore()) {
@@ -62,7 +64,12 @@ public class PaymentStoreManagementService implements
 
     @Override
     public Optional<PaymentStore> findByExternalReference(PaymentProvider provider, String externalReference) {
-        return paymentStoreRepository.findByExternalReferenceAndProvider(externalReference, provider);
+        UUID tenantId = getCurrentTenantId();
+        return companyRepository.findByTenantId(tenantId).stream()
+                .map(company -> paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), provider))
+                .flatMap(Optional::stream)
+                .filter(store -> externalReference.equals(store.externalReference()))
+                .findFirst();
     }
 
     @Override
@@ -88,8 +95,15 @@ public class PaymentStoreManagementService implements
                 null
         ));
 
-        return paymentStoreRepository.findByExternalReferenceAndProvider(command.externalReference(), command.provider())
+        return paymentStoreRepository.findByCompanyIdAndProvider(command.companyId(), command.provider())
                 .orElseThrow(() -> new IllegalStateException("Store draft could not be reloaded after save"));
+    }
+
+    private PaymentStore validateExternalReference(PaymentStore store, String externalReference) {
+        if (!store.externalReference().equals(externalReference)) {
+            throw new IllegalArgumentException("External reference does not match the informed company");
+        }
+        return store;
     }
 
     private MerchantProfile toMerchantProfile(Company company) {

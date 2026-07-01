@@ -9,9 +9,15 @@ import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.GoalDomainException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
+import dev.kalles.sale.fiscal.adapter.in.web.dto.FiscalDocumentResponse;
+import dev.kalles.sale.fiscal.exception.FiscalConflictException;
+import dev.kalles.sale.fiscal.exception.FiscalIntegrationException;
+import dev.kalles.sale.fiscal.exception.FiscalRejectionException;
+import dev.kalles.sale.fiscal.exception.FiscalValidationException;
 import dev.kalles.sale.security.exception.RateLimitExceededException;
 import dev.kalles.sale.security.service.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -142,6 +148,43 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Falha de integraÃ§Ã£o com gateway de pagamento");
+        return problem;
+    }
+
+    @ExceptionHandler(FiscalValidationException.class)
+    public ProblemDetail handleFiscalValidation(FiscalValidationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setTitle("Documento fiscal invalido");
+        return problem;
+    }
+
+    @ExceptionHandler(FiscalConflictException.class)
+    public ProblemDetail handleFiscalConflict(FiscalConflictException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            ex.getMessage()
+        );
+        problem.setTitle("Emissao fiscal indisponivel");
+        return problem;
+    }
+
+    @ExceptionHandler(FiscalRejectionException.class)
+    public ResponseEntity<FiscalDocumentResponse> handleFiscalRejection(FiscalRejectionException ex) {
+        return ResponseEntity
+                .unprocessableEntity()
+                .body(FiscalDocumentResponse.from(ex.document()));
+    }
+
+    @ExceptionHandler(FiscalIntegrationException.class)
+    public ProblemDetail handleFiscalIntegration(FiscalIntegrationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_GATEWAY,
+            ex.getMessage()
+        );
+        problem.setTitle("Falha de integracao fiscal");
         return problem;
     }
     @ExceptionHandler(InvalidRefreshTokenException.class)

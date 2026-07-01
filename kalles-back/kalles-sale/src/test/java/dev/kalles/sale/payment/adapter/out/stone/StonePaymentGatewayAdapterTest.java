@@ -1,5 +1,6 @@
 package dev.kalles.sale.payment.adapter.out.stone;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.kalles.sale.payment.domain.PaymentCommand;
 import dev.kalles.sale.payment.domain.PaymentFlow;
@@ -24,6 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class StonePaymentGatewayAdapterTest {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private StoneCredentialsResolver credentialsResolver;
     private StoneWebClient stoneWebClient;
@@ -84,10 +87,15 @@ class StonePaymentGatewayAdapterTest {
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(stoneWebClient).exchange(eq(HttpMethod.POST), eq("https://api.pagar.me/core/v5/orders/"), bodyCaptor.capture(), any());
 
-        assertThat(bodyCaptor.getValue()).contains("\"payment_setup\"");
-        assertThat(bodyCaptor.getValue()).contains("\"type\":\"credit\"");
-        assertThat(bodyCaptor.getValue()).contains("\"devices_serial_number\":[\"6N021234\"]");
-        assertThat(bodyCaptor.getValue()).contains("\"externalReference\":\"ERP-SALE-1001\"");
+        JsonNode payload = readJson(bodyCaptor.getValue());
+        assertThat(payload.get("closed").asBoolean()).isFalse();
+        assertThat(payload.get("customer").get("name").asText()).isEqualTo("Tony Stark");
+        assertThat(payload.get("items").get(0).get("description").asText()).isEqualTo("Venda PDV 1001");
+        assertThat(payload.get("items").get(0).get("amount").asInt()).isEqualTo(12500);
+        assertThat(payload.get("metadata").get("externalReference").asText()).isEqualTo("ERP-SALE-1001");
+        assertThat(payload.get("poi_payment_settings").get("devices_serial_number").get(0).asText()).isEqualTo("6N021234");
+        assertThat(payload.get("poi_payment_settings").get("payment_setup").get("type").asText()).isEqualTo("credit");
+        assertThat(payload.get("poi_payment_settings").get("payment_setup").get("installments").asInt()).isEqualTo(1);
         assertThat(result.providerOrderId()).isEqualTo("or_stone_1001");
         assertThat(result.status()).isEqualTo(PaymentStatus.PENDING);
         assertThat(result.metadata()).containsEntry("displayName", "Pedido #1001");
@@ -116,6 +124,28 @@ class StonePaymentGatewayAdapterTest {
     }
 
     @Test
+    void shouldRejectStonePaymentWithoutItemDescription() {
+        PaymentCommand command = new PaymentCommand(
+                dev.kalles.sale.payment.domain.PaymentProvider.STONE,
+                PaymentFlow.TERMINAL,
+                "ERP-SALE-1002",
+                new BigDecimal("50.00"),
+                "6N021235",
+                "idem-2",
+                "Venda 1002",
+                PaymentMethodType.CREDIT_CARD,
+                Map.of(
+                        "stoneFlow", "DIRECT",
+                        "customerName", "Cliente Teste"
+                )
+        );
+
+        assertThatThrownBy(() -> adapter.processPayment(command))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("itemDescription is required for STONE");
+    }
+
+    @Test
     void shouldMapOpenOrderLimitConflictFromStone() {
         PaymentCommand command = new PaymentCommand(
                 dev.kalles.sale.payment.domain.PaymentProvider.STONE,
@@ -139,5 +169,13 @@ class StonePaymentGatewayAdapterTest {
         assertThatThrownBy(() -> adapter.processPayment(command))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("STONE open order limit reached for terminal");
+    }
+
+    private JsonNode readJson(String json) {
+        try {
+            return OBJECT_MAPPER.readTree(json);
+        } catch (Exception e) {
+            throw new AssertionError("Invalid JSON payload", e);
+        }
     }
 }

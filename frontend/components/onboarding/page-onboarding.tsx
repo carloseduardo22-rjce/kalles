@@ -22,6 +22,9 @@ export function PageOnboarding() {
   const [isCompleted, setIsCompleted] = useState(true);
   const autoStartedRef = useRef(false);
   const driverRef = useRef<ReturnType<typeof driver> | null>(null);
+  const completionCommittedRef = useRef(false);
+  const placement =
+    config?.helpButtonPlacement ?? (pathname === "/pdv" ? "bottom-left" : "top-right");
 
   useEffect(() => {
     if (!config || typeof window === "undefined") {
@@ -60,7 +63,8 @@ export function PageOnboarding() {
       return;
     }
 
-    const steps = config.steps
+    const activeConfig = config;
+    const steps = activeConfig.steps
       .filter((step) => document.querySelector(step.selector))
       .map((step) => ({
         element: step.selector,
@@ -78,10 +82,29 @@ export function PageOnboarding() {
 
     let visitedLastStep = false;
     let closedEarly = false;
+    completionCommittedRef.current = false;
+
+    function markCompleted(stepCount: number) {
+      if (completionCommittedRef.current) {
+        return;
+      }
+
+      window.localStorage.setItem(
+        buildStorageKey(activeConfig.id, activeConfig.version),
+        "true",
+      );
+      setIsCompleted(true);
+      completionCommittedRef.current = true;
+      capturePosthogEvent("onboarding_completed", {
+        screen: activeConfig.id,
+        title: activeConfig.title,
+        stepCount,
+      });
+    }
 
     capturePosthogEvent("onboarding_started", {
-      screen: config.id,
-      title: config.title,
+      screen: activeConfig.id,
+      title: activeConfig.title,
       trigger,
       stepCount: steps.length,
     });
@@ -100,27 +123,32 @@ export function PageOnboarding() {
         const activeIndex = args[2]?.state?.activeIndex ?? 0;
         visitedLastStep = activeIndex === steps.length - 1;
       },
+      onNextClick: (_element: unknown, _step: unknown, context: any) => {
+        const activeIndex = context?.state?.activeIndex ?? 0;
+        if (activeIndex >= steps.length - 1) {
+          markCompleted(steps.length);
+          context?.driver?.destroy();
+          return;
+        }
+
+        context?.driver?.moveNext();
+      },
       onCloseClick: () => {
         closedEarly = true;
       },
       onDestroyed: () => {
-        if (visitedLastStep && !closedEarly) {
-          window.localStorage.setItem(
-            buildStorageKey(config.id, config.version),
-            "true",
-          );
-          setIsCompleted(true);
-          capturePosthogEvent("onboarding_completed", {
-            screen: config.id,
-            title: config.title,
-            stepCount: steps.length,
-          });
+        if (!completionCommittedRef.current && visitedLastStep && !closedEarly) {
+          markCompleted(steps.length);
+          return;
+        }
+
+        if (completionCommittedRef.current) {
           return;
         }
 
         capturePosthogEvent("onboarding_dismissed", {
-          screen: config.id,
-          title: config.title,
+          screen: activeConfig.id,
+          title: activeConfig.title,
           stepCount: steps.length,
           trigger,
         });
@@ -135,17 +163,26 @@ export function PageOnboarding() {
     return null;
   }
 
+  const containerClass =
+    placement === "bottom-left"
+      ? "pointer-events-none fixed bottom-4 left-4 z-[80]"
+      : "pointer-events-none fixed right-4 top-20 z-[80]";
+
+  const label = isCompleted ? "Rever guia da tela" : "Iniciar guia da tela";
+
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[80]">
+    <div className={containerClass}>
       <Button
         type="button"
         variant="secondary"
-        className="pointer-events-auto shadow-lg"
+        className="pointer-events-auto h-10 rounded-full px-3 shadow-lg"
         data-onboarding="help-button"
         onClick={() => openTour("manual")}
+        title={label}
+        aria-label={label}
       >
-        <HelpCircle className="mr-2 h-4 w-4" />
-        {isCompleted ? "Rever guia da tela" : "Iniciar guia da tela"}
+        <HelpCircle className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">{label}</span>
       </Button>
     </div>
   );

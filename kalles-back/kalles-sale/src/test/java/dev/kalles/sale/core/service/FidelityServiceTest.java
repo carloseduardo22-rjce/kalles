@@ -149,6 +149,7 @@ class FidelityServiceTest {
         @DisplayName("Deve retornar a fidelidade do cliente existente")
         void shouldReturnFidelityForExistingClient() {
             Fidelity fidelity = buildFidelity(50, BigDecimal.ZERO);
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
 
             FidelityResponse response = fidelityService.getByClientId(clientId);
@@ -161,9 +162,19 @@ class FidelityServiceTest {
         @Test
         @DisplayName("Deve lançar exceção quando cliente não está no programa")
         void shouldThrowNotFoundWhenClientHasNoFidelity() {
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> fidelityService.getByClientId(clientId));
+        }
+
+        @Test
+        @DisplayName("Deve bloquear consulta quando cliente nao pertence a filial ativa")
+        void shouldBlockLookupWhenClientDoesNotBelongToActiveCompany() {
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> fidelityService.getByClientId(clientId));
+            verify(fidelityRepository, never()).findByClientId(clientId);
         }
 
         @Test
@@ -172,6 +183,7 @@ class FidelityServiceTest {
             Fidelity fidelity = buildFidelity(0, BigDecimal.ZERO);
             fidelity.setCreatedAt(LocalDate.now().minusMonths(4));
 
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 

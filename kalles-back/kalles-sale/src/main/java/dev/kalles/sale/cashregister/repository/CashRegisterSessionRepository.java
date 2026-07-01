@@ -6,6 +6,7 @@ import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,14 +25,20 @@ public interface CashRegisterSessionRepository extends JpaRepository<CashRegiste
         SessionStatus status
     );
 
-    /** Verifica se o operador já está vinculado a alguma sessão ativa. */
     boolean existsByOperatorAndStatus(
         Operator operator,
         SessionStatus status
     );
 
-    /** Retorna todas as sessões abertas dentro de um intervalo de tempo (para busca por data). */
+    Optional<CashRegisterSession> findByIdAndCashRegister_CompanyId(UUID id, UUID companyId);
+
     List<CashRegisterSession> findBySessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(
+        LocalDateTime start,
+        LocalDateTime end
+    );
+
+    List<CashRegisterSession> findByCashRegister_CompanyIdAndSessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(
+        UUID companyId,
         LocalDateTime start,
         LocalDateTime end
     );

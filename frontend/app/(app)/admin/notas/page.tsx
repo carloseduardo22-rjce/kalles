@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { TipTapEditor } from "@/components/ui/tip-tap-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/shared/services/api";
 
 type AuthMeResponse = {
   tenantId?: string;
@@ -33,8 +34,8 @@ export default function NotesPage() {
   const [loadingTenant, setLoadingTenant] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((response) => (response.ok ? response.json() : null))
+    api
+      .get<AuthMeResponse>("/api/auth/me")
       .then((data: AuthMeResponse | null) => {
         setTenantId(data?.tenantId ?? null);
       })
@@ -61,7 +62,7 @@ export default function NotesPage() {
     const trimmedSecret = secret.trim();
 
     if (!trimmedSecret) {
-      throw new Error("Informe um segredo válido.");
+      throw new Error("Informe um segredo valido.");
     }
 
     if (!tenantId) {
@@ -70,25 +71,16 @@ export default function NotesPage() {
       return token;
     }
 
-    toast.info("Protegendo conteúdo sensível...");
+    toast.info("Protegendo conteudo sensivel...");
 
-    const response = await fetch("/api/notes/sensitive/encrypt", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const data = await api.post<SensitiveEncryptResponse>(
+      "/api/notes/sensitive/encrypt",
+      {
         plainText: text,
         secret: trimmedSecret,
-      }),
-    });
+      },
+    );
 
-    if (!response.ok) {
-      throw new Error("Não foi possível proteger o conteúdo no servidor.");
-    }
-
-    const data = (await response.json()) as SensitiveEncryptResponse;
     return data.token;
   };
 
@@ -103,7 +95,7 @@ export default function NotesPage() {
       const localEntry = localSensitiveStore.get(token);
 
       if (!localEntry || localEntry.secret !== trimmedSecret) {
-        throw new Error("Segredo inválido para este conteúdo.");
+        throw new Error("Segredo invalido para este conteudo.");
       }
 
       return localEntry.text;
@@ -111,27 +103,15 @@ export default function NotesPage() {
 
     if (!tenantId) {
       throw new Error(
-        "Não foi possível validar este conteúdo sem tenant ativo.",
+        "Nao foi possivel validar este conteudo sem tenant ativo.",
       );
     }
 
-    const response = await fetch(
+    const data = await api.post<SensitiveDecryptResponse>(
       `/api/notes/sensitive/decrypt/${encodeURIComponent(token)}`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ secret: trimmedSecret }),
-      },
+      { secret: trimmedSecret },
     );
 
-    if (!response.ok) {
-      throw new Error("Segredo inválido ou conteúdo não encontrado.");
-    }
-
-    const data = (await response.json()) as SensitiveDecryptResponse;
     return data.text;
   };
 
@@ -150,10 +130,10 @@ export default function NotesPage() {
                   Bloco de notas
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Escreva anotações normais e proteja apenas os trechos
-                  sensíveis. Em vez de um blur confuso, a nota mostra um
+                  Escreva anotacoes normais e proteja apenas os trechos
+                  sensiveis. Em vez de um blur confuso, a nota mostra um
                   marcador claro e, ao clicar nele, o sistema pede o mesmo
-                  segredo usado na proteção para revelar o conteúdo armazenado.
+                  segredo usado na protecao para revelar o conteudo armazenado.
                 </p>
               </div>
             </div>
@@ -161,7 +141,7 @@ export default function NotesPage() {
             <div className="grid min-w-[220px] gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
               <div className="flex items-center gap-2 font-medium text-slate-900">
                 <BookText className="h-4 w-4 text-amber-700" />
-                Resumo rápido
+                Resumo rapido
               </div>
               <div className="flex items-center justify-between">
                 <span>Caracteres</span>
@@ -170,7 +150,7 @@ export default function NotesPage() {
                 </strong>
               </div>
               <div className="flex items-center justify-between">
-                <span>Trechos sensíveis</span>
+                <span>Trechos sensiveis</span>
                 <strong className="text-slate-900">
                   {noteStats.sensitiveBlocks}
                 </strong>
@@ -181,8 +161,8 @@ export default function NotesPage() {
                   {loadingTenant
                     ? "Preparando o tenant para criptografia no servidor..."
                     : tenantId
-                      ? "Criptografia sensível pronta para usar com o tenant atual."
-                      : "Sem tenant carregado: a tela usa um fallback local temporário para não travar a experiência."}
+                      ? "Criptografia sensivel pronta para usar com o tenant atual."
+                      : "Sem tenant carregado: a tela usa um fallback local temporario para nao travar a experiencia."}
                 </span>
               </div>
             </div>
@@ -195,7 +175,7 @@ export default function NotesPage() {
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Título da nota"
+              placeholder="Titulo da nota"
               className="h-12 border-none px-0 text-2xl font-semibold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
             />
 
@@ -208,8 +188,8 @@ export default function NotesPage() {
 
             <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                O botão de salvar ainda está visual nesta tela, mas o fluxo de
-                proteção sensível já foi melhorado e preparado para integração.
+                O botao de salvar ainda esta visual nesta tela, mas o fluxo de
+                protecao sensivel ja foi melhorado e preparado para integracao.
               </p>
               <Button type="button" className="min-w-[140px]">
                 Salvar nota

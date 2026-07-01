@@ -99,6 +99,9 @@ export default function PaymentSettingsPage() {
     "oauth" | "store" | "pos"
   >("oauth");
   const selectedProvider = getPaymentProvider(selectedProviderId);
+  const visiblePaymentProviders = paymentProviders.filter(
+    (provider) => provider.id === "MERCADO_PAGO",
+  );
 
   // Em produção, isso viraria de variáveis de ambiente (.env)
 
@@ -269,9 +272,7 @@ export default function PaymentSettingsPage() {
 
   return (
     <div
-      className={`flex-1 min-h-screen p-4 pt-6 md:p-8 ${
-        selectedProviderId === "STONE" ? "bg-slate-950" : "bg-[#009EE3]"
-      }`}
+      className="flex-1 min-h-screen bg-[#009EE3] p-4 pt-6 md:p-8"
       data-onboarding="payments-page"
     >
       <div className="flex items-center gap-4 mb-2">
@@ -301,26 +302,17 @@ export default function PaymentSettingsPage() {
         <span>{activeCompany?.name ?? "Nenhuma filial selecionada"}</span>
       </div>
 
-      {selectedProviderId !== "MERCADO_PAGO" && (
-        <p className="text-white/90 w-full mb-8 font-medium">
-          {selectedProvider.presentation.description}
-        </p>
-      )}
-
-      {selectedProviderId === "MERCADO_PAGO" && (
-        <p className="text-white/90 w-full mb-8 font-medium">
-          Gerencie as suas integrações com o Mercado Pago para aceitar
-          pagamentos via Pix (QrCode Dinâmico) e Cartões (Crédito, Débito e
-          Vouchers - Alimentação/Refeição). Você pode visualizar as lojas
-          configuradas ou criar novas integrações.
-        </p>
-      )}
+      <p className="text-white/90 w-full mb-8 font-medium">
+        Gerencie as suas integrações com o Mercado Pago para aceitar pagamentos
+        via Pix, cartão e voucher. Você pode visualizar as lojas configuradas
+        ou criar novas integrações.
+      </p>
 
       <div
         className="mb-8 grid gap-3 md:grid-cols-2"
         data-onboarding="payments-provider-selector"
       >
-        {paymentProviders.map((provider) => {
+        {visiblePaymentProviders.map((provider) => {
           const isSelected = provider.id === selectedProviderId;
 
           return (
@@ -354,7 +346,7 @@ export default function PaymentSettingsPage() {
                       : "bg-white/15 text-white"
                   }`}
                 >
-                  {provider.capabilities.accountLink ? "Onboarding" : "Preview"}
+                  Disponível
                 </div>
               </div>
             </button>
@@ -387,45 +379,7 @@ export default function PaymentSettingsPage() {
         </CardContent>
       </Card>
 
-      {selectedProviderId === "STONE" && (
-        <div className="grid gap-6 pb-20">
-          <Card className="border-0 shadow-md">
-            <CardHeader>
-              <CardTitle>{selectedProvider.presentation.displayName}</CardTitle>
-              <CardDescription>
-                O frontend ja conhece este provider pelo contrato generico de
-                payment, mas a camada visual de onboarding ainda nao foi ligada
-                ao fluxo operacional do caixa.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert className="border-slate-200 bg-slate-50 text-slate-800">
-                <AlertTitle className="font-semibold">Status atual</AlertTitle>
-                <AlertDescription>
-                  O backend payment ja suporta pedidos, fechamento, impressao e
-                  webhooks da Stone Connect 2.0. O proximo passo no frontend e
-                  mapear terminal por caixa para o PDV acionar o adapter Stone
-                  sem conhecer detalhes da API externa.
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-2">
-                {selectedProvider.operationalNotes?.map((note) => (
-                  <div
-                    key={note}
-                    className="rounded-lg border bg-slate-50 px-4 py-3 text-sm text-slate-700"
-                  >
-                    {note}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {selectedProviderId !== "STONE" && (
-        <Tabs
+      <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as "listar" | "criar")}
           className="w-full mt-6"
@@ -448,10 +402,10 @@ export default function PaymentSettingsPage() {
             </TabsTrigger>
           </TabsList>
 
+          <div data-onboarding="payments-content">
           <TabsContent
             value="listar"
             className="pb-20"
-            data-onboarding="payments-content"
           >
             <div className="grid gap-6">
               {isLoadingData ? (
@@ -547,7 +501,7 @@ export default function PaymentSettingsPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="criar" data-onboarding="payments-content">
+          <TabsContent value="criar">
             {/* Tabs / Stepper Header for Creation */}
             <div className="flex gap-4 border-b border-white/30 pb-4 mb-6">
               <button
@@ -918,8 +872,8 @@ export default function PaymentSettingsPage() {
               )}
             </div>
           </TabsContent>
+          </div>
         </Tabs>
-      )}
     </div>
   );
 }

@@ -23,6 +23,15 @@ import dev.kalles.sale.core.state.PaymentInProgressState;
 public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	Optional<Sale> findById(UUID saleId);
 
+	interface SaleHistoryRow {
+		String getId();
+		LocalDateTime getOpenedAt();
+	}
+
+	@EntityGraph(attributePaths = {"client", "items", "items.product", "payments"})
+	@Query("SELECT DISTINCT s FROM Sale s WHERE s.id IN :ids")
+	List<Sale> findAllWithDetailsByIdIn(@Param("ids") List<UUID> ids);
+
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
 	@Query("SELECT s FROM Sale s WHERE s.sessionToken = :sessionToken AND s.state IN :states")
 	Optional<Sale> findBySessionTokenAndStateIn(@Param("sessionToken") String sessionToken, @Param("states") List<SaleState> states);
@@ -67,4 +76,38 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			@Param("companyId") UUID companyId,
 			@Param("start") LocalDateTime start,
 			@Param("end") LocalDateTime end);
+
+	@Query(value = """
+			SELECT CAST(s.id AS VARCHAR) AS id, crs.opened_at AS openedAt
+			FROM sale s
+			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			JOIN cash_registers cr ON cr.id = crs.cash_register_id
+			WHERE s.company_id = :companyId
+			  AND cr.company_id = :companyId
+			  AND crs.opened_at >= :start
+			  AND crs.opened_at < :end
+			ORDER BY crs.opened_at DESC, s.id DESC
+			""", nativeQuery = true)
+	List<SaleHistoryRow> findHistoryRows(
+			@Param("companyId") UUID companyId,
+			@Param("start") LocalDateTime start,
+			@Param("end") LocalDateTime end);
+
+	@Query(value = """
+			SELECT CAST(s.id AS VARCHAR) AS id, crs.opened_at AS openedAt
+			FROM sale s
+			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			JOIN cash_registers cr ON cr.id = crs.cash_register_id
+			WHERE s.company_id = :companyId
+			  AND cr.company_id = :companyId
+			  AND crs.opened_at >= :start
+			  AND crs.opened_at < :end
+			  AND s.state = :state
+			ORDER BY crs.opened_at DESC, s.id DESC
+			""", nativeQuery = true)
+	List<SaleHistoryRow> findHistoryRowsByState(
+			@Param("companyId") UUID companyId,
+			@Param("start") LocalDateTime start,
+			@Param("end") LocalDateTime end,
+			@Param("state") String state);
 }

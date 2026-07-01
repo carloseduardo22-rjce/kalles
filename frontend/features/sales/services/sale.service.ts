@@ -5,6 +5,8 @@ import type {
   PaymentMethod,
   PaymentRequest,
   ProductCodeType,
+  SaleHistoryResponse,
+  SaleState,
   SaleResponse,
 } from "../types";
 
@@ -13,6 +15,30 @@ const BASE = "/api/sales";
 export const saleService = {
   getSale: (sessionToken: string): Promise<SaleResponse> =>
     api.get<SaleResponse>(`${BASE}/${sessionToken}`),
+
+  listHistory: (
+    startDate: string,
+    endDate: string,
+    state?: SaleState | "ALL",
+  ): Promise<SaleHistoryResponse[]> => {
+    const params = new URLSearchParams({ startDate, endDate });
+    if (state && state !== "ALL") {
+      params.set("state", state);
+    }
+    return api.get<SaleHistoryResponse[]>(`${BASE}/history?${params}`);
+  },
+
+  exportHistory: (
+    startDate: string,
+    endDate: string,
+    state?: SaleState | "ALL",
+  ): Promise<Blob> => {
+    const params = new URLSearchParams({ startDate, endDate });
+    if (state && state !== "ALL") {
+      params.set("state", state);
+    }
+    return api.download(`${BASE}/history/export?${params}`);
+  },
 
   createSale: (sessionToken: string): Promise<SaleResponse> =>
     api.post<SaleResponse>(`${BASE}/${sessionToken}`),

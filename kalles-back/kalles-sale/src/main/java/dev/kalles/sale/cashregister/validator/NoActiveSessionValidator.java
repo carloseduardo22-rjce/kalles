@@ -6,9 +6,12 @@ import dev.kalles.sale.cashregister.exception.ActiveSessionAlreadyExistsExceptio
 import dev.kalles.sale.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.specification.ActiveSessionSpecification;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 @Scope("prototype")
 @Component
@@ -20,12 +23,21 @@ public class NoActiveSessionValidator extends SessionValidator {
 
     @Override
     protected void doValidate(OpenSessionRequest request) {
+        UUID companyId = getCompanyId();
         CashRegister cashRegister = cashRegisterRepository
-            .findByCode(request.cashRegisterCode())
+            .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)
             .orElseThrow(() -> new CashRegisterNotFoundException(request.cashRegisterCode()));
 
         if (activeSessionSpec.isSatisfiedBy(cashRegister)) {
             throw new ActiveSessionAlreadyExistsException(cashRegister.getCode());
         }
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
+        }
+        return companyId;
     }
 }

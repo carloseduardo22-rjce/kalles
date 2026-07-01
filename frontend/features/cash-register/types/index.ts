@@ -50,6 +50,7 @@ export interface CloseSessionRequest {
 /** Persisted in localStorage */
 export interface ActiveSession {
   sessionId: string;
+  cashRegisterId?: string;
   operatorId: string;
   cashRegisterCode: string;
   operatorName: string;

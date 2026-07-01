@@ -56,6 +56,33 @@ export interface SaleResponse {
   fidelityDiscountApplied: number;
 }
 
+export interface SaleHistoryItemResponse extends SaleItemResponse {
+  saleId: string;
+  productId: string;
+}
+
+export interface SaleHistoryPaymentResponse extends PaymentResponse {
+  saleId: string;
+  updatedAt: string | null;
+}
+
+export interface SaleHistoryResponse {
+  id: string;
+  version: number | null;
+  sessionToken: string;
+  companyId: string;
+  state: SaleState;
+  clientId: string | null;
+  subtotal: number;
+  total: number;
+  amountDue: number;
+  fidelityDiscountApplied: number;
+  pointsEarned: number;
+  openedAt: string;
+  items: SaleHistoryItemResponse[];
+  payments: SaleHistoryPaymentResponse[];
+}
+
 export interface AddItemRequest {
   type: ProductCodeType;
   code: string;

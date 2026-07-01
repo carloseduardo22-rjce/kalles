@@ -11,6 +11,7 @@ export type OnboardingConfig = {
   version: number;
   title: string;
   description: string;
+  helpButtonPlacement?: "top-right" | "bottom-left";
   steps: OnboardingStepConfig[];
 };
 
@@ -71,6 +72,7 @@ const configs: Array<{
     config: {
       id: "pdv-terminal",
       version: 1,
+      helpButtonPlacement: "bottom-left",
       title: "Terminal PDV",
       description:
         "O PDV concentra atendimento, montagem da venda, fidelidade e fechamento financeiro da operação em uma única tela.",
@@ -444,6 +446,89 @@ const configs: Array<{
           title: "Como concluir o setup",
           description:
             "O restante da tela mostra se já existem lojas e terminais vinculados ou, quando necessário, conduz a configuração passo a passo até o caixa ficar apto para cobrar.",
+          side: "top",
+        },
+      ],
+    },
+  },
+  {
+    matcher: (pathname) => pathname === "/admin/fiscal",
+    config: {
+      id: "admin-fiscal",
+      version: 1,
+      title: "Fiscal",
+      description:
+        "Esta tela prepara a loja para emitir notas, acompanhar documentos e registrar devolucoes com mais seguranca.",
+      steps: [
+        {
+          selector: "[data-onboarding='fiscal-page']",
+          title: "Centro fiscal da loja",
+          description:
+            "Aqui ficam os dados que permitem a loja operar com notas fiscais. A sequencia da pagina separa preparacao, produtos, emissao e acompanhamento.",
+          side: "bottom",
+          align: "start",
+        },
+        {
+          selector: "[data-onboarding='fiscal-header']",
+          title: "Antes de emitir",
+          description:
+            "A loja precisa estar preparada antes da primeira nota. Comece conferindo os dados da empresa, endereco, numeracao, credenciais e certificado.",
+          side: "bottom",
+        },
+        {
+          selector: "[data-onboarding='fiscal-issuer']",
+          title: "Empresa emissora",
+          description:
+            "Preencha os dados oficiais da empresa que aparecera na nota: CNPJ, razao social, inscricao estadual, regime e atividade principal.",
+          side: "bottom",
+        },
+        {
+          selector: "[data-onboarding='fiscal-address']",
+          title: "Endereco fiscal",
+          description:
+            "O endereco identifica de qual loja a nota sera emitida. Use os dados da filial e os codigos oficiais de UF e municipio.",
+          side: "bottom",
+        },
+        {
+          selector: "[data-onboarding='fiscal-credentials']",
+          title: "Numeracao e CSC",
+          description:
+            "A serie, o proximo numero e o CSC organizam a sequencia das notas da loja. Esses dados devem bater com o ambiente fiscal usado pela empresa.",
+          side: "top",
+        },
+        {
+          selector: "[data-onboarding='fiscal-certificate']",
+          title: "Certificado A1",
+          description:
+            "O certificado confirma a identidade da empresa emissora. Mantenha a validade em dia para evitar bloqueios na hora de emitir.",
+          side: "top",
+        },
+        {
+          selector: "[data-onboarding='fiscal-preparation-action']",
+          title: "Salvar a preparacao",
+          description:
+            "Depois de preencher os dados da loja, salve tudo junto. O sistema informa se a loja ficou pronta ou se ainda falta algum ponto.",
+          side: "top",
+        },
+        {
+          selector: "[data-onboarding='fiscal-product']",
+          title: "Tributacao dos produtos",
+          description:
+            "Cada produto vendido precisa de classificacao fiscal propria. Esse cadastro deve ser revisado com criterio para evitar rejeicao de nota.",
+          side: "top",
+        },
+        {
+          selector: "[data-onboarding='fiscal-operations']",
+          title: "Emissao e devolucao",
+          description:
+            "Com a loja preparada e os produtos classificados, use esta area para emitir NFC-e da venda ou registrar nota de devolucao quando houver retorno.",
+          side: "top",
+        },
+        {
+          selector: "[data-onboarding='fiscal-documents']",
+          title: "Acompanhar documentos",
+          description:
+            "Consulte o status da nota e abra o DANFE quando precisar conferir ou apresentar o documento fiscal ao consumidor.",
           side: "top",
         },
       ],

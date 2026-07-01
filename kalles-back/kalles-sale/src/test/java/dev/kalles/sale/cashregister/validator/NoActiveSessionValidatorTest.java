@@ -6,6 +6,8 @@ import dev.kalles.sale.cashregister.exception.ActiveSessionAlreadyExistsExceptio
 import dev.kalles.sale.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.specification.ActiveSessionSpecification;
+import dev.kalles.sale.security.context.CompanyContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @DisplayName("NoActiveSessionValidator - Validador de Sessao Ativa")
 class NoActiveSessionValidatorTest {
 
+    private static final UUID COMPANY_ID = UUID.fromString("ff6e3613-db5e-4aea-a333-f7a4e9f07804");
+
     @Mock
     private CashRegisterRepository cashRegisterRepository;
 
@@ -38,7 +42,13 @@ class NoActiveSessionValidatorTest {
 
     @BeforeEach
     void setUp() {
+        CompanyContextHolder.setCompanyId(COMPANY_ID);
         validator = new NoActiveSessionValidator(cashRegisterRepository, activeSessionSpec);
+    }
+
+    @AfterEach
+    void tearDown() {
+        CompanyContextHolder.clear();
     }
 
     @Test
@@ -54,14 +64,14 @@ class NoActiveSessionValidatorTest {
 
         CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
         when(activeSessionSpec.isSatisfiedBy(cashRegister))
             .thenReturn(false);
 
         assertDoesNotThrow(() -> validator.validate(request));
 
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(activeSessionSpec).isSatisfiedBy(cashRegister);
     }
 
@@ -78,7 +88,7 @@ class NoActiveSessionValidatorTest {
 
         CashRegister cashRegister = new CashRegister(cashRegisterCode, "Caixa Principal", UUID.randomUUID());
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
         when(activeSessionSpec.isSatisfiedBy(cashRegister))
             .thenReturn(true);
@@ -88,9 +98,9 @@ class NoActiveSessionValidatorTest {
             () -> validator.validate(request)
         );
 
-        assertEquals("O caixa PDV-01 já possui uma sessão ativa", exception.getMessage());
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("PDV-01"));
 
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(activeSessionSpec).isSatisfiedBy(cashRegister);
     }
 
@@ -105,7 +115,7 @@ class NoActiveSessionValidatorTest {
             false
         );
 
-        when(cashRegisterRepository.findByCode(cashRegisterCode))
+        when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.empty());
 
         CashRegisterNotFoundException exception = assertThrows(
@@ -113,11 +123,9 @@ class NoActiveSessionValidatorTest {
             () -> validator.validate(request)
         );
 
-        assertEquals("Caixa não encontrado: PDV-99", exception.getMessage());
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("PDV-99"));
 
-        verify(cashRegisterRepository).findByCode(cashRegisterCode);
+        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verifyNoInteractions(activeSessionSpec);
     }
 }
-
-

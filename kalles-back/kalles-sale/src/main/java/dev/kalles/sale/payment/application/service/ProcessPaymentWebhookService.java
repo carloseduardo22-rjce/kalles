@@ -47,8 +47,6 @@ public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCas
             return false;
         }
 
-        observers.forEach(observer -> observer.onEvent(event));
-
         if (event.providerOrderId() != null) {
             paymentOrderRepository.findByProviderOrderIdAndProvider(event.providerOrderId(), provider)
                     .ifPresent(existing -> paymentOrderRepository.save(
@@ -67,6 +65,8 @@ public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCas
                 System.err.println("Erro ao processar pagamento vindo do webhook do provider " + provider + ": " + e.getMessage());
             }
         }
+
+        observers.forEach(observer -> observer.onEvent(event));
 
         return true;
     }

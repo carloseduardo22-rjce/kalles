@@ -67,6 +67,14 @@ export interface PaymentTerminal {
   operationMode: string;
 }
 
+export interface PaymentTerminalMapping {
+  id: string;
+  cashRegisterId: string;
+  provider: PaymentProviderId;
+  terminalSerial: string;
+  active: boolean;
+}
+
 export interface PaymentExecutionResult {
   provider: PaymentProviderId;
   providerOrderId: string;

@@ -19,12 +19,21 @@ public class CashRegisterPaymentIntegrationService {
     public boolean isPaymentIntegrationConfigured(CashRegister cashRegister) {
         Integer total = jdbcTemplate.queryForObject(
             """
-            SELECT COUNT(1)
-              FROM mercadopago_caixa
-             WHERE cash_register_id = ?
-               AND mp_pos_id IS NOT NULL
+            SELECT (
+                SELECT COUNT(1)
+                  FROM mercadopago_caixa
+                 WHERE cash_register_id = ?
+                   AND mp_pos_id IS NOT NULL
+            ) + (
+                SELECT COUNT(1)
+                  FROM payment_terminal_mappings
+                 WHERE cash_register_id = ?
+                   AND provider = 'STONE'
+                   AND active = TRUE
+            )
             """,
             Integer.class,
+            cashRegister.getId(),
             cashRegister.getId()
         );
 
@@ -38,6 +47,12 @@ public class CashRegisterPaymentIntegrationService {
               FROM mercadopago_caixa
              WHERE cash_register_id IS NOT NULL
                AND mp_pos_id IS NOT NULL
+            UNION
+            SELECT cash_register_id
+              FROM payment_terminal_mappings
+             WHERE cash_register_id IS NOT NULL
+               AND provider = 'STONE'
+               AND active = TRUE
             """,
             UUID.class
         );

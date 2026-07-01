@@ -1,11 +1,16 @@
 package dev.kalles.sale.api.sale;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -21,10 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 import dev.kalles.sale.core.dto.AddItemRequest;
 import dev.kalles.sale.core.dto.ApplyDiscountRequest;
 import dev.kalles.sale.core.dto.PaymentRequest;
+import dev.kalles.sale.core.dto.SaleHistoryResponse;
 import dev.kalles.sale.core.dto.SaleResponse;
 import dev.kalles.sale.core.entity.Sale;
 import dev.kalles.sale.core.enums.product.ProductCodeType;
 import dev.kalles.sale.core.service.PaymentService;
+import dev.kalles.sale.core.service.SaleHistoryService;
 import dev.kalles.sale.core.service.SaleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,6 +55,44 @@ public class SaleController {
 
     private final SaleService saleService;
     private final PaymentService paymentService;
+    private final SaleHistoryService saleHistoryService;
+
+    @GetMapping("/history")
+    @Operation(summary = "Listar historico de vendas",
+            description = "Retorna vendas da filial ativa no periodo informado, incluindo itens e pagamentos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historico retornado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Periodo ou estado invalido", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<List<SaleHistoryResponse>> listHistory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String state) {
+
+        return ResponseEntity.ok(saleHistoryService.list(startDate, endDate, state));
+    }
+
+    @GetMapping("/history/export")
+    @Operation(summary = "Exportar historico de vendas",
+            description = "Gera uma planilha Excel com as vendas, itens e pagamentos da filial ativa no periodo informado.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Arquivo gerado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Periodo ou estado invalido", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<byte[]> exportHistory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String state) {
+
+        byte[] content = saleHistoryService.export(startDate, endDate, state);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("historico-vendas.xlsx")
+                        .build()
+                        .toString())
+                .body(content);
+    }
 
     @GetMapping("/{sessionToken}")
     @Operation(summary = "Obter venda atual",

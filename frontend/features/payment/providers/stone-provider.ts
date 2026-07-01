@@ -15,7 +15,7 @@ export const stoneProvider: PaymentProviderAdapter = {
     shortName: "Stone",
     accentColor: "#111111",
     description:
-      "Fluxos transacionais Connect 2.0 preparados no backend payment, com foco em terminal e webhooks.",
+      "Receba vendas no cartão pela maquininha vinculada ao caixa.",
   },
   capabilities: {
     accountLink: false,
@@ -56,8 +56,8 @@ export const stoneProvider: PaymentProviderAdapter = {
     };
   },
   operationalNotes: [
-    "O backend ja suporta pedidos, fechamento, impressao e webhooks da Stone Connect 2.0.",
-    "A tela de onboarding do terminal ainda precisa do mapeamento operacional de terminal por caixa no frontend.",
-    "A experiencia de venda em terminal Stone sera acoplada a este adapter, sem espalhar regras da API externa pelas telas.",
+    "Vincule uma maquininha a cada caixa que recebera pagamentos no cartao.",
+    "Ao cobrar no PDV, o pedido aparece diretamente na maquininha vinculada.",
+    "A venda sera confirmada automaticamente quando o pagamento for aprovado.",
   ],
 };

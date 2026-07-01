@@ -2,6 +2,8 @@ package dev.kalles.sale.payment.application.service;
 
 import dev.kalles.sale.cashregister.entity.CashRegister;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
+import dev.kalles.sale.core.entity.Company;
+import dev.kalles.sale.core.repository.CompanyRepository;
 import dev.kalles.sale.payment.application.port.in.ActivatePaymentTerminalUseCase;
 import dev.kalles.sale.payment.application.port.in.CreatePaymentPointUseCase;
 import dev.kalles.sale.payment.application.port.in.ListPaymentPointsUseCase;
@@ -19,9 +21,13 @@ import dev.kalles.sale.payment.domain.PaymentProvider;
 import dev.kalles.sale.payment.domain.PaymentStore;
 import dev.kalles.sale.payment.domain.PaymentTerminal;
 import dev.kalles.sale.payment.domain.TerminalOperationMode;
+import dev.kalles.sale.payment.exception.PaymentTenantContextException;
+import dev.kalles.sale.security.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class PaymentPointManagementService implements
@@ -35,32 +41,34 @@ public class PaymentPointManagementService implements
     private final PaymentStoreRepository paymentStoreRepository;
     private final PaymentTerminalRepository paymentTerminalRepository;
     private final CashRegisterRepository cashRegisterRepository;
+    private final CompanyRepository companyRepository;
 
     public PaymentPointManagementService(
             PaymentProviderPortFactory portFactory,
             PaymentPointRepository paymentPointRepository,
             PaymentStoreRepository paymentStoreRepository,
             PaymentTerminalRepository paymentTerminalRepository,
-            CashRegisterRepository cashRegisterRepository
+            CashRegisterRepository cashRegisterRepository,
+            CompanyRepository companyRepository
     ) {
         this.portFactory = portFactory;
         this.paymentPointRepository = paymentPointRepository;
         this.paymentStoreRepository = paymentStoreRepository;
         this.paymentTerminalRepository = paymentTerminalRepository;
         this.cashRegisterRepository = cashRegisterRepository;
+        this.companyRepository = companyRepository;
     }
 
     @Override
     public PaymentPoint execute(CreatePaymentPointCommand command) {
-        PaymentPoint point = paymentPointRepository.findByExternalReferenceAndProvider(command.externalReference(), command.provider())
+        PaymentPoint point = paymentPointRepository.findByCashRegisterIdAndProvider(command.cashRegisterId(), command.provider())
                 .orElseGet(() -> createDraftPoint(command));
 
         if (point.hasProviderPoint()) {
             return point;
         }
 
-        CashRegister cashRegister = cashRegisterRepository.findById(command.cashRegisterId())
-                .orElseThrow(() -> new IllegalArgumentException("Cash register not found: " + command.cashRegisterId()));
+        CashRegister cashRegister = findAccessibleCashRegister(command.cashRegisterId());
 
         PaymentStore store = paymentStoreRepository.findByCompanyIdAndProvider(cashRegister.getCompanyId(), command.provider())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -92,6 +100,7 @@ public class PaymentPointManagementService implements
 
     @Override
     public List<PaymentTerminal> execute(ListPaymentTerminalsQuery query) {
+        ensureAccessibleTerminalScope(query.provider(), query.storeId(), query.pointId());
         List<PaymentTerminal> terminals = portFactory.terminal(query.provider()).listTerminals(query.storeId(), query.pointId());
         paymentTerminalRepository.saveAll(terminals);
         return terminals;
@@ -99,6 +108,7 @@ public class PaymentPointManagementService implements
 
     @Override
     public void execute(ActivatePaymentTerminalCommand command) {
+        ensureAccessibleTerminalScope(command.provider(), command.storeId(), command.pointId());
         List<PaymentTerminal> terminals = portFactory.terminal(command.provider()).listTerminals(command.storeId(), command.pointId());
         if (terminals.isEmpty()) {
             throw new IllegalStateException("No terminal associated with the informed store and point");
@@ -129,7 +139,48 @@ public class PaymentPointManagementService implements
                 null
         ));
 
-        return paymentPointRepository.findByExternalReferenceAndProvider(command.externalReference(), command.provider())
+        return paymentPointRepository.findByCashRegisterIdAndProvider(command.cashRegisterId(), command.provider())
                 .orElseThrow(() -> new IllegalStateException("Point draft could not be reloaded after save"));
+    }
+
+    private CashRegister findAccessibleCashRegister(UUID cashRegisterId) {
+        return accessibleCompanies().stream()
+                .map(company -> cashRegisterRepository.findByIdAndCompanyId(cashRegisterId, company.getId()))
+                .flatMap(Optional::stream)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Cash register not found: " + cashRegisterId));
+    }
+
+    private void ensureAccessibleTerminalScope(PaymentProvider provider, String storeId, String pointId) {
+        boolean accessibleStore = accessibleCompanies().stream()
+                .map(company -> paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), provider))
+                .flatMap(Optional::stream)
+                .anyMatch(store -> storeId.equals(store.providerStoreId()));
+
+        if (!accessibleStore) {
+            throw new IllegalArgumentException("Payment store not found for current tenant");
+        }
+
+        boolean accessiblePoint = accessibleCompanies().stream()
+                .flatMap(company -> cashRegisterRepository.findAllByCompanyIdAndActiveTrueOrderByCodeAsc(company.getId()).stream())
+                .map(cashRegister -> paymentPointRepository.findByCashRegisterIdAndProvider(cashRegister.getId(), provider))
+                .flatMap(Optional::stream)
+                .anyMatch(point -> pointId.equals(point.providerPointId()));
+
+        if (!accessiblePoint) {
+            throw new IllegalArgumentException("Payment point not found for current tenant");
+        }
+    }
+
+    private List<Company> accessibleCompanies() {
+        return companyRepository.findByTenantId(getCurrentTenantId());
+    }
+
+    private UUID getCurrentTenantId() {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new PaymentTenantContextException("Tenant context is required for this operation");
+        }
+        return tenantId;
     }
 }

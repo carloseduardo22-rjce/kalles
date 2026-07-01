@@ -69,6 +69,8 @@ public class SecurityConfig {
                 // ── PDV operations: OPERATOR + ADMIN ──
                 .requestMatchers("/api/sales/**").hasAnyRole("ADMIN", "OPERATOR")
                 .requestMatchers("/api/cash-register-sessions/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.POST, "/api/payments/process").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.GET, "/api/payment-terminal-mappings/by-cash-register").hasAnyRole("ADMIN", "OPERATOR")
 
                 // OPERATOR needs to search/view products in PDV
                 .requestMatchers(HttpMethod.GET, "/api/products/search").hasAnyRole("ADMIN", "OPERATOR")
@@ -80,8 +82,13 @@ public class SecurityConfig {
                 // OPERATOR needs fidelity read + enroll
                 .requestMatchers(HttpMethod.GET, "/api/fidelity/**").hasAnyRole("ADMIN", "OPERATOR")
                 .requestMatchers(HttpMethod.POST, "/api/fidelity/enroll/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers("/api/tickets/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers("/api/notes/sensitive/**").hasAnyRole("ADMIN", "OPERATOR")
 
                 // ── Admin-only: management CRUD ──
+                .requestMatchers("/api/agents/**").hasRole("ADMIN")
+                .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/products/**").hasRole("ADMIN")
                 .requestMatchers("/api/warehouses/**").hasRole("ADMIN")
                 .requestMatchers("/api/stocks/**").hasRole("ADMIN")
@@ -91,6 +98,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/fidelity-policies/**").hasRole("ADMIN")
                 .requestMatchers("/api/reports/**").hasRole("ADMIN")
                 .requestMatchers("/api/companies/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/clients/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/clients/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/clients/**").hasRole("ADMIN")
@@ -102,6 +112,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/payment-providers/**").hasRole("ADMIN")
                 .requestMatchers("/api/payment-stores/**").hasRole("ADMIN")
                 .requestMatchers("/api/payment-terminals/**").hasRole("ADMIN")
+                .requestMatchers("/api/payment-terminal-mappings/**").hasRole("ADMIN")
                 .requestMatchers("/api/mercadopago/**").hasRole("ADMIN")
 
                 // ── Fallback ──

@@ -75,9 +75,16 @@ export function useSession(): UseSessionReturn {
           initialAmount,
           allowCashOnlyOperation,
         });
+        const registers = await cashRegisterService
+          .listCashRegisters()
+          .catch(() => []);
+        const openedRegister = registers.find(
+          (register) => register.code === response.cashRegisterCode,
+        );
 
         const active: ActiveSession = {
           sessionId: response.sessionId,
+          cashRegisterId: openedRegister?.cashRegisterId,
           operatorId: response.operatorId,
           cashRegisterCode: response.cashRegisterCode,
           operatorName: response.operatorName,

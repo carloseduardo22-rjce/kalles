@@ -203,7 +203,11 @@ describe("Fluxo principal do PDV", () => {
 
     cy.contains("R$ 25,00").should("be.visible");
 
-    cy.get("[data-testid='payment-amount-input']").clear().type("30");
+    cy.get("[data-testid='payment-amount-input']")
+      .should("have.value", "0,00")
+      .clear()
+      .type("3000")
+      .should("have.value", "30,00");
     cy.get("[data-testid='payment-submit-cash']").click();
 
     cy.wait("@addPayment");

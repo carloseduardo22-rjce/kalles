@@ -32,6 +32,7 @@ import { useSale } from "@/features/sales/hooks/use-sale";
 import { useSession } from "@/features/cash-register/hooks/use-session";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import { companySettingsService } from "@/shared/services/company-settings.service";
+import { CompanySwitcher } from "@/components/company-switcher";
 import type { ActiveSession } from "@/features/cash-register/types";
 import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
@@ -204,12 +205,13 @@ export default function PdvPage() {
           openRegisters[0];
         if (openRegister && openRegister.activeSessionId) {
           // Only sync if stored session is missing or stale (different ID)
-          if (!stored || stored.sessionId !== openRegister.activeSessionId) {
+          if (!stored || stored.sessionId !== openRegister.activeSessionId || !stored.cashRegisterId) {
             const operator = operators.find(
               (o) => o.name === openRegister.activeOperatorName,
             );
             const synced: ActiveSession = {
               sessionId: openRegister.activeSessionId,
+              cashRegisterId: openRegister.cashRegisterId,
               operatorId: operator?.id ?? "",
               cashRegisterCode: openRegister.code,
               operatorName: openRegister.activeOperatorName ?? "",
@@ -393,6 +395,9 @@ export default function PdvPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="mr-2 w-56">
+            <CompanySwitcher compact />
+          </div>
           {!isEditingLayout ? (
             <>
               <Button

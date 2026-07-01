@@ -25,18 +25,13 @@ import {
   Ticket,
   Target,
   SmartphoneNfc,
+  ReceiptText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 import { useCompany } from "@/shared/contexts/company-context";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CompanySwitcher } from "@/components/company-switcher";
 import { UserCircle } from "lucide-react";
 import {
   Tooltip,
@@ -154,7 +149,7 @@ function SidebarInner() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [hasIntegrationPrereqs, setHasIntegrationPrereqs] = useState(true);
 
-  const { activeCompanyId, companies, setActiveCompany } = useCompany();
+  const { companies } = useCompany();
 
   useEffect(() => {
     setLogoUrl(companySettingsService.getLogo());
@@ -175,8 +170,6 @@ function SidebarInner() {
   }, [companies]);
 
   const isRelatorios = pathname === "/relatorios";
-
-  const isAdminSection = pathname.startsWith("/admin");
 
   return (
     <aside
@@ -200,42 +193,9 @@ function SidebarInner() {
         <span className="text-sm font-semibold">Kalles ERP</span>
       </Link>
 
-      {/* Seletor de Filial (Apenas para Admin em rotas administrativas) */}
-      {isAdminSection && (
-        <div className="px-4 py-3 border-b">
-          <Select
-            value={activeCompanyId || ""}
-            onValueChange={(val) => setActiveCompany(val)}
-          >
-            <SelectTrigger className="w-full h-8 text-xs">
-              <SelectValue placeholder="Selecione a Filial" />
-            </SelectTrigger>
-            <SelectContent>
-              {companies.map((company) => (
-                <SelectItem
-                  key={company.id}
-                  value={company.id}
-                  className="text-xs"
-                >
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="mt-2 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Filial ativa
-            </p>
-            <p className="text-xs font-semibold text-primary truncate">
-              {activeCompanyId
-                ? (companies.find((company) => company.id === activeCompanyId)
-                    ?.name ?? "Filial selecionada")
-                : "Nenhuma filial selecionada"}
-            </p>
-          </div>
-        </div>
-      )}
+      <div className="border-b px-4 py-3">
+        <CompanySwitcher compact />
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
@@ -304,6 +264,14 @@ function SidebarInner() {
             soon
           >
             Por Produto
+          </NavLink>
+          <NavLink
+            href="/vendas"
+            icon={<ShoppingBag className="h-4 w-4" />}
+            active={pathname === "/vendas"}
+            sub
+          >
+            Vendas
           </NavLink>
           <NavLink
             href="/relatorios?tab=historico"
@@ -404,6 +372,14 @@ function SidebarInner() {
             sub
           >
             Metas
+          </NavLink>
+          <NavLink
+            href="/admin/fiscal"
+            icon={<ReceiptText className="h-4 w-4" />}
+            active={pathname === "/admin/fiscal"}
+            sub
+          >
+            Fiscal
           </NavLink>
           <NavLink
             href="/admin/notas"

@@ -2,13 +2,16 @@ package dev.kalles.sale.cashregister.support;
 
 import dev.kalles.sale.KallesSaleApplication;
 import dev.kalles.sale.cashregister.entity.CashRegister;
+import dev.kalles.sale.cashregister.entity.CashRegisterSession;
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
+import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.entity.Company;
 import dev.kalles.sale.core.entity.Tenant;
 import dev.kalles.sale.core.repository.CompanyRepository;
+import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.TenantRepository;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoCaixaEntity;
 import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataMercadoPagoCaixaRepository;
@@ -35,6 +38,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,6 +76,9 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     protected OperatorRepository operatorRepository;
 
     @Autowired
+    protected SaleAuditEventRepository saleAuditEventRepository;
+
+    @Autowired
     protected AccountRepository accountRepository;
 
     @Autowired
@@ -92,6 +99,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         RestAssured.port = port;
 
         mercadoPagoCaixaRepository.deleteAll();
+        saleAuditEventRepository.deleteAll();
         cashRegisterSessionRepository.deleteAll();
         posDeviceSessionRepository.deleteAll();
         accountRepository.deleteAll();
@@ -178,6 +186,41 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         session.setActive(true);
         posDeviceSessionRepository.save(session);
         return token;
+    }
+
+    protected UUID seedCompany(String name) {
+        return companyRepository.save(new Company(
+                null,
+                name,
+                TENANT_ID,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        )).getId();
+    }
+
+    protected UUID seedCashRegister(UUID targetCompanyId, String code, String description) {
+        return cashRegisterRepository.save(new CashRegister(code, description, targetCompanyId)).getId();
+    }
+
+    protected void seedOperator(UUID targetCompanyId, String name, String code, PermissionLevel permissionLevel) {
+        Operator operator = new Operator(name, code);
+        operator.setCompanyId(targetCompanyId);
+        operator.setPermissionLevel(permissionLevel);
+        operatorRepository.save(operator);
+    }
+
+    protected UUID seedSession(UUID targetCompanyId, String registerCode, String operatorCode, BigDecimal initialAmount) {
+        CashRegister cashRegister = cashRegisterRepository.findByCodeAndCompanyId(registerCode, targetCompanyId)
+                .orElseThrow();
+        Operator operator = operatorRepository.findByCodeAndCompanyId(operatorCode, targetCompanyId)
+                .orElseThrow();
+        return cashRegisterSessionRepository.save(
+                CashRegisterSession.open(cashRegister, operator, initialAmount)
+        ).getId();
     }
 
     protected record AuthContext(String authCookie, String csrfCookie, String csrfToken) {

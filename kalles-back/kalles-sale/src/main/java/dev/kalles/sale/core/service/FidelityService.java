@@ -48,6 +48,10 @@ public class FidelityService {
 
     @Transactional
     public FidelityResponse getByClientId(UUID clientId) {
+        UUID companyId = getCompanyId();
+        clientRepository.findByIdAndCompanyId(clientId, companyId)
+                .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
+
         Fidelity fidelity = fidelityRepository.findByClientId(clientId)
                 .orElseThrow(() -> new NotFoundException("Cliente não está no programa de fidelidade."));
         checkAndMarkExpired(fidelity);

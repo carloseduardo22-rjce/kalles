@@ -3,6 +3,7 @@ package dev.kalles.sale.security.support;
 import dev.kalles.sale.KallesSaleApplication;
 import dev.kalles.sale.cashregister.entity.CashRegister;
 import dev.kalles.sale.cashregister.repository.CashRegisterRepository;
+import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.core.entity.Company;
 import dev.kalles.sale.core.entity.Tenant;
 import dev.kalles.sale.core.repository.CompanyRepository;
@@ -43,6 +44,9 @@ public abstract class AbstractCompanyContextApiSupport extends AbstractSecurityA
     protected CashRegisterRepository cashRegisterRepository;
 
     @Autowired
+    protected CashRegisterSessionRepository cashRegisterSessionRepository;
+
+    @Autowired
     protected AccountRepository accountRepository;
 
     @Autowired
@@ -57,6 +61,7 @@ public abstract class AbstractCompanyContextApiSupport extends AbstractSecurityA
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
+        cashRegisterSessionRepository.deleteAll();
         accountRepository.deleteAll();
         cashRegisterRepository.deleteAll();
         companyRepository.deleteAll();

@@ -9,13 +9,14 @@ import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
-import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.entity.Payment;
 import dev.kalles.sale.core.entity.Sale;
+import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.state.CanceledState;
 import dev.kalles.sale.core.state.CompletedState;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,15 +77,19 @@ public class CloseSessionUseCase {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
         return sessionRepository
-                .findBySessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(start, end)
+                .findByCashRegister_CompanyIdAndSessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(
+                        getCompanyId(),
+                        start,
+                        end
+                )
                 .stream()
                 .map(this::toSessionDetailsResponse)
                 .toList();
     }
 
     private CashRegisterSession findSessionOrThrow(UUID sessionId) {
-        return sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new NotFoundException("Sessão de caixa não encontrada: " + sessionId));
+        return sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, getCompanyId())
+                .orElseThrow(() -> new NotFoundException("Sessao de caixa nao encontrada: " + sessionId));
     }
 
     private CloseSessionResponse toSessionDetailsResponse(CashRegisterSession session) {
@@ -98,7 +103,7 @@ public class CloseSessionUseCase {
     }
 
     private Operator findAuthorizedOperator(String operatorCode) {
-        Operator operator = operatorRepository.findByCode(operatorCode)
+        Operator operator = operatorRepository.findByCodeAndCompanyId(operatorCode, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador autorizador nao encontrado: " + operatorCode));
 
         PermissionLevel permissionLevel = operator.getPermissionLevel();
@@ -107,6 +112,14 @@ public class CloseSessionUseCase {
         }
 
         return operator;
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
+        }
+        return companyId;
     }
 
     private SessionSummaryResponse buildLiveSummary(CashRegisterSession session) {

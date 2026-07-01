@@ -155,6 +155,15 @@ export const api = {
     });
   },
 
+  download(path: string, headers?: HttpHeaders): Promise<Blob> {
+    const url = buildUrl(path);
+    return requestBlobWithRefresh(url, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
+  },
+
   post<T>(path: string, body?: unknown, headers?: HttpHeaders): Promise<T> {
     const url = buildUrl(path);
     return requestWithRefresh<T>(url, {
@@ -222,6 +231,9 @@ function isCompanyScopedApiRequest(input: string): boolean {
     "/api/cash-registers",
     "/api/cash-register-sessions",
     "/api/sales",
+    "/api/payments",
+    "/api/payment-terminal-mappings",
+    "/api/fiscal",
     "/api/clients",
     "/api/fidelity",
     "/api/fidelity-policies",
@@ -359,6 +371,58 @@ async function requestWithRefresh<T>(
   }
 
   return handleResponse<T>(response);
+}
+
+async function requestBlobWithRefresh(
+  input: string,
+  init: RequestInit,
+  hasRetried = false,
+): Promise<Blob> {
+  const needsCompanyContext = isCompanyScopedApiRequest(input);
+  const callerHeaders = stripManagedHeaders(init.headers as HttpHeaders | undefined);
+
+  if (needsCompanyContext) {
+    await ensureCompanyContext();
+  }
+
+  init = {
+    ...init,
+    headers: {
+      ...getActiveCompanyHeader(input),
+      ...callerHeaders,
+    },
+  };
+
+  const response = await fetch(input, init);
+
+  if (
+    response.status === 403 &&
+    needsCompanyContext &&
+    !hasRetried &&
+    (await isRecoverableCompanyContextForbidden(response))
+  ) {
+    await ensureCompanyContext(true);
+    return requestBlobWithRefresh(input, init, true);
+  }
+
+  if (
+    response.status === 401 &&
+    !hasRetried &&
+    !input.endsWith("/api/auth/refresh") &&
+    !input.endsWith("/api/auth/login")
+  ) {
+    const refreshed = await tryRefreshSession();
+
+    if (refreshed) {
+      return requestBlobWithRefresh(input, init, true);
+    }
+  }
+
+  if (!response.ok) {
+    await handleResponse<never>(response);
+  }
+
+  return response.blob();
 }
 
 async function isRecoverableCsrfForbidden(response: Response): Promise<boolean> {

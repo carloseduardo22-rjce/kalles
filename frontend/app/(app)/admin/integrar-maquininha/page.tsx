@@ -5,10 +5,7 @@ import Link from "next/link";
 import { steps } from "./steps";
 import { useQuery } from "@tanstack/react-query";
 import { paymentMercadoPagoService as mercadopagoService } from "@/features/admin/services/payment-mercadopago.service";
-import {
-  getPaymentProvider,
-  paymentProviders,
-} from "@/features/payment/providers";
+import { paymentProviders } from "@/features/payment/providers";
 import type { PaymentProviderId } from "@/features/payment/types";
 import type {
   MpStore,
@@ -29,7 +26,9 @@ export default function IntegrarMaquininhaPage() {
   const [serial, setSerial] = useState("");
   const [configuringState, setConfiguringState] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
-  const selectedProvider = getPaymentProvider(selectedProviderId);
+  const visiblePaymentProviders = paymentProviders.filter(
+    (provider) => provider.id === "MERCADO_PAGO",
+  );
 
   const { data: stores = [], isLoading } = useQuery({
     queryKey: ["payment-provider-stores", selectedProviderId],
@@ -119,7 +118,7 @@ export default function IntegrarMaquininhaPage() {
 
       <div className="flex-1 p-8 relative">
         <div className="mb-6 grid gap-3 md:grid-cols-2">
-          {paymentProviders.map((provider) => {
+          {visiblePaymentProviders.map((provider) => {
             const isSelected = provider.id === selectedProviderId;
 
             return (
@@ -153,36 +152,13 @@ export default function IntegrarMaquininhaPage() {
                         : "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {provider.capabilities.terminalActivation ? "Ativo" : "Preview"}
+                    Disponível
                   </div>
                 </div>
               </button>
             );
           })}
         </div>
-        {selectedProviderId === "STONE" ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <h1 className="text-2xl font-bold text-slate-900">
-              {selectedProvider.presentation.displayName}
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Esta tela ja usa o contrato generico de providers, mas o
-              onboarding visual da Stone ainda nao foi ligado ao fluxo
-              operacional do caixa.
-            </p>
-
-            <div className="mt-4 space-y-2">
-              {selectedProvider.operationalNotes?.map((note) => (
-                <div
-                  key={note}
-                  className="rounded-lg border bg-white px-4 py-3 text-sm text-slate-700"
-                >
-                  {note}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
         <>
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -334,7 +310,6 @@ export default function IntegrarMaquininhaPage() {
           </div>
         </div>
         </>
-        )}
       </div>
     </div>
   );

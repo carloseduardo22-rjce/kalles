@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { CompanySwitcher } from "@/components/company-switcher";
 import { OpenSessionForm } from "@/features/cash-register/components/open-session-form";
 import { useSession } from "@/features/cash-register/hooks/use-session";
 
@@ -24,11 +25,16 @@ export default function OpenSessionPage() {
   }
 
   return (
-    <OpenSessionForm
-      onSuccess={handleSuccess}
-      isLoading={isLoading}
-      error={error}
-      onClearError={clearError}
-    />
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-md px-4 pt-6">
+        <CompanySwitcher />
+      </div>
+      <OpenSessionForm
+        onSuccess={handleSuccess}
+        isLoading={isLoading}
+        error={error}
+        onClearError={clearError}
+      />
+    </div>
   );
 }

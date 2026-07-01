@@ -34,6 +34,11 @@ yarn-error.log*
 # Backend (kalles-back)
 # ========================
 
+/.m2/
+hs_err_pid*.log
+replay_pid*.log
+kalles-back/hs_err_pid*.log
+kalles-back/replay_pid*.log
 kalles-back/kalles-sale/HELP.md
 kalles-back/**/target/
 kalles-back/.mvn/wrapper/maven-wrapper.jar

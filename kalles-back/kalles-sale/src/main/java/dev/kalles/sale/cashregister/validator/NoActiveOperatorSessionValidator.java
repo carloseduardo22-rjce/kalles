@@ -7,14 +7,13 @@ import dev.kalles.sale.cashregister.exception.OperatorNotFoundException;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.cashregister.valueobject.SessionStatus;
+import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-/**
- * Valida que o operador não está vinculado a nenhuma outra sessão ativa.
- * Um operador só pode estar em um caixa por vez.
- */
+import java.util.UUID;
+
 @Scope("prototype")
 @Component
 @RequiredArgsConstructor
@@ -25,12 +24,21 @@ public class NoActiveOperatorSessionValidator extends SessionValidator {
 
     @Override
     protected void doValidate(OpenSessionRequest request) {
+        UUID companyId = getCompanyId();
         Operator operator = operatorRepository
-            .findByCode(request.operatorCode())
+            .findByCodeAndCompanyId(request.operatorCode(), companyId)
             .orElseThrow(() -> new OperatorNotFoundException(request.operatorCode()));
 
         if (sessionRepository.existsByOperatorAndStatus(operator, SessionStatus.OPEN)) {
             throw new OperatorAlreadyInSessionException(request.operatorCode());
         }
+    }
+
+    private UUID getCompanyId() {
+        UUID companyId = CompanyContextHolder.getCompanyId();
+        if (companyId == null) {
+            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
+        }
+        return companyId;
     }
 }

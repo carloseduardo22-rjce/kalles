@@ -45,6 +45,38 @@ const amountSchema = z.object({
 
 type AmountForm = z.infer<typeof amountSchema>;
 
+const ZERO_MONEY_VALUE = "0,00";
+
+function formatCentsAsMoneyInput(cents: number): string {
+  const normalizedCents = Math.max(0, cents);
+  const reais = Math.floor(normalizedCents / 100);
+  const centavos = normalizedCents % 100;
+
+  return `${reais.toString()},${centavos.toString().padStart(2, "0")}`;
+}
+
+function formatMoneyInputFromText(value: string): string {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return ZERO_MONEY_VALUE;
+  }
+
+  return formatCentsAsMoneyInput(Number(digits));
+}
+
+function parseMoneyInput(value: string): number {
+  const cents = Number(value.replace(/\D/g, ""));
+  return cents / 100;
+}
+
+function keepCaretAtEnd(input: HTMLInputElement) {
+  window.requestAnimationFrame(() => {
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+}
+
 interface PaymentPanelProps {
   sale: SaleResponse;
   isLoading: boolean;
@@ -168,10 +200,17 @@ export function PaymentPanel({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<AmountForm>({
     resolver: zodResolver(amountSchema),
+    defaultValues: {
+      amount: ZERO_MONEY_VALUE,
+    },
   });
+  const amountValue = watch("amount");
+  const amountField = register("amount");
 
   const isPaid = sale.state === "PAID";
   const canPay = sale.state === "OPEN" || sale.state === "PAYMENT_IN_PROGRESS";
@@ -181,9 +220,19 @@ export function PaymentPanel({
     : PAYMENT_METHODS;
 
   async function handlePay(data: AmountForm) {
-    const amount = parseFloat(data.amount.replace(",", "."));
+    const amount = parseMoneyInput(data.amount);
     await onAddPayment(method, amount);
-    reset();
+    reset({ amount: ZERO_MONEY_VALUE });
+  }
+
+  function handleAmountChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const formattedValue = formatMoneyInputFromText(event.target.value);
+    setValue("amount", formattedValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    keepCaretAtEnd(event.target);
   }
 
   async function handlePixPayment(amount: number) {
@@ -203,11 +252,11 @@ export function PaymentPanel({
         console.error("Failed to generate QR Code", err);
       } finally {
         setIsGeneratingQr(false);
-        reset({ amount: "" });
+        reset({ amount: ZERO_MONEY_VALUE });
       }
     } else {
       await onAddPayment("PIX", amount);
-      reset({ amount: "" });
+      reset({ amount: ZERO_MONEY_VALUE });
     }
   }
 
@@ -321,7 +370,7 @@ export function PaymentPanel({
                   className="w-full"
                   onClick={() => {
                     onAddPayment(method, effectiveAmount);
-                    reset();
+                    reset({ amount: ZERO_MONEY_VALUE });
                   }}
                   disabled={isLoading || effectiveAmount <= 0}
                 >
@@ -339,13 +388,14 @@ export function PaymentPanel({
                   <Input
                     data-testid="payment-amount-input"
                     id="payment-amount"
-                    {...register("amount")}
-                    placeholder={
-                      effectiveAmount > 0
-                        ? formatCurrency(effectiveAmount).replace("R$\u00a0", "")
-                        : "0,00"
-                    }
-                    inputMode="decimal"
+                    name={amountField.name}
+                    ref={amountField.ref}
+                    onBlur={amountField.onBlur}
+                    value={amountValue}
+                    onChange={handleAmountChange}
+                    onFocus={(event) => keepCaretAtEnd(event.target)}
+                    onClick={(event) => keepCaretAtEnd(event.currentTarget)}
+                    inputMode="numeric"
                     autoComplete="off"
                   />
                   {errors.amount && (
@@ -465,6 +515,7 @@ export function PaymentPanel({
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
