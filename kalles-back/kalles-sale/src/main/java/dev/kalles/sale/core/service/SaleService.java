@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.UUID;
 import java.math.BigDecimal;
 
-import dev.kalles.sale.core.state.SaleState;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import dev.kalles.sale.cashregister.entity.Operator;
@@ -25,7 +25,6 @@ import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.repository.StockRepository;
-import dev.kalles.sale.core.state.CompletedState;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import dev.kalles.sale.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -198,6 +197,11 @@ public class SaleService {
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda em andamento para esta sessão"));
     }
 
+    private Sale findCancellableSale(String sessionToken) {
+        return saleRepository.findCancellableSaleBySessionToken(sessionToken)
+                .orElseThrow(() -> new NotFoundException("Nenhuma venda cancelável para esta sessão"));
+    }
+
     private Product findProductByBarCode(String barCode) {
         return productRepository.findByBarcodeAndTenantId(barCode, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código de barras: " + barCode));
@@ -213,31 +217,31 @@ public class SaleService {
     public Sale getOrCreateSale(String sessionToken) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
         return saleRepository.findActiveSaleBySessionToken(sessionToken)
-                .orElseGet(() -> {
-                    Sale newSale = Sale.createForSession(sessionToken);
-                    return saleRepository.save(newSale);
-                });
+                .orElseGet(() -> createSaleForSession(sessionToken));
+    }
+
+    private Sale createSaleForSession(String sessionToken) {
+        try {
+            // saveAndFlush força a violação do índice único parcial
+            // (uk_sale_active_per_session) aqui, e não no commit.
+            return saleRepository.saveAndFlush(Sale.createForSession(sessionToken));
+        } catch (DataIntegrityViolationException e) {
+            // Corrida: outra requisição criou a venda ativa entre o SELECT e o INSERT.
+            // A transação já foi abortada pelo banco; o cliente deve rebuscar a venda atual.
+            throw new IllegalStateException(
+                    "Já existe uma venda ativa para esta sessão. Recarregue a venda atual.", e);
+        }
     }
 
     @Transactional(readOnly = true)
     public Sale getCurrentSale(String sessionToken) {
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 
-        List<SaleState> activeStates = List.of(
-                new dev.kalles.sale.core.state.OpenState(),
-                new dev.kalles.sale.core.state.OnHoldState(),
-                new dev.kalles.sale.core.state.PaymentInProgressState(),
-                new dev.kalles.sale.core.state.PaidState());
-
-        List<Sale> sales = saleRepository.findAllBySessionTokenAndStateIn(sessionToken, activeStates);
-
-        if (sales.isEmpty()) {
-            throw new NotFoundException("Nenhuma venda em andamento ou pendente de conclusão para esta sessão");
-        }
-
-        // Em casos de testes não concluídos corretamente, pode haver múltiplas vendas
-        // PAID. Retornamos a última encontrada.
-        return sales.get(sales.size() - 1);
+        // O índice único parcial uk_sale_active_per_session garante no máximo
+        // uma venda não finalizada por sessão.
+        return saleRepository.findCancellableSaleBySessionToken(sessionToken)
+                .orElseThrow(() -> new NotFoundException(
+                        "Nenhuma venda em andamento ou pendente de conclusão para esta sessão"));
     }
 
     @Transactional
@@ -265,7 +269,9 @@ public class SaleService {
         if (sale.getClient() == null) {
             throw new IllegalStateException("Nenhum cliente associado à venda.");
         }
-        BigDecimal applied = fidelityService.applyDiscount(sale.getClient().getId(), sale.getSubtotal());
+        // Apenas calcula e registra na venda; o saldo do cliente só é consumido
+        // na conclusão (completeSale). Reaplicar recalcula sem perda.
+        BigDecimal applied = fidelityService.calculateDiscount(sale.getClient().getId(), sale.getSubtotal());
         if (applied.compareTo(java.math.BigDecimal.ZERO) > 0) {
             sale.applyFidelityDiscount(applied);
             saleRepository.save(sale);
@@ -276,11 +282,39 @@ public class SaleService {
 
 
     @Transactional
-    public void applyItemDiscount(String sessionToken, UUID itemId, BigDecimal discountAmount) {
+    public void applyItemDiscount(
+            String sessionToken,
+            UUID itemId,
+            BigDecimal discountAmount,
+            UUID operatorId,
+            UUID authorizerId) {
+
         checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+
+        Operator operator = findOperator(operatorId);
+        Operator authorizer = null;
+        if (authorizerId != null) {
+            authorizer = findOperator(authorizerId);
+            if (!permissionService.canAuthorizeItemDiscount(authorizer, operator)) {
+                throw new ForbiddenOperationException(
+                        "O operador autorizador não possui nível de permissão suficiente para autorizar o desconto.");
+            }
+        } else if (!permissionService.canApplyItemDiscount(operator)) {
+            throw new ForbiddenOperationException(
+                    "Operador não possui permissão para aplicar descontos. Solicite autorização de um supervisor.");
+        }
+
         Sale sale = findActiveSale(sessionToken);
         sale.applyItemDiscount(itemId, discountAmount);
         saleRepository.save(sale);
+
+        Product discountedProduct = sale.getItems().stream()
+                .filter(item -> java.util.Objects.equals(item.getId(), itemId))
+                .findFirst()
+                .map(item -> item.getProduct())
+                .orElse(null);
+        auditRepository.save(
+                SaleAuditEvent.forItemDiscount(sale, discountedProduct, discountAmount, operator, authorizer));
     }
 
     @Transactional
@@ -294,19 +328,10 @@ public class SaleService {
                     "Operador não possui permissão para cancelar vendas. Solicite autorização de um supervisor.");
         }
 
-        Sale sale = findActiveSale(sessionToken);
-        boolean stockWasDeducted = sale.getStateName().equals(CompletedState.NAME);
+        Sale sale = findCancellableSale(sessionToken);
         sale.cancel();
-        if (stockWasDeducted) {
-            restoreStock(sale);
-        }
-        if (sale.getClient() != null) {
-            fidelityService.rollbackSale(
-                    sale.getClient().getId(),
-                    sale.getFidelityDiscountApplied(),
-                    sale.getPointsEarned(),
-                    sale.getSubtotal());
-        }
+        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
+        // na conclusão da venda, que não é um estado cancelável.
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, null));
     }
@@ -324,19 +349,10 @@ public class SaleService {
 
         validateCancellationAuthorization(operator, authorizer);
 
-        Sale sale = findActiveSale(sessionToken);
-        boolean stockWasDeducted = sale.getStateName().equals(CompletedState.NAME);
+        Sale sale = findCancellableSale(sessionToken);
         sale.cancel();
-        if (stockWasDeducted) {
-            restoreStock(sale);
-        }
-        if (sale.getClient() != null) {
-            fidelityService.rollbackSale(
-                    sale.getClient().getId(),
-                    sale.getFidelityDiscountApplied(),
-                    sale.getPointsEarned(),
-                    sale.getSubtotal());
-        }
+        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
+        // na conclusão da venda, que não é um estado cancelável.
         saleRepository.save(sale);
         auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, authorizer));
     }
@@ -370,9 +386,11 @@ public class SaleService {
         }
 
         sale.completeSale();
+        sale.setCompletedAt(java.time.LocalDateTime.now());
         deductStock(sale);
         if (sale.getClient() != null) {
-            int pointsEarned = fidelityService.processCompletedSale(sale.getClient().getId(), sale.getSubtotal());
+            int pointsEarned = fidelityService.processCompletedSale(
+                    sale.getClient().getId(), sale.getSubtotal(), sale.getFidelityDiscountApplied());
             sale.setPointsEarned(pointsEarned);
         }
         saleRepository.save(sale);
@@ -408,17 +426,4 @@ public class SaleService {
         });
     }
 
-    private void restoreStock(Sale sale) {
-        sale.getItems().forEach(item -> {
-            List<Stock> stocks = stockRepository.findAllByProductIdOrderByQuantityDesc(item.getProduct().getId(),
-                    sale.getCompanyId());
-
-            if (!stocks.isEmpty()) {
-                var stock = stocks.get(0);
-                stock.setQuantity(stock.getQuantity() + item.getQuantity());
-
-                stockRepository.save(stock);
-            }
-        });
-    }
 }

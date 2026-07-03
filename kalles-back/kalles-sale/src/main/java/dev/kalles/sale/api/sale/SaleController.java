@@ -256,14 +256,20 @@ public class SaleController {
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Desconto aplicado com sucesso"),
         @ApiResponse(responseCode = "400", description = "Desconto inválido (negativo ou maior que o valor do item)", content = @Content(schema = @Schema(hidden = true))),
-        @ApiResponse(responseCode = "404", description = "Venda ou item não encontrado", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "403", description = "Operador sem permissão para aplicar descontos", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "404", description = "Venda, item ou operador não encontrado", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "409", description = "Estado da venda não permite desconto", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<Void> applyItemDiscount(
             @PathVariable @NotBlank String sessionToken,
+            @Parameter(name = "X-Operator-Id", description = "ID do operador que solicita o desconto", required = true)
+            @NotNull @RequestHeader("X-Operator-Id") UUID operatorId,
+            @Parameter(name = "X-Authorizer-Id", description = "ID do supervisor autorizador (necessário se o operador não tiver permissão própria)", required = false)
+            @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId,
             @Valid @RequestBody ApplyDiscountRequest request) {
 
-        saleService.applyItemDiscount(sessionToken, request.itemId(), request.discountAmount());
+        saleService.applyItemDiscount(
+                sessionToken, request.itemId(), request.discountAmount(), operatorId, authorizerId);
         return ResponseEntity.noContent().build();
     }
 

@@ -49,8 +49,18 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	}
 	
 	default Optional<Sale> findActiveSaleBySessionToken(String sessionToken) {
-		return findBySessionTokenAndStateIn(sessionToken, 
+		return findBySessionTokenAndStateIn(sessionToken,
 			List.of(new OpenState(), new OnHoldState()));
+	}
+
+	/**
+	 * Estados em que uma venda ainda pode ser cancelada: inclui vendas com
+	 * pagamento em andamento (cartão recusado, cliente desistiu) e pagas mas
+	 * não concluídas. Vendas COMPLETED exigem fluxo de devolução, não cancelamento.
+	 */
+	default Optional<Sale> findCancellableSaleBySessionToken(String sessionToken) {
+		return findBySessionTokenAndStateIn(sessionToken,
+			List.of(new OpenState(), new OnHoldState(), new PaymentInProgressState(), new PaidState()));
 	}
 
 	default Optional<Sale> findSaleForPaymentBySessionToken(String sessionToken) {
@@ -63,14 +73,28 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			List.of(new PaidState()));
 	}
 
+	/**
+	 * Vendas que impedem o fechamento da sessão de caixa: ainda em andamento,
+	 * com pagamento em curso ou pagas mas não concluídas (dinheiro recebido
+	 * que não entraria no fechamento).
+	 */
+	default List<Sale> findPendingBySessionToken(String sessionToken) {
+		return findAllBySessionTokenAndStateIn(sessionToken,
+			List.of(new OpenState(), new OnHoldState(), new PaymentInProgressState(), new PaidState()));
+	}
+
+	// Data da venda: usa o timestamp da própria venda (conclusão, com fallback
+	// para criação e, por fim, abertura da sessão para linhas antigas sem backfill).
+	// Antes, tudo era atribuído à data de ABERTURA da sessão — sessões virando a
+	// meia-noite jogavam o faturamento no dia errado.
 	@Query(value = """
 			SELECT COALESCE(SUM(s.total), 0)
 			FROM sale s
-			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			LEFT JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
 			WHERE s.state = 'COMPLETED'
 			  AND s.company_id = :companyId
-			  AND crs.opened_at >= :start
-			  AND crs.opened_at < :end
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) >= :start
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) < :end
 			""", nativeQuery = true)
 	BigDecimal sumCompletedTotalsBetween(
 			@Param("companyId") UUID companyId,
@@ -78,15 +102,16 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			@Param("end") LocalDateTime end);
 
 	@Query(value = """
-			SELECT CAST(s.id AS VARCHAR) AS id, crs.opened_at AS openedAt
+			SELECT CAST(s.id AS VARCHAR) AS id,
+			       COALESCE(s.completed_at, s.created_at, crs.opened_at) AS openedAt
 			FROM sale s
 			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
 			JOIN cash_registers cr ON cr.id = crs.cash_register_id
 			WHERE s.company_id = :companyId
 			  AND cr.company_id = :companyId
-			  AND crs.opened_at >= :start
-			  AND crs.opened_at < :end
-			ORDER BY crs.opened_at DESC, s.id DESC
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) >= :start
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) < :end
+			ORDER BY COALESCE(s.completed_at, s.created_at, crs.opened_at) DESC, s.id DESC
 			""", nativeQuery = true)
 	List<SaleHistoryRow> findHistoryRows(
 			@Param("companyId") UUID companyId,
@@ -94,16 +119,17 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			@Param("end") LocalDateTime end);
 
 	@Query(value = """
-			SELECT CAST(s.id AS VARCHAR) AS id, crs.opened_at AS openedAt
+			SELECT CAST(s.id AS VARCHAR) AS id,
+			       COALESCE(s.completed_at, s.created_at, crs.opened_at) AS openedAt
 			FROM sale s
 			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
 			JOIN cash_registers cr ON cr.id = crs.cash_register_id
 			WHERE s.company_id = :companyId
 			  AND cr.company_id = :companyId
-			  AND crs.opened_at >= :start
-			  AND crs.opened_at < :end
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) >= :start
+			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) < :end
 			  AND s.state = :state
-			ORDER BY crs.opened_at DESC, s.id DESC
+			ORDER BY COALESCE(s.completed_at, s.created_at, crs.opened_at) DESC, s.id DESC
 			""", nativeQuery = true)
 	List<SaleHistoryRow> findHistoryRowsByState(
 			@Param("companyId") UUID companyId,

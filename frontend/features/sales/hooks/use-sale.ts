@@ -25,7 +25,12 @@ interface UseSaleReturn {
   cancelSale: (operatorId: string, authorizerId?: string) => Promise<void>;
   addPayment: (method: PaymentMethod, amount: number) => Promise<void>;
   completeSale: () => Promise<void>;
-  applyDiscount: (itemId: string, discountAmount: number) => Promise<void>;
+  applyDiscount: (
+    itemId: string,
+    discountAmount: number,
+    operatorId: string,
+    authorizerId?: string,
+  ) => Promise<void>;
   associateClient: (clientId: string) => Promise<void>;
   applyFidelityDiscount: () => Promise<void>;
   refreshSale: () => Promise<void>;
@@ -171,10 +176,21 @@ export function useSale(sessionToken: string): UseSaleReturn {
   }, [sessionToken]);
 
   const applyDiscount = useCallback(
-    async (itemId: string, discountAmount: number) => {
+    async (
+      itemId: string,
+      discountAmount: number,
+      operatorId: string,
+      authorizerId?: string,
+    ) => {
       await withLoading(async () => {
         try {
-          await saleService.applyDiscount(sessionToken, itemId, discountAmount);
+          await saleService.applyDiscount(
+            sessionToken,
+            itemId,
+            discountAmount,
+            operatorId,
+            authorizerId,
+          );
           setSale((prev) => {
             if (!prev) return prev;
             const items = prev.items.map((item) => {

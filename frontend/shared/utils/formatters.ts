@@ -18,6 +18,7 @@ export function formatPaymentMethod(method: string): string {
     PIX: "Pix",
     CREDIT_CARD: "Cartão de Crédito",
     DEBIT_CARD: "Cartão de Débito",
+    OTHER: "Outros",
   };
   return labels[method] ?? method;
 }

@@ -4,7 +4,6 @@ import dev.kalles.sale.core.dto.FidelityResponse;
 import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.entity.Fidelity;
 import dev.kalles.sale.core.entity.FidelityPolicy;
-import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.FidelityPolicyRepository;
@@ -58,53 +57,38 @@ public class FidelityService {
         return FidelityResponse.from(fidelity);
     }
 
+    /**
+     * Calcula o desconto de fidelidade aplicável à venda SEM consumir o saldo do
+     * cliente. O consumo acontece apenas em processCompletedSale: venda abandonada
+     * ou cancelada não queima o benefício, e reaplicar apenas recalcula.
+     */
     @Transactional
-    public BigDecimal applyDiscount(UUID clientId, BigDecimal saleTotal) {
+    public BigDecimal calculateDiscount(UUID clientId, BigDecimal saleTotal) {
         Optional<Fidelity> optional = fidelityRepository.findByClientId(clientId);
         if (optional.isEmpty()) return BigDecimal.ZERO;
         Fidelity fidelity = optional.get();
+        checkAndMarkExpired(fidelity);
+        if (fidelity.isExpired()) return BigDecimal.ZERO;
         if (fidelity.getAvailableDiscount().compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
-        BigDecimal applied = fidelity.consumeDiscount(saleTotal);
-        fidelityRepository.save(fidelity);
-        return applied;
+        return fidelity.previewDiscount(saleTotal);
     }
 
+    /**
+     * Consolida a fidelidade na conclusão da venda: consome o desconto que foi
+     * efetivamente aplicado e acumula os pontos sobre o subtotal original.
+     */
     @Transactional
-    public int processCompletedSale(UUID clientId, BigDecimal originalTotal) {
+    public int processCompletedSale(UUID clientId, BigDecimal originalTotal, BigDecimal appliedDiscount) {
         Optional<Fidelity> optional = fidelityRepository.findByClientId(clientId);
         if (optional.isEmpty()) return 0;
         Fidelity fidelity = optional.get();
+        if (appliedDiscount != null && appliedDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            fidelity.consumeAppliedDiscount(appliedDiscount);
+        }
         int earned = fidelity.calculatePoints(originalTotal);
         fidelity.checkObjectivePoints();
         fidelityRepository.save(fidelity);
         return earned;
-    }
-
-    @Transactional
-    public void rollbackSale(UUID clientId, BigDecimal discountToRestore, int pointsToDeduct) {
-        rollbackSale(clientId, discountToRestore, pointsToDeduct, null);
-    }
-
-    @Transactional
-    public void rollbackSale(UUID clientId, BigDecimal discountToRestore, int pointsToDeduct, BigDecimal saleTotal) {
-        Optional<Fidelity> optional = fidelityRepository.findByClientId(clientId);
-        if (optional.isEmpty()) return;
-        Fidelity fidelity = optional.get();
-        if (discountToRestore.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal amountToRestore = discountToRestore;
-            if (saleTotal != null
-                    && saleTotal.compareTo(BigDecimal.ZERO) > 0
-                    && fidelity.getPolicy().getDiscountType() == FidelityDiscountType.PERCENTAGE) {
-                amountToRestore = discountToRestore
-                        .multiply(new BigDecimal("100"))
-                        .divide(saleTotal, 2, java.math.RoundingMode.HALF_UP);
-            }
-            fidelity.rollbackDiscount(amountToRestore);
-        }
-        if (pointsToDeduct > 0) {
-            fidelity.rollbackPoints(pointsToDeduct);
-        }
-        fidelityRepository.save(fidelity);
     }
 
     private void checkAndMarkExpired(Fidelity fidelity) {

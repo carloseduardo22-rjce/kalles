@@ -24,4 +24,14 @@ public class PermissionService {
         return authorizer.getPermissionLevel().canAuthorize(requester.getPermissionLevel());
     }
 
+    // Desconto manual é tão sensível quanto remover item: sem controle, um
+    // operador poderia zerar o valor de qualquer produto.
+    public boolean canApplyItemDiscount(Operator operator) {
+        return operator.getPermissionLevel().getLevel() >= PermissionLevel.SUPERVISOR.getLevel();
+    }
+
+    public boolean canAuthorizeItemDiscount(Operator authorizer, Operator requester) {
+        return authorizer.getPermissionLevel().canAuthorize(requester.getPermissionLevel());
+    }
+
 }

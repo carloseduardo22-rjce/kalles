@@ -7,13 +7,16 @@ import dev.kalles.sale.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.sale.payment.application.port.out.PaymentWebhookEventObserver;
 import dev.kalles.sale.payment.domain.PaymentMethodType;
 import dev.kalles.sale.payment.domain.PaymentProvider;
+import dev.kalles.sale.payment.domain.PaymentOrder;
 import dev.kalles.sale.payment.domain.PaymentStatus;
 import dev.kalles.sale.payment.domain.PaymentWebhookEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCase {
@@ -41,29 +44,39 @@ public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCas
     }
 
     @Override
+    @Transactional
     public boolean execute(PaymentProvider provider, Map<String, Object> payload) {
         PaymentWebhookEvent event = portFactory.webhook(provider).parseEvent(payload);
         if (event == null) {
             return false;
         }
 
+        // Idempotência: providers reenviam webhooks até receber 2xx. Se a ordem
+        // já estava APPROVED, este evento é um reenvio e não deve gerar novo pagamento.
+        boolean orderAlreadyApproved = false;
         if (event.providerOrderId() != null) {
-            paymentOrderRepository.findByProviderOrderIdAndProvider(event.providerOrderId(), provider)
-                    .ifPresent(existing -> paymentOrderRepository.save(
-                            existing.withStatus(event.status()).withProviderPaymentId(event.providerPaymentId())
-                    ));
+            Optional<PaymentOrder> existing =
+                    paymentOrderRepository.findByProviderOrderIdAndProvider(event.providerOrderId(), provider);
+            orderAlreadyApproved = existing
+                    .map(order -> order.status() == PaymentStatus.APPROVED)
+                    .orElse(false);
+            existing.ifPresent(order -> paymentOrderRepository.save(
+                    order.withStatus(event.status()).withProviderPaymentId(event.providerPaymentId())
+            ));
         }
 
-        if (isApproved(event.status()) && hasValidPaymentPayload(event.externalReference(), event.amount())) {
-            try {
-                paymentService.addPayment(
-                        event.externalReference(),
-                        toCorePaymentMethod(event.methodType()),
-                        event.amount()
-                );
-            } catch (Exception e) {
-                System.err.println("Erro ao processar pagamento vindo do webhook do provider " + provider + ": " + e.getMessage());
-            }
+        if (isApproved(event.status())
+                && !orderAlreadyApproved
+                && hasValidPaymentPayload(event.externalReference(), event.amount())) {
+            // Sem try/catch: falha aqui reverte a transação (inclusive o status da
+            // ordem) e devolve erro ao provider, que reenviará o webhook. Engolir a
+            // exceção descartaria um pagamento já capturado no cartão do cliente.
+            paymentService.registerExternalPayment(
+                    event.externalReference(),
+                    toCorePaymentMethod(event.methodType()),
+                    event.amount(),
+                    event.providerPaymentId()
+            );
         }
 
         observers.forEach(observer -> observer.onEvent(event));
@@ -84,13 +97,15 @@ public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCas
 
     private PaymentMethod toCorePaymentMethod(PaymentMethodType methodType) {
         if (methodType == null) {
-            return PaymentMethod.PIX;
+            return PaymentMethod.OTHER;
         }
 
         return switch (methodType) {
-            case CREDIT_CARD, VOUCHER_CARD -> PaymentMethod.CREDIT_CARD;
+            case CREDIT_CARD -> PaymentMethod.CREDIT_CARD;
             case DEBIT_CARD -> PaymentMethod.DEBIT_CARD;
-            case UNSPECIFIED -> PaymentMethod.PIX;
+            // Método não informado pelo provider não pode ser assumido como PIX:
+            // classificá-lo errado distorce os totais por método no fechamento de caixa.
+            case VOUCHER_CARD, UNSPECIFIED -> PaymentMethod.OTHER;
         };
     }
 }

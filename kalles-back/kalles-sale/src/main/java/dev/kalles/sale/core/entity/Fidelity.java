@@ -58,41 +58,44 @@ public class Fidelity {
     }
 
     public void checkObjectivePoints() {
-        if (this.points >= policy.getObjectivePoints()) {
+        // Deduz o objetivo em vez de zerar: pontos excedentes são preservados.
+        // O laço permite converter múltiplas recompensas acumuladas de uma vez.
+        while (this.points >= policy.getObjectivePoints()) {
             BigDecimal reward = this.policy.getConfiguredDiscount();
             if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
                 this.availableDiscount = this.availableDiscount.add(reward).min(new BigDecimal("100"));
             } else {
                 this.availableDiscount = this.availableDiscount.add(reward);
             }
-            this.points = 0;
+            this.points -= policy.getObjectivePoints();
         }
     }
 
-    public BigDecimal consumeDiscount(BigDecimal saleTotal) {
+    /**
+     * Calcula o desconto aplicável sobre o total informado SEM consumir o saldo.
+     * O consumo ocorre apenas na conclusão da venda (consumeAppliedDiscount);
+     * assim, venda abandonada ou cancelada não queima o benefício do cliente.
+     */
+    public BigDecimal previewDiscount(BigDecimal saleTotal) {
         if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
-            BigDecimal applied = saleTotal
+            return saleTotal
                     .multiply(this.availableDiscount)
                     .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
                     .min(saleTotal);
-            this.availableDiscount = BigDecimal.ZERO;
-            return applied;
         }
-        BigDecimal applied = this.availableDiscount.min(saleTotal);
-        this.availableDiscount = this.availableDiscount.subtract(applied);
-        return applied;
+        return this.availableDiscount.min(saleTotal);
     }
 
-    public void rollbackPoints(int pointsToRollback) {
-        this.points = Math.max(0, this.points - pointsToRollback);
-    }
-
-    public void rollbackDiscount(BigDecimal amount) {
+    /**
+     * Consome o saldo referente ao desconto efetivamente aplicado numa venda concluída.
+     * Percentual é benefício de uso único: zera ao ser utilizado.
+     */
+    public void consumeAppliedDiscount(BigDecimal appliedAmount) {
         if (this.policy.getDiscountType() == FidelityDiscountType.PERCENTAGE) {
-            this.availableDiscount = this.availableDiscount.add(amount).min(new BigDecimal("100"));
+            this.availableDiscount = BigDecimal.ZERO;
             return;
         }
-        this.availableDiscount = this.availableDiscount.add(amount);
+        this.availableDiscount = this.availableDiscount.subtract(appliedAmount).max(BigDecimal.ZERO);
     }
 
     public boolean isActuallyExpired() {

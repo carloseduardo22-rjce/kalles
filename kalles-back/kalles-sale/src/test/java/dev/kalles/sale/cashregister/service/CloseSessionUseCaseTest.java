@@ -11,6 +11,7 @@ import dev.kalles.sale.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.sale.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.core.entity.Payment;
+import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
 import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.enums.payment.PaymentMethod;
@@ -167,6 +168,69 @@ class CloseSessionUseCaseTest {
                 NotFoundException.class,
                 () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
         );
+    }
+
+    @Test
+    @DisplayName("Deve bloquear fechamento quando ha venda paga nao concluida")
+    void shouldBlockClosingWhenPaidSaleIsPending() {
+        UUID sessionId = UUID.randomUUID();
+        CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
+        org.mockito.Mockito.doReturn(sessionId).when(session).getId();
+        Operator authorizer = buildAuthorizer();
+        Sale paidSale = buildPaidSale(sessionId.toString());
+
+        when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
+        when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
+        when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(paidSale));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
+        );
+
+        assertTrue(exception.getMessage().contains("venda(s) pendente(s)"));
+        verify(closingRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve cancelar automaticamente venda vazia criada pelo PDV e fechar normalmente")
+    void shouldAutoCancelEmptyOpenSaleAndClose() {
+        UUID sessionId = UUID.randomUUID();
+        CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
+        org.mockito.Mockito.doReturn(sessionId).when(session).getId();
+        Operator authorizer = buildAuthorizer();
+        Sale emptyOpenSale = Sale.createForSession(sessionId.toString());
+        Sale completedSale = buildCompletedSale(sessionId.toString());
+
+        when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
+        when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
+        when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(emptyOpenSale));
+        when(saleRepository.findAllBySessionTokenAndStateIn(any(), any()))
+                .thenReturn(List.of(completedSale), List.of());
+
+        CloseSessionResponse response = useCase.execute(
+                sessionId,
+                new CloseSessionRequest("SUP-001", new BigDecimal("180.00"))
+        );
+
+        assertEquals("CANCELED", emptyOpenSale.getStateName());
+        verify(saleRepository).save(emptyOpenSale);
+        assertNotNull(response);
+        verify(closingRepository).save(any(CashRegisterClosing.class));
+    }
+
+    private Sale buildPaidSale(String sessionToken) {
+        Sale sale = Sale.createForSession(sessionToken);
+        Product product = new Product();
+        product.setId(UUID.randomUUID());
+        product.setName("Produto Teste");
+        sale.addItem(product, new BigDecimal("80.00"));
+        sale.startPayment();
+        sale.setPayments(new LinkedHashSet<>(List.of(
+                new Payment(sale, PaymentMethod.CASH, new BigDecimal("80.00"), BigDecimal.ZERO, null, true)
+        )));
+        sale.finishPayment();
+        return sale;
     }
 
     private CashRegisterSession buildOpenSession() {

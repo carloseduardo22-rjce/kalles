@@ -120,7 +120,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CREDIT_CARD))
-                    .thenReturn(new CreditCardPaymentStrategy());
+                    .thenReturn(new CreditCardPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Sale result = paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("30.00"));
@@ -138,7 +138,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.DEBIT_CARD))
-                    .thenReturn(new DebitCardPaymentStrategy());
+                    .thenReturn(new DebitCardPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Sale result = paymentService.addPayment(SESSION_TOKEN, PaymentMethod.DEBIT_CARD, new BigDecimal("50.00"));
@@ -153,7 +153,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.PIX))
-                    .thenReturn(new PixPaymentStrategy());
+                    .thenReturn(new PixPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Sale result = paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("25.00"));
@@ -173,7 +173,7 @@ class PaymentServiceTest {
             when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy());
+            when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy(true));
             paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("20.00"));
             assertEquals(new BigDecimal("30.00"), sale.getAmountDue());
 
@@ -385,7 +385,7 @@ class PaymentServiceTest {
             when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy());
+            when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy(true));
             paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("10.00"));
             assertEquals(new BigDecimal("40.00"), sale.getAmountDue());
 
@@ -398,5 +398,54 @@ class PaymentServiceTest {
             assertEquals("PAID", result.getStateName());
         }
 
+    }
+
+    @Nested
+    @DisplayName("BR008 - External payments (webhook de provider)")
+    class ExternalPaymentTests {
+
+        @Test
+        @DisplayName("Should register externally confirmed payment without invoking local strategy")
+        void shouldRegisterExternalPaymentWithoutStrategy() {
+            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Sale result = paymentService.registerExternalPayment(
+                    SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("50.00"), "mp-payment-1");
+
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getAmountDue()));
+            assertEquals(1, result.getPayments().size());
+            assertEquals("mp-payment-1", result.getPayments().stream().findFirst().orElseThrow().getTransactionId());
+            assertTrue(result.getPayments().stream().findFirst().orElseThrow().isConfirmed());
+            assertEquals("PAID", result.getStateName());
+            verifyNoInteractions(paymentFactory);
+        }
+
+        @Test
+        @DisplayName("Should be idempotent when the same transactionId is registered twice")
+        void shouldIgnoreDuplicateTransactionId() {
+            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            paymentService.registerExternalPayment(
+                    SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("50.00"), "mp-payment-1");
+            Sale result = paymentService.registerExternalPayment(
+                    SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("50.00"), "mp-payment-1");
+
+            assertEquals(1, result.getPayments().size());
+            assertEquals("PAID", result.getStateName());
+        }
+
+        @Test
+        @DisplayName("Should reject external payment exceeding the amount due")
+        void shouldRejectExternalOverpayment() {
+            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+
+            assertThrows(IllegalArgumentException.class, () -> paymentService.registerExternalPayment(
+                    SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("80.00"), "mp-payment-1"));
+        }
     }
 }

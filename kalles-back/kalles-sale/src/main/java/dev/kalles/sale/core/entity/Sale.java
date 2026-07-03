@@ -37,7 +37,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Sale {
+public class Sale extends BaseAuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -80,6 +80,10 @@ public class Sale {
 
     @Column(name = "points_earned", nullable = false)
     private Integer pointsEarned = 0;
+
+    /** Momento em que a venda foi concluída (estoque deduzido, fidelidade consolidada). */
+    @Column(name = "completed_at")
+    private java.time.LocalDateTime completedAt;
 
     public void addItem(Product product, BigDecimal unitPrice) {
         state.addItem(this, product, unitPrice);

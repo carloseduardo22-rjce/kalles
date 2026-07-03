@@ -106,11 +106,24 @@ export const saleService = {
     sessionToken: string,
     itemId: string,
     discountAmount: number,
-  ): Promise<void> =>
-    api.patch<void>(`${BASE}/${sessionToken}/items/discount`, {
-      itemId,
-      discountAmount,
-    } satisfies ApplyDiscountRequest),
+    operatorId: string,
+    authorizerId?: string,
+  ): Promise<void> => {
+    const headers: Record<string, string> = {
+      "X-Operator-Id": operatorId,
+    };
+    if (authorizerId) {
+      headers["X-Authorizer-Id"] = authorizerId;
+    }
+    return api.patch<void>(
+      `${BASE}/${sessionToken}/items/discount`,
+      {
+        itemId,
+        discountAmount,
+      } satisfies ApplyDiscountRequest,
+      headers,
+    );
+  },
 
   decrementItem: (
     sessionToken: string,

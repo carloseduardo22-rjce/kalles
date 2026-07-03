@@ -742,7 +742,7 @@ export default function PdvPage() {
         error={saleError}
         onClose={() => setDiscountItem(null)}
         onConfirm={async (itemId, discount) => {
-          await applyDiscount(itemId, discount);
+          await applyDiscount(itemId, discount, sessionData.operatorId);
           setDiscountItem(null);
         }}
       />

@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,13 +78,89 @@ class ProcessPaymentWebhookServiceTest {
         boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
 
         assertThat(processed).isTrue();
-        verify(paymentService).addPayment("session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"));
+        verify(paymentService).registerExternalPayment(
+                "session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"), "ch_stone_123");
         verify(observer).onEvent(event);
 
         ArgumentCaptor<PaymentOrder> orderCaptor = ArgumentCaptor.forClass(PaymentOrder.class);
         verify(paymentOrderRepository).save(orderCaptor.capture());
         assertThat(orderCaptor.getValue().status()).isEqualTo(PaymentStatus.APPROVED);
         assertThat(orderCaptor.getValue().providerPaymentId()).isEqualTo("ch_stone_123");
+    }
+
+    @Test
+    void shouldNotRegisterSalePaymentAgainWhenApprovedWebhookIsResent() {
+        PaymentWebhookEvent event = new PaymentWebhookEvent(
+                PaymentProvider.STONE,
+                "charge.paid",
+                "or_stone_123",
+                "ch_stone_123",
+                "session-token-1",
+                new BigDecimal("125.00"),
+                PaymentStatus.APPROVED,
+                PaymentMethodType.CREDIT_CARD,
+                Map.of()
+        );
+
+        when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+                .thenReturn(Optional.of(existingOrder(PaymentStatus.APPROVED)));
+
+        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
+
+        assertThat(processed).isTrue();
+        verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
+        verify(observer).onEvent(event);
+    }
+
+    @Test
+    void shouldPropagateFailureWhenRegisteringSalePaymentFails() {
+        PaymentWebhookEvent event = new PaymentWebhookEvent(
+                PaymentProvider.STONE,
+                "charge.paid",
+                "or_stone_123",
+                "ch_stone_123",
+                "session-token-1",
+                new BigDecimal("125.00"),
+                PaymentStatus.APPROVED,
+                PaymentMethodType.CREDIT_CARD,
+                Map.of()
+        );
+
+        when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+                .thenReturn(Optional.of(existingOrder(PaymentStatus.PENDING)));
+        when(paymentService.registerExternalPayment(any(), any(), any(), any()))
+                .thenThrow(new IllegalStateException("sessao fechada"));
+
+        assertThatThrownBy(() -> service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid")))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(observer, never()).onEvent(event);
+    }
+
+    @Test
+    void shouldMapUnspecifiedMethodTypeToOther() {
+        PaymentWebhookEvent event = new PaymentWebhookEvent(
+                PaymentProvider.STONE,
+                "charge.paid",
+                "or_stone_123",
+                "ch_stone_123",
+                "session-token-1",
+                new BigDecimal("125.00"),
+                PaymentStatus.APPROVED,
+                PaymentMethodType.UNSPECIFIED,
+                Map.of()
+        );
+
+        when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+                .thenReturn(Optional.of(existingOrder(PaymentStatus.PENDING)));
+
+        service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
+
+        verify(paymentService).registerExternalPayment(
+                "session-token-1", PaymentMethod.OTHER, new BigDecimal("125.00"), "ch_stone_123");
     }
 
     @Test
@@ -106,7 +184,7 @@ class ProcessPaymentWebhookServiceTest {
         boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.created"));
 
         assertThat(processed).isTrue();
-        verify(paymentService, never()).addPayment("session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"));
+        verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
         verify(observer).onEvent(event);
     }
 
@@ -131,7 +209,7 @@ class ProcessPaymentWebhookServiceTest {
         boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.refunded"));
 
         assertThat(processed).isTrue();
-        verify(paymentService, never()).addPayment("session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"));
+        verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
         verify(observer).onEvent(event);
     }
 
@@ -143,7 +221,7 @@ class ProcessPaymentWebhookServiceTest {
 
         assertThat(processed).isFalse();
         verify(paymentOrderRepository, never()).findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE);
-        verify(paymentService, never()).addPayment("session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"));
+        verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
         verify(observer, never()).onEvent(null);
     }
 

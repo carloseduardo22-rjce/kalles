@@ -34,6 +34,9 @@ public class SaleAuditEvent {
     @Column(name = "quantity_removed")
     private Integer quantityRemoved;
 
+    @Column(name = "discount_amount", precision = 19, scale = 2)
+    private java.math.BigDecimal discountAmount;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "requested_by_id", nullable = false)
     private Operator requestedBy;
@@ -71,6 +74,24 @@ public class SaleAuditEvent {
         SaleAuditEvent event = new SaleAuditEvent();
         event.sale = sale;
         event.eventType = SaleAuditEventType.SALE_CANCELLED;
+        event.requestedBy = requestedBy;
+        event.authorizedBy = authorizedBy;
+        event.occurredAt = LocalDateTime.now();
+        return event;
+    }
+
+    public static SaleAuditEvent forItemDiscount(
+            Sale sale,
+            Product product,
+            java.math.BigDecimal discountAmount,
+            Operator requestedBy,
+            Operator authorizedBy) {
+
+        SaleAuditEvent event = new SaleAuditEvent();
+        event.sale = sale;
+        event.eventType = SaleAuditEventType.ITEM_DISCOUNT_APPLIED;
+        event.product = product;
+        event.discountAmount = discountAmount;
         event.requestedBy = requestedBy;
         event.authorizedBy = authorizedBy;
         event.occurredAt = LocalDateTime.now();

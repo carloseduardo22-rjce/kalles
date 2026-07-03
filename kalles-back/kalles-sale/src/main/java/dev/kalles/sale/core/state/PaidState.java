@@ -20,4 +20,11 @@ public class PaidState extends AbstractSaleState {
     public void completeSale(Sale sale) {
         sale.setState(new CompletedState());
     }
+
+    @Override
+    public void cancel(Sale sale) {
+        // Venda paga mas ainda não concluída: cliente desistiu/erro de cobrança.
+        // O estoque ainda não foi deduzido (isso ocorre apenas em completeSale).
+        sale.setState(new CanceledState());
+    }
 }

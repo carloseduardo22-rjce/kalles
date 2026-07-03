@@ -6,9 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  allowedDevOrigins: [
-    "cbde-2804-1494-dc2-a800-284d-ca17-5dc8-8418.ngrok-free.app",
-  ],
+  allowedDevOrigins: ["http://localhost:3000"],
   async rewrites() {
     return {
       // afterFiles ensures filesystem routes (Route Handlers in app/api/)

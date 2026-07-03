@@ -63,3 +63,9 @@ mercadopago:
 
 stone:
   webhook-secret: ${STONE_WEBHOOK_SECRET:}
+
+payments:
+  simulation:
+    # Quando false (default), cartão/PIX pelo fluxo direto são rejeitados e o
+    # pagamento deve acontecer via terminal integrado (confirmado por webhook).
+    enabled: ${PAYMENTS_SIMULATION_ENABLED:false}

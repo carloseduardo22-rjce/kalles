@@ -1,3 +1,4 @@
+
 package dev.kalles.sale.security.application;
 
 import dev.kalles.sale.email.domain.EmailData;

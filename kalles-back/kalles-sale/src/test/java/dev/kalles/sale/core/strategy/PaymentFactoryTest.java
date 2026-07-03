@@ -20,9 +20,9 @@ class PaymentFactoryTest {
     void setUp() {
         List<PaymentStrategy> strategies = List.of(
                 new CashPaymentStrategy(),
-                new PixPaymentStrategy(),
-                new CreditCardPaymentStrategy(),
-                new DebitCardPaymentStrategy()
+                new PixPaymentStrategy(true),
+                new CreditCardPaymentStrategy(true),
+                new DebitCardPaymentStrategy(true)
         );
         paymentFactory = new PaymentFactory(strategies);
     }

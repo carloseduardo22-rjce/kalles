@@ -16,6 +16,8 @@ import dev.kalles.sale.core.exception.NotFoundException;
 import dev.kalles.sale.core.repository.SaleRepository;
 import dev.kalles.sale.core.state.CanceledState;
 import dev.kalles.sale.core.state.CompletedState;
+import dev.kalles.sale.core.state.OnHoldState;
+import dev.kalles.sale.core.state.OpenState;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class CloseSessionUseCase {
     public CloseSessionResponse execute(UUID sessionId, CloseSessionRequest request) {
         CashRegisterSession session = findSessionOrThrow(sessionId);
         Operator authorizedByOperator = findAuthorizedOperator(request.authorizedOperatorCode());
+        resolvePendingSales(session);
         SessionSummaryResponse summary = buildLiveSummary(session);
 
         session.close();
@@ -90,6 +93,36 @@ public class CloseSessionUseCase {
     private CashRegisterSession findSessionOrThrow(UUID sessionId) {
         return sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Sessao de caixa nao encontrada: " + sessionId));
+    }
+
+    /**
+     * Impede o fechamento com vendas pendentes: uma venda PAID fora do fechamento
+     * significa dinheiro recebido que não entraria no caixa. Vendas vazias criadas
+     * automaticamente pelo PDV entre atendimentos são canceladas em silêncio.
+     */
+    private void resolvePendingSales(CashRegisterSession session) {
+        List<Sale> pendingSales = saleRepository.findPendingBySessionToken(session.getId().toString());
+
+        long blockingSales = 0;
+        for (Sale sale : pendingSales) {
+            boolean idleState = OpenState.NAME.equals(sale.getStateName())
+                    || OnHoldState.NAME.equals(sale.getStateName());
+            boolean emptySale = sale.getItems().isEmpty() && sale.getPayments().isEmpty();
+
+            if (idleState && emptySale) {
+                sale.cancel();
+                saleRepository.save(sale);
+            } else {
+                blockingSales++;
+            }
+        }
+
+        if (blockingSales > 0) {
+            throw new IllegalStateException(
+                    "Nao e possivel fechar o caixa: existem " + blockingSales
+                            + " venda(s) pendente(s) (em andamento, em pagamento ou pagas sem conclusao)."
+                            + " Conclua ou cancele as vendas antes de fechar a sessao.");
+        }
     }
 
     private CloseSessionResponse toSessionDetailsResponse(CashRegisterSession session) {

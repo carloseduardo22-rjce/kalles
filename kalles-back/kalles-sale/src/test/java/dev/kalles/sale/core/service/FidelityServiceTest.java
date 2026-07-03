@@ -205,7 +205,7 @@ class FidelityServiceTest {
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("50.00"));
+            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("50.00"), BigDecimal.ZERO);
 
             assertEquals(50, earned);
             ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
@@ -214,19 +214,67 @@ class FidelityServiceTest {
         }
 
         @Test
-        @DisplayName("Deve definir desconto disponível e zerar pontos ao atingir o objetivo")
-        void shouldSetAvailableDiscountAndResetPointsWhenObjectiveReached() {
+        @DisplayName("Deve conceder desconto e preservar pontos excedentes ao atingir o objetivo")
+        void shouldGrantDiscountAndKeepExcessPointsWhenObjectiveReached() {
             Fidelity fidelity = buildFidelity(80, BigDecimal.ZERO);
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            fidelityService.processCompletedSale(clientId, new BigDecimal("30.00"));
+            fidelityService.processCompletedSale(clientId, new BigDecimal("30.00"), BigDecimal.ZERO);
 
             ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
             verify(fidelityRepository).save(captor.capture());
             Fidelity saved = captor.getValue();
-            assertEquals(0, saved.getPoints());
+            // 80 + 30 = 110 pontos; objetivo 100 → 1 recompensa e 10 pontos preservados
+            assertEquals(10, saved.getPoints());
             assertEquals(new BigDecimal("20.00"), saved.getAvailableDiscount());
+        }
+
+        @Test
+        @DisplayName("Deve converter múltiplas recompensas quando pontos acumulados superam vários objetivos")
+        void shouldGrantMultipleRewardsWhenPointsExceedMultipleObjectives() {
+            Fidelity fidelity = buildFidelity(150, BigDecimal.ZERO);
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
+
+            fidelityService.processCompletedSale(clientId, new BigDecimal("100.00"), BigDecimal.ZERO);
+
+            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
+            verify(fidelityRepository).save(captor.capture());
+            Fidelity saved = captor.getValue();
+            // 150 + 100 = 250 pontos; objetivo 100 → 2 recompensas e 50 pontos preservados
+            assertEquals(50, saved.getPoints());
+            assertEquals(new BigDecimal("40.00"), saved.getAvailableDiscount());
+        }
+
+        @Test
+        @DisplayName("Deve consumir o desconto aplicado na venda concluída (FIXED)")
+        void shouldConsumeAppliedFixedDiscountOnCompletion() {
+            Fidelity fidelity = buildFidelity(0, new BigDecimal("20.00"));
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
+
+            fidelityService.processCompletedSale(clientId, new BigDecimal("50.00"), new BigDecimal("20.00"));
+
+            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
+            verify(fidelityRepository).save(captor.capture());
+            assertEquals(0, BigDecimal.ZERO.compareTo(captor.getValue().getAvailableDiscount()));
+        }
+
+        @Test
+        @DisplayName("Deve zerar o percentual disponível quando desconto percentual foi usado")
+        void shouldZeroPercentageWhenPercentageDiscountWasUsed() {
+            activePolicy.setDiscountType(FidelityDiscountType.PERCENTAGE);
+            activePolicy.setConfiguredDiscount(new BigDecimal("10.00"));
+            Fidelity fidelity = buildFidelity(0, new BigDecimal("10.00"));
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
+
+            fidelityService.processCompletedSale(clientId, new BigDecimal("80.00"), new BigDecimal("8.00"));
+
+            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
+            verify(fidelityRepository).save(captor.capture());
+            assertEquals(BigDecimal.ZERO, captor.getValue().getAvailableDiscount());
         }
 
         @Test
@@ -234,7 +282,7 @@ class FidelityServiceTest {
         void shouldReturnZeroPointsWhenClientHasNoFidelity() {
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.empty());
 
-            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("50.00"));
+            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("50.00"), BigDecimal.ZERO);
 
             assertEquals(0, earned);
             verify(fidelityRepository, never()).save(any());
@@ -247,44 +295,53 @@ class FidelityServiceTest {
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("100.00"));
+            int earned = fidelityService.processCompletedSale(clientId, new BigDecimal("100.00"), BigDecimal.ZERO);
 
             assertEquals(100, earned);
         }
     }
 
     @Nested
-    @DisplayName("Aplicação de desconto de fidelidade")
-    class ApplyDiscount {
+    @DisplayName("Cálculo de desconto de fidelidade (sem consumo)")
+    class CalculateDiscount {
 
         @Test
-        @DisplayName("Deve aplicar desconto integral quando total da venda supera o desconto disponível")
-        void shouldApplyFullDiscountWhenSaleTotalExceedsAvailableDiscount() {
+        @DisplayName("Deve calcular desconto integral sem consumir o saldo do cliente")
+        void shouldCalculateFullDiscountWithoutConsumingBalance() {
             Fidelity fidelity = buildFidelity(0, new BigDecimal("20.00"));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("80.00"));
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("80.00"));
 
             assertEquals(new BigDecimal("20.00"), applied);
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(0, BigDecimal.ZERO.compareTo(captor.getValue().getAvailableDiscount()));
+            // Saldo intacto: consumo só acontece na conclusão da venda
+            assertEquals(new BigDecimal("20.00"), fidelity.getAvailableDiscount());
+            verify(fidelityRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Deve aplicar desconto parcial e preservar o saldo quando desconto supera o total da venda")
-        void shouldApplyPartialDiscountAndPreserveRemainderWhenDiscountExceedsSaleTotal() {
+        @DisplayName("Deve limitar o desconto ao total da venda preservando o saldo restante")
+        void shouldCapDiscountAtSaleTotal() {
             Fidelity fidelity = buildFidelity(0, new BigDecimal("50.00"));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("20.00"));
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("20.00"));
 
             assertEquals(new BigDecimal("20.00"), applied);
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(new BigDecimal("30.00"), captor.getValue().getAvailableDiscount());
+            assertEquals(new BigDecimal("50.00"), fidelity.getAvailableDiscount());
+        }
+
+        @Test
+        @DisplayName("Recalcular (aplicar duas vezes) retorna o mesmo valor sem dupla cobrança")
+        void shouldBeIdempotentWhenCalculatedTwice() {
+            Fidelity fidelity = buildFidelity(0, new BigDecimal("20.00"));
+            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
+
+            BigDecimal first = fidelityService.calculateDiscount(clientId, new BigDecimal("80.00"));
+            BigDecimal second = fidelityService.calculateDiscount(clientId, new BigDecimal("80.00"));
+
+            assertEquals(first, second);
+            assertEquals(new BigDecimal("20.00"), fidelity.getAvailableDiscount());
         }
 
         @Test
@@ -292,7 +349,7 @@ class FidelityServiceTest {
         void shouldReturnZeroWhenClientHasNoFidelity() {
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.empty());
 
-            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("50.00"));
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("50.00"));
 
             assertEquals(BigDecimal.ZERO, applied);
             verify(fidelityRepository, never()).save(any());
@@ -304,103 +361,38 @@ class FidelityServiceTest {
             Fidelity fidelity = buildFidelity(50, BigDecimal.ZERO);
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
 
-            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("50.00"));
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("50.00"));
 
             assertEquals(BigDecimal.ZERO, applied);
             verify(fidelityRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Deve aplicar desconto percentual sobre o total da venda e consumir o premio")
-        void shouldApplyPercentageDiscountAndConsumeReward() {
+        @DisplayName("Deve calcular desconto percentual sobre o total sem zerar o prêmio")
+        void shouldCalculatePercentageDiscountWithoutConsumingReward() {
             activePolicy.setDiscountType(FidelityDiscountType.PERCENTAGE);
             activePolicy.setConfiguredDiscount(new BigDecimal("10.00"));
             Fidelity fidelity = buildFidelity(0, new BigDecimal("10.00"));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            BigDecimal applied = fidelityService.applyDiscount(clientId, new BigDecimal("80.00"));
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("80.00"));
 
             assertEquals(new BigDecimal("8.00"), applied);
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(BigDecimal.ZERO, captor.getValue().getAvailableDiscount());
+            assertEquals(new BigDecimal("10.00"), fidelity.getAvailableDiscount());
         }
-    }
-
-    @Nested
-    @DisplayName("Estorno de pontos e desconto em cancelamento")
-    class RollbackSale {
 
         @Test
-        @DisplayName("Deve estornar pontos na elimínação da venda")
-        void shouldRollbackPointsOnSaleCancellation() {
-            Fidelity fidelity = buildFidelity(30, BigDecimal.ZERO);
+        @DisplayName("Deve retornar zero e marcar como expirado quando a fidelidade venceu")
+        void shouldReturnZeroWhenFidelityIsExpired() {
+            Fidelity fidelity = buildFidelity(0, new BigDecimal("20.00"));
+            fidelity.setCreatedAt(LocalDate.now().minusMonths(4));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
-            fidelityService.rollbackSale(clientId, BigDecimal.ZERO, 30);
+            BigDecimal applied = fidelityService.calculateDiscount(clientId, new BigDecimal("80.00"));
 
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(0, captor.getValue().getPoints());
-        }
-
-        @Test
-        @DisplayName("Deve restituir desconto na elimínação da venda")
-        void shouldRollbackDiscountOnSaleCancellation() {
-            Fidelity fidelity = buildFidelity(0, new BigDecimal("30.00"));
-            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
-
-            fidelityService.rollbackSale(clientId, new BigDecimal("20.00"), 0);
-
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(new BigDecimal("50.00"), captor.getValue().getAvailableDiscount());
-        }
-
-        @Test
-        @DisplayName("Deve limitar pontos a zero quando estorno excede o saldo atual")
-        void shouldClampPointsToZeroWhenRollbackExceedsCurrentPoints() {
-            Fidelity fidelity = buildFidelity(10, BigDecimal.ZERO);
-            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
-
-            fidelityService.rollbackSale(clientId, BigDecimal.ZERO, 50);
-
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(0, captor.getValue().getPoints());
-        }
-
-        @Test
-        @DisplayName("Não deve fazer nada quando cliente não está no programa de fidelidade")
-        void shouldSkipRollbackWhenClientHasNoFidelity() {
-            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.empty());
-
-            assertDoesNotThrow(() -> fidelityService.rollbackSale(clientId, new BigDecimal("20.00"), 30));
-            verify(fidelityRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Deve recompor premio percentual com base no subtotal original")
-        void shouldRollbackPercentageRewardUsingOriginalSubtotal() {
-            activePolicy.setDiscountType(FidelityDiscountType.PERCENTAGE);
-            activePolicy.setConfiguredDiscount(new BigDecimal("10.00"));
-            Fidelity fidelity = buildFidelity(0, BigDecimal.ZERO);
-            when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
-            when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
-
-            fidelityService.rollbackSale(
-                    clientId,
-                    new BigDecimal("8.00"),
-                    0,
-                    new BigDecimal("80.00"));
-
-            ArgumentCaptor<Fidelity> captor = ArgumentCaptor.forClass(Fidelity.class);
-            verify(fidelityRepository).save(captor.capture());
-            assertEquals(new BigDecimal("10.00"), captor.getValue().getAvailableDiscount());
+            assertEquals(BigDecimal.ZERO, applied);
+            assertTrue(fidelity.isExpired());
         }
     }
 }

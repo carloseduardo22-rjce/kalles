@@ -69,9 +69,11 @@ class ClientServiceTest {
     void shouldCreateClientSuccessfully() {
         UUID id = UUID.randomUUID();
         String cpf = "529.982.247-25";
+        // O ClientRequest normaliza o CPF (só dígitos) antes da consulta
+        String normalizedCpf = "52998224725";
         Client saved = buildClient(id, cpf);
 
-        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.empty());
+        when(clientRepository.findByCpfAndCompanyId(normalizedCpf, COMPANY_ID)).thenReturn(Optional.empty());
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
 
         ClientResponse response = clientService.create(buildRequest(cpf));
@@ -79,7 +81,7 @@ class ClientServiceTest {
         assertNotNull(response);
         assertEquals(id, response.id());
         assertEquals("João da Silva", response.name());
-        verify(clientRepository).findByCpfAndCompanyId(cpf, COMPANY_ID);
+        verify(clientRepository).findByCpfAndCompanyId(normalizedCpf, COMPANY_ID);
         verify(clientRepository).save(any(Client.class));
     }
 
@@ -89,7 +91,7 @@ class ClientServiceTest {
         String cpf = "529.982.247-25";
         Client existing = buildClient(UUID.randomUUID(), cpf);
 
-        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
 
         assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
@@ -169,7 +171,7 @@ class ClientServiceTest {
         updated.setName("Nome Atualizado");
 
         when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
         when(clientRepository.save(any(Client.class))).thenReturn(updated);
 
         ClientRequest request = new ClientRequest("Nome Atualizado", null, null,
@@ -190,7 +192,7 @@ class ClientServiceTest {
         Client other = buildClient(otherId, cpf);
 
         when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpfAndCompanyId(cpf, COMPANY_ID)).thenReturn(Optional.of(other));
+        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(other));
 
         ClientRequest request = new ClientRequest("X", null, null,
                 cpf, null, null, null, null, null, null);
