@@ -13,7 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -94,7 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        if (SecurityContextHolder.getContext().getAuthentication() != null
+        if (isAuthenticated()
                 && requiresCompanyContext(request)
                 && CompanyContextHolder.getCompanyId() == null) {
             writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
@@ -155,6 +157,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r");
+    }
+
+    private boolean isAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
     private boolean requiresCompanyContext(HttpServletRequest request) {
