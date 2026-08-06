@@ -13,6 +13,8 @@ import dev.kalles.sale.security.domain.PosDeviceSession;
 import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.sale.security.repository.PosDeviceSessionRepository;
 import dev.kalles.sale.security.support.AbstractSecurityApiContainerSupport;
+import dev.kalles.sale.testsupport.CsrfTestClient;
+import dev.kalles.sale.testsupport.CsrfTestClient.CsrfContext;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -68,11 +70,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        posDeviceSessionRepository.deleteAll();
-        accountRepository.deleteAll();
-        cashRegisterRepository.deleteAll();
-        companyRepository.deleteAll();
-        tenantRepository.deleteAll();
+        databaseCleaner().clean();
 
         tenantRepository.save(new Tenant(TENANT_ID, "Conta de Teste Kalles"));
         companyId = companyRepository.save(new Company(
@@ -139,10 +137,13 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldGeneratePairingTokenForAuthenticatedAdmin() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
+        CsrfContext csrf = fetchCsrfToken();
 
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
                 .body(Map.of(
                         "companyId", companyId,
                         "posId", cashRegisterId
@@ -227,10 +228,13 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldRequireCompanyIdAndPosIdWhenGeneratingPairingToken() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
+        CsrfContext csrf = fetchCsrfToken();
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
                 .body(Map.of())
                 .when()
                 .post("/api/pos/admin/generate-token")
@@ -243,6 +247,10 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         account.setCompanyId(companyId);
         account.setVerified(true);
         return account;
+    }
+
+    private CsrfContext fetchCsrfToken() {
+        return CsrfTestClient.fetch(port);
     }
 
     private String loginAndExtractAuthCookie(String email, String password) {

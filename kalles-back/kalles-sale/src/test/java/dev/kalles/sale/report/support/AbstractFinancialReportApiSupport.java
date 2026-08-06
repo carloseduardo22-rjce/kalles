@@ -151,7 +151,9 @@ public abstract class AbstractFinancialReportApiSupport extends AbstractCompanyC
         sale.setAmountDue(BigDecimal.ZERO);
         sale.setFidelityDiscountApplied(BigDecimal.ZERO);
         sale.setPointsEarned(0);
-        return saleRepository.save(sale);
+        sale = saleRepository.save(sale);
+        jdbcTemplate.update("update sale set created_at = ?, completed_at = ? where id = ?", openedAt, openedAt, sale.getId());
+        return sale;
     }
 
     protected record AuthContext(String authCookie, String csrfCookie, String csrfToken) {

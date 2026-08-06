@@ -17,6 +17,9 @@ import dev.kalles.sale.security.domain.PosDeviceSession;
 import dev.kalles.sale.security.repository.AccountRepository;
 import dev.kalles.sale.security.repository.PosDeviceSessionRepository;
 import dev.kalles.sale.security.service.JwtService;
+import dev.kalles.sale.testsupport.CsrfTestClient;
+import dev.kalles.sale.testsupport.CsrfTestClient.CsrfContext;
+import dev.kalles.sale.testsupport.DatabaseCleaner;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;
@@ -71,6 +74,9 @@ public class AuthAndPosSetupSteps {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private DatabaseCleaner databaseCleaner;
+
     private Response response;
     private UUID companyId;
     private UUID cashRegisterId;
@@ -85,13 +91,7 @@ public class AuthAndPosSetupSteps {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        cashRegisterSessionRepository.deleteAll();
-        posDeviceSessionRepository.deleteAll();
-        accountRepository.deleteAll();
-        operatorRepository.deleteAll();
-        cashRegisterRepository.deleteAll();
-        companyRepository.deleteAll();
-        tenantRepository.deleteAll();
+        databaseCleaner.clean();
 
         response = null;
         companyId = null;
@@ -215,9 +215,12 @@ public class AuthAndPosSetupSteps {
     @Quando("eu solicitar a geracao de token de pareamento para o caixa {string}")
     public void whenIGeneratePairingTokenForCashRegister(String cashRegisterCode) {
         assertThat(cashRegisterCode).isEqualTo("CAIXA-01");
+        CsrfContext csrf = CsrfTestClient.fetch(port);
         response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", currentAuthCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
                 .body(Map.of(
                         "companyId", companyId,
                         "posId", cashRegisterId
@@ -324,9 +327,12 @@ public class AuthAndPosSetupSteps {
 
     @Quando("eu solicitar a geracao de token de pareamento sem informar companyId ou posId")
     public void whenIGeneratePairingTokenWithoutRequiredFields() {
+        CsrfContext csrf = CsrfTestClient.fetch(port);
         response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", currentAuthCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
                 .body(Map.of())
                 .when()
                 .post("/api/pos/admin/generate-token");
@@ -340,9 +346,12 @@ public class AuthAndPosSetupSteps {
 
     @Quando("ele tentar abrir sessao no caixa {string}")
     public void whenOperatorTriesToOpenSession(String cashRegisterCode) {
+        CsrfContext csrf = CsrfTestClient.fetch(port);
         response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .cookie("kalles_auth_token", currentAuthCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
                 .body(Map.of(
                         "cashRegisterCode", cashRegisterCode,
                         "operatorCode", "OP-CAIXA-01",

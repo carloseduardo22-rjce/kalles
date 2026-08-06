@@ -55,10 +55,7 @@ class RefreshTokenFlowIntegrationTest extends AbstractSecurityApiContainerSuppor
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        refreshTokenSessionRepository.deleteAll();
-        accountRepository.deleteAll();
-        companyRepository.deleteAll();
-        tenantRepository.deleteAll();
+        databaseCleaner().clean();
 
         tenantRepository.save(new Tenant(TENANT_ID, "Tenant Refresh"));
         Company company = companyRepository.save(new Company(
