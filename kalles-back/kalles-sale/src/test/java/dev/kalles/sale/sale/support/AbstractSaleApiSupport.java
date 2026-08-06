@@ -217,8 +217,12 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
     }
 
     protected Response patchJson(AuthContext authContext, String path, String body) {
+        return patchJson(authContext, path, body, Map.of());
+    }
+
+    protected Response patchJson(AuthContext authContext, String path, String body, Map<String, String> extraHeaders) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:" + port + path))
                     .timeout(Duration.ofSeconds(10))
                     .header("Content-Type", ContentType.JSON.toString())
@@ -230,11 +234,12 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                     )
                     .header("X-XSRF-TOKEN", authContext.csrfToken())
                     .header("X-Company-ID", companyId.toString())
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+                    .method("PATCH", HttpRequest.BodyPublishers.ofString(body));
+
+            extraHeaders.forEach(requestBuilder::header);
 
             HttpResponse<String> response = PATCH_HTTP_CLIENT.send(
-                    request,
+                    requestBuilder.build(),
                     HttpResponse.BodyHandlers.ofString()
             );
             return RestAssuredResponseAdapter.from(response.statusCode(), response.headers().map(), response.body());

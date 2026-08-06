@@ -74,7 +74,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         patchJson(
                 auth,
                 "/api/sales/" + sessionToken + "/items/discount",
-                "{\"itemId\":\"" + itemId + "\",\"discountAmount\":5.00}"
+                "{\"itemId\":\"" + itemId + "\",\"discountAmount\":5.00}",
+                Map.of("X-Operator-Id", supervisorAuthorizerId.toString())
         )
                 .then()
                 .statusCode(204);
@@ -140,7 +141,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         patchJson(
                 auth,
                 "/api/sales/" + sessionToken + "/items/discount",
-                "{\"itemId\":\"" + itemId + "\",\"discountAmount\":35.00}"
+                "{\"itemId\":\"" + itemId + "\",\"discountAmount\":35.00}",
+                Map.of("X-Operator-Id", supervisorAuthorizerId.toString())
         )
                 .then()
                 .statusCode(400)

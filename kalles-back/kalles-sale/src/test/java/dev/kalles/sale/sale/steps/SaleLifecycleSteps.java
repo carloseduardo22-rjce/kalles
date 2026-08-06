@@ -83,7 +83,8 @@ public class SaleLifecycleSteps extends SaleCucumberSpringConfiguration {
         lastResponse = patchJson(
                 authContext,
                 "/api/sales/" + sessionToken + "/items/discount",
-                "{\"itemId\":\"" + lastItemId + "\",\"discountAmount\":" + rawDiscount + "}"
+                "{\"itemId\":\"" + lastItemId + "\",\"discountAmount\":" + rawDiscount + "}",
+                Map.of("X-Operator-Id", supervisorAuthorizerId.toString())
         );
     }
 
