@@ -24,7 +24,7 @@ spring:
   flyway:
     enabled: true
     detect-encoding: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/seed
 
   mail:
     host: smtp.gmail.com

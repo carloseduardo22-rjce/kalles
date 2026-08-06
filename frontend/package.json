@@ -1,11 +1,12 @@
 {
-  "name": "my-v0-project",
+  "name": "kalles-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "start": "next start",
     "e2e": "cypress run",
     "e2e:open": "cypress open"
@@ -72,11 +73,14 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cypress": "^13.17.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",

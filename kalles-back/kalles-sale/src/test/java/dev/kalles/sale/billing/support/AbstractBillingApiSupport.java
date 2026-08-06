@@ -61,8 +61,6 @@ public abstract class AbstractBillingApiSupport extends AbstractCompanyContextAp
 
     protected void resetBillingScenario() {
         resetScenarioData();
-        billingWebhookEventRepository.deleteAll();
-        billingSubscriptionRepository.deleteAll();
         stubBillingGateway.reset();
         RestAssured.reset();
         RestAssured.baseURI = "http://localhost";

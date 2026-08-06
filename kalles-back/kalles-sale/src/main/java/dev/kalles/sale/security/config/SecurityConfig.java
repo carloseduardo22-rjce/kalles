@@ -65,6 +65,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago", "/api/webhooks/stone").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/error").permitAll()
 
                 // ── PDV operations: OPERATOR + ADMIN ──
                 .requestMatchers("/api/sales/**").hasAnyRole("ADMIN", "OPERATOR")
@@ -113,7 +114,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/payment-stores/**").hasRole("ADMIN")
                 .requestMatchers("/api/payment-terminals/**").hasRole("ADMIN")
                 .requestMatchers("/api/payment-terminal-mappings/**").hasRole("ADMIN")
-                .requestMatchers("/api/mercadopago/**").hasRole("ADMIN")
 
                 // ── Fallback ──
                 .anyRequest().authenticated()

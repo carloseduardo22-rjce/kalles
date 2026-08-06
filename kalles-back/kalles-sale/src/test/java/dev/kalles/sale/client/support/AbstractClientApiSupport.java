@@ -33,7 +33,6 @@ public abstract class AbstractClientApiSupport extends AbstractCompanyContextApi
     protected ClientRepository clientRepository;
 
     protected void resetClientScenario() {
-        clientRepository.deleteAll();
         resetScenarioData();
         RestAssured.reset();
         RestAssured.baseURI = "http://localhost";

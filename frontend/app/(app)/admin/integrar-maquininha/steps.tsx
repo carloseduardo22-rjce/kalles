@@ -14,8 +14,8 @@ export const steps = [
         <br />
         1. Ligue o seu Terminal Point (Maquininha).
         <br />
-        2. Na tela, você verá a mensagem: "Inicie sessão neste dispositivo com
-        sua conta do Mercado Pago". Selecione uma das opções:
+        2. Na tela, você verá a mensagem: &quot;Inicie sessão neste dispositivo com
+        sua conta do Mercado Pago&quot;. Selecione uma das opções:
         <br />
         • Sou responsável pelo negócio: se você for o dono do estabelecimento.
         <br />
@@ -65,8 +65,8 @@ export const steps = [
         ela.
         <br />
         <br />
-        4. Ao finalizar, a maquininha exibirá a mensagem: "Pronto! Já pode
-        cobrar com seu Point".
+        4. Ao finalizar, a maquininha exibirá a mensagem: &quot;Pronto! Já pode
+        cobrar com seu Point&quot;.
       </>
     ),
   },
@@ -86,7 +86,7 @@ export const steps = [
         <br />
         Para identificarmos a sua maquininha, por favor, insira o Número de
         Série (serial) que se encontra na etiqueta traseira física do próprio
-        terminal e clique em "Começar configuração".
+        terminal e clique em &quot;Começar configuração&quot;.
         <br />
         <br />
         Nós faremos o restante do trabalho, incluindo a ativação do modo PDV no

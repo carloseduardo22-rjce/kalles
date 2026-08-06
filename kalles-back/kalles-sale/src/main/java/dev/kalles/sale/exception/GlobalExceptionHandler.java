@@ -16,10 +16,15 @@ import dev.kalles.sale.fiscal.exception.FiscalRejectionException;
 import dev.kalles.sale.fiscal.exception.FiscalValidationException;
 import dev.kalles.sale.security.exception.RateLimitExceededException;
 import dev.kalles.sale.security.service.InvalidRefreshTokenException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.persistence.OptimisticLockException;
@@ -28,6 +33,38 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ServletRequestBindingException.class)
+    public ProblemDetail handleRequestBinding(ServletRequestBindingException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setTitle("Requisição malformada");
+        return problem;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public void rethrowToSecurityFilterChain(AccessDeniedException ex) {
+        throw ex;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpected(Exception ex) {
+        if (ex instanceof ErrorResponse errorResponse) {
+            return errorResponse.getBody();
+        }
+
+        log.error("Erro nao tratado ao processar requisicao", ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Erro interno ao processar a requisição."
+        );
+        problem.setTitle("Erro interno");
+        return problem;
+    }
 
     @ExceptionHandler(GoalDomainException.class)
     public ProblemDetail handleGoalDomain(GoalDomainException ex) {

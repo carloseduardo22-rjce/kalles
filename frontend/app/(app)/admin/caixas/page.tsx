@@ -68,7 +68,7 @@ export default function CaixasPage() {
       ]);
       setCaixas(caixasData);
       setCompanies(companiesData);
-    } catch (err) {
+    } catch {
       toast.error("Erro ao buscar dados de caixas e lojas.");
     } finally {
       setIsLoading(false);
@@ -87,7 +87,7 @@ export default function CaixasPage() {
       toast.success("Caixa criado com sucesso!");
       setForm({ code: "", description: "", companyId: "" });
       fetchData();
-    } catch (err) {
+    } catch {
       toast.error("Erro ao criar caixa. O código pode já estar em uso.");
     } finally {
       setIsCreating(false);

@@ -53,7 +53,7 @@ export default function LojasPage() {
         data.map((company) => ({ id: company.id, name: company.name })),
       );
       return data;
-    } catch (err) {
+    } catch {
       toast.error("Erro ao buscar as lojas.");
       return [];
     } finally {
@@ -118,7 +118,7 @@ export default function LojasPage() {
         longitude: 0,
       });
       fetchCompanies();
-    } catch (err) {
+    } catch {
       toast.error("Erro ao criar a loja.");
     } finally {
       setIsCreating(false);
