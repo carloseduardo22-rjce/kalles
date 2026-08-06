@@ -1,7 +1,7 @@
 package dev.kalles.sale.goal.integration;
 
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
 import dev.kalles.sale.goal.support.AbstractGoalApiSupport;
 import dev.kalles.sale.payment.support.LocalHttpTestClient;
 import io.restassured.response.Response;

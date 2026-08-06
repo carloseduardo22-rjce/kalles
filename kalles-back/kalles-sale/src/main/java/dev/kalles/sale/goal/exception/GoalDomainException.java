@@ -1,4 +1,4 @@
-package dev.kalles.sale.core.exception;
+package dev.kalles.sale.goal.exception;
 
 public class GoalDomainException extends RuntimeException {
 

@@ -1,6 +1,6 @@
-package dev.kalles.sale.core.dto;
+package dev.kalles.sale.goal.dto;
 
-import dev.kalles.sale.core.enums.goal.Periodicity;
+import dev.kalles.sale.goal.enums.Periodicity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;

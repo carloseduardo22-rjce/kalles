@@ -1,13 +1,13 @@
 package dev.kalles.sale.goal.steps;
 
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
-import dev.kalles.sale.core.exception.GoalDomainException;
 import dev.kalles.sale.core.repository.SaleRepository;
-import dev.kalles.sale.core.service.GoalAssessmentResult;
-import dev.kalles.sale.core.service.GoalAssessmentService;
-import dev.kalles.sale.core.service.OverlapValidator;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.exception.GoalDomainException;
+import dev.kalles.sale.goal.service.GoalAssessmentResult;
+import dev.kalles.sale.goal.service.GoalAssessmentService;
+import dev.kalles.sale.goal.service.OverlapValidator;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;

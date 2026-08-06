@@ -1,8 +1,8 @@
-package dev.kalles.sale.core.service;
+package dev.kalles.sale.goal.service;
 
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.exception.GoalDomainException;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.exception.GoalDomainException;
 
 import java.util.List;
 

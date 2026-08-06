@@ -1,13 +1,15 @@
-package dev.kalles.sale.core.service;
+package dev.kalles.sale.goal.service;
 
-import dev.kalles.sale.core.dto.GoalRequest;
-import dev.kalles.sale.core.dto.GoalResponse;
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
-import dev.kalles.sale.core.exception.GoalDomainException;
 import dev.kalles.sale.core.exception.NotFoundException;
-import dev.kalles.sale.core.repository.GoalRepository;
+import dev.kalles.sale.goal.dto.GoalRequest;
+import dev.kalles.sale.goal.dto.GoalResponse;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.exception.GoalDomainException;
+import dev.kalles.sale.goal.repository.GoalRepository;
+import dev.kalles.sale.goal.service.GoalAssessmentService;
+import dev.kalles.sale.goal.service.GoalService;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

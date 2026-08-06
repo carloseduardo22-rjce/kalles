@@ -1,8 +1,8 @@
-package dev.kalles.sale.core.entity;
+package dev.kalles.sale.goal.entity;
 
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
-import dev.kalles.sale.core.exception.GoalDomainException;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.exception.GoalDomainException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -1,10 +1,10 @@
-package dev.kalles.sale.core.goal;
+package dev.kalles.sale.goal.service;
 
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.Periodicity;
 import dev.kalles.sale.core.repository.SaleRepository;
-import dev.kalles.sale.core.service.GoalAssessmentResult;
-import dev.kalles.sale.core.service.GoalAssessmentService;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.service.GoalAssessmentResult;
+import dev.kalles.sale.goal.service.GoalAssessmentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

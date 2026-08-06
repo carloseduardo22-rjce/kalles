@@ -1,4 +1,4 @@
-package dev.kalles.sale.core.enums.goal;
+package dev.kalles.sale.goal.enums;
 
 public enum Periodicity {
     WEEKLY,

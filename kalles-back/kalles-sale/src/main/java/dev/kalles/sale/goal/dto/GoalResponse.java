@@ -1,8 +1,8 @@
-package dev.kalles.sale.core.dto;
+package dev.kalles.sale.goal.dto;
 
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;

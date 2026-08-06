@@ -1,9 +1,9 @@
-package dev.kalles.sale.core.goal;
+package dev.kalles.sale.goal.entity;
 
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
-import dev.kalles.sale.core.exception.GoalDomainException;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.exception.GoalDomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

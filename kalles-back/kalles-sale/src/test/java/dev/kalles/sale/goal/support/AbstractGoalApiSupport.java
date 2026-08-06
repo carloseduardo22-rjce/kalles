@@ -2,10 +2,10 @@ package dev.kalles.sale.goal.support;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.kalles.sale.core.entity.Goal;
-import dev.kalles.sale.core.enums.goal.GoalStatus;
-import dev.kalles.sale.core.enums.goal.Periodicity;
-import dev.kalles.sale.core.repository.GoalRepository;
+import dev.kalles.sale.goal.entity.Goal;
+import dev.kalles.sale.goal.enums.GoalStatus;
+import dev.kalles.sale.goal.enums.Periodicity;
+import dev.kalles.sale.goal.repository.GoalRepository;
 import dev.kalles.sale.security.support.AbstractCompanyContextApiSupport;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;

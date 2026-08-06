@@ -1,9 +1,9 @@
-package dev.kalles.sale.api.goal;
+package dev.kalles.sale.goal.controller;
 
-import dev.kalles.sale.core.dto.GoalRequest;
-import dev.kalles.sale.core.dto.GoalResponse;
-import dev.kalles.sale.core.service.GoalAssessmentResult;
-import dev.kalles.sale.core.service.GoalService;
+import dev.kalles.sale.goal.dto.GoalRequest;
+import dev.kalles.sale.goal.dto.GoalResponse;
+import dev.kalles.sale.goal.service.GoalAssessmentResult;
+import dev.kalles.sale.goal.service.GoalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

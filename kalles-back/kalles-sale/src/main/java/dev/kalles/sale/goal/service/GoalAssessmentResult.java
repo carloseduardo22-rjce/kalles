@@ -1,4 +1,4 @@
-package dev.kalles.sale.core.service;
+package dev.kalles.sale.goal.service;
 
 import java.math.BigDecimal;
 
