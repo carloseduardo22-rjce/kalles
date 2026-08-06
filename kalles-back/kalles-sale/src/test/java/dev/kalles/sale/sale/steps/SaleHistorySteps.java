@@ -20,6 +20,8 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import dev.kalles.sale.cashregister.entity.CashRegister;
@@ -51,6 +53,9 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private final Map<String, UUID> companyIds = new LinkedHashMap<>();
     private final Map<String, UUID> tenantIds = new LinkedHashMap<>();
@@ -375,7 +380,12 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
         } else {
             throw new IllegalArgumentException("Estado de venda nao suportado no teste: " + state);
         }
-        saleRepository.save(sale);
+        sale = saleRepository.save(sale);
+        if ("COMPLETED".equals(state)) {
+            ReflectionTestUtils.setField(sale, "completedAt", openedAt);
+            saleRepository.save(sale);
+        }
+        jdbcTemplate.update("UPDATE sale SET created_at = ? WHERE id = ?", openedAt, sale.getId());
     }
 
     private Map<String, String> unzip(byte[] content) throws IOException {
