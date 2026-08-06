@@ -1,11 +1,11 @@
 package dev.kalles.sale.core.service;
 
+import dev.kalles.sale.client.entity.Client;
+import dev.kalles.sale.client.repository.ClientRepository;
 import dev.kalles.sale.core.dto.FidelityResponse;
-import dev.kalles.sale.core.entity.Client;
 import dev.kalles.sale.core.entity.Fidelity;
 import dev.kalles.sale.core.entity.FidelityPolicy;
 import dev.kalles.sale.core.exception.NotFoundException;
-import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.FidelityPolicyRepository;
 import dev.kalles.sale.core.repository.FidelityRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;

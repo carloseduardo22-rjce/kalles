@@ -1,10 +1,11 @@
-package dev.kalles.sale.core.service;
+package dev.kalles.sale.client.service;
 
-import dev.kalles.sale.core.dto.ClientRequest;
-import dev.kalles.sale.core.dto.ClientResponse;
-import dev.kalles.sale.core.entity.Client;
+import dev.kalles.sale.client.dto.ClientRequest;
+import dev.kalles.sale.client.dto.ClientResponse;
+import dev.kalles.sale.client.entity.Client;
+import dev.kalles.sale.client.repository.ClientRepository;
+import dev.kalles.sale.client.service.ClientService;
 import dev.kalles.sale.core.exception.NotFoundException;
-import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

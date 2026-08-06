@@ -1,9 +1,9 @@
-package dev.kalles.sale.api.client;
+package dev.kalles.sale.client.controller;
 
 import dev.kalles.sale.api.dto.PageResponse;
-import dev.kalles.sale.core.dto.ClientRequest;
-import dev.kalles.sale.core.dto.ClientResponse;
-import dev.kalles.sale.core.service.ClientService;
+import dev.kalles.sale.client.dto.ClientRequest;
+import dev.kalles.sale.client.dto.ClientResponse;
+import dev.kalles.sale.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

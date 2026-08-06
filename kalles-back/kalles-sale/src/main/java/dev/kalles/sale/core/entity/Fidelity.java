@@ -1,5 +1,6 @@
 package dev.kalles.sale.core.entity;
 
+import dev.kalles.sale.client.entity.Client;
 import dev.kalles.sale.core.enums.fidelity.FidelityDiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

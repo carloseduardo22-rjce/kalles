@@ -1,4 +1,4 @@
-package dev.kalles.sale.core.entity;
+package dev.kalles.sale.client.entity;
 
 import java.time.LocalDate;
 import java.util.UUID;

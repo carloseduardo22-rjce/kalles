@@ -1,6 +1,6 @@
-package dev.kalles.sale.core.repository;
+package dev.kalles.sale.client.repository;
 
-import dev.kalles.sale.core.entity.Client;
+import dev.kalles.sale.client.entity.Client;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

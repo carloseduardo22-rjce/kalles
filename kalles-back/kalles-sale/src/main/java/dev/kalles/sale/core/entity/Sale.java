@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import dev.kalles.sale.client.entity.Client;
 import dev.kalles.sale.core.state.OpenState;
 import dev.kalles.sale.core.state.SaleState;
 import dev.kalles.sale.core.state.SaleStateConverter;

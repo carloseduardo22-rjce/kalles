@@ -10,7 +10,8 @@ import org.springframework.stereotype.Service;
 
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
-import dev.kalles.sale.core.entity.Client;
+import dev.kalles.sale.client.entity.Client;
+import dev.kalles.sale.client.repository.ClientRepository;
 import dev.kalles.sale.core.entity.CompanyProduct;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
@@ -19,7 +20,6 @@ import dev.kalles.sale.core.entity.Stock;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.exception.InsufficientStockException;
 import dev.kalles.sale.core.exception.NotFoundException;
-import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.CompanyProductRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;

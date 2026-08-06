@@ -1,6 +1,6 @@
-package dev.kalles.sale.core.dto;
+package dev.kalles.sale.client.dto;
 
-import dev.kalles.sale.core.entity.Client;
+import dev.kalles.sale.client.entity.Client;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;

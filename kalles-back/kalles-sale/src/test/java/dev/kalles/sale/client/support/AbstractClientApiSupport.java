@@ -2,8 +2,8 @@ package dev.kalles.sale.client.support;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.kalles.sale.core.entity.Client;
-import dev.kalles.sale.core.repository.ClientRepository;
+import dev.kalles.sale.client.entity.Client;
+import dev.kalles.sale.client.repository.ClientRepository;
 import dev.kalles.sale.security.support.AbstractCompanyContextApiSupport;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;

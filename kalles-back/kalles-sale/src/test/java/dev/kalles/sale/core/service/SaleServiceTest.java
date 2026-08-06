@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import dev.kalles.sale.cashregister.entity.Operator;
 import dev.kalles.sale.cashregister.repository.OperatorRepository;
+import dev.kalles.sale.client.repository.ClientRepository;
 import dev.kalles.sale.core.entity.Payment;
 import dev.kalles.sale.core.entity.Product;
 import dev.kalles.sale.core.entity.Sale;
@@ -27,7 +28,6 @@ import dev.kalles.sale.core.enums.operator.PermissionLevel;
 import dev.kalles.sale.core.enums.payment.PaymentMethod;
 import dev.kalles.sale.core.exception.ForbiddenOperationException;
 import dev.kalles.sale.core.entity.SaleAuditEvent;
-import dev.kalles.sale.core.repository.ClientRepository;
 import dev.kalles.sale.core.repository.ProductRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.SaleRepository;
