@@ -147,7 +147,7 @@ Rotas administrativas e de PDV exigem contexto de filial explícito; a ausência
 ### Pré-requisitos
 
 - JDK 25
-- Node.js 20+ e pnpm
+- Node.js 20+ e npm
 - Docker (para o PostgreSQL)
 
 ### 1. Banco de dados
@@ -178,8 +178,8 @@ O Flyway aplica as migrations automaticamente na subida.
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 Aplicação em `http://localhost:3000`. As chamadas a `/api/*` são reescritas para o backend em `:8080` (veja `next.config.mjs`).
@@ -219,7 +219,7 @@ cd kalles-back
 
 # Frontend (e2e — exige back e front rodando)
 cd frontend
-pnpm e2e
+npm run e2e
 ```
 
 O backend combina testes unitários, testes de API com REST Assured e **26 features Cucumber** cobrindo fluxo de PDV, sessão de caixa, isolamento multi-tenant, emissão fiscal, pagamento via Stone/Mercado Pago, fidelidade, metas e assinatura.

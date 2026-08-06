@@ -23,6 +23,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+/frontend/*.log
+
+# testes
+/frontend/cypress/screenshots/
+/frontend/cypress/videos/
+/frontend/cypress/downloads/
+/frontend/cypress/results/
 
 # env files
 .env*
@@ -71,3 +78,6 @@ kalles-back/**/build/
 
 ### VS Code ###
 .vscode/
+
+# documento de trabalho da refatoração — não publicar
+/REFACTOR-PLAN.md

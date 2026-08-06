@@ -29,7 +29,7 @@ import { stockService } from "@/features/admin/services/stock.service";
 import { warehouseService } from "@/features/admin/services/warehouse.service";
 import { productService } from "@/features/sales/services/product.service";
 import { formatCurrency } from "@/shared/utils/formatters";
-import type { StockRequest, StockResponse } from "@/features/admin/types";
+import type { StockRequest } from "@/features/admin/types";
 import type { ProductResponse } from "@/features/sales/types";
 import { normalizeStockRequest } from "@/features/admin/utils/form-normalization";
 

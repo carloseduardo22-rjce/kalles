@@ -11,6 +11,7 @@ import dev.kalles.sale.core.repository.TenantRepository;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.domain.AccountRole;
 import dev.kalles.sale.security.repository.AccountRepository;
+import dev.kalles.sale.testsupport.DatabaseCleaner;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import javax.sql.DataSource;
 import java.util.Map;
 import java.util.UUID;
 
@@ -61,11 +63,7 @@ public abstract class AbstractCompanyContextApiSupport extends AbstractSecurityA
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        cashRegisterSessionRepository.deleteAll();
-        accountRepository.deleteAll();
-        cashRegisterRepository.deleteAll();
-        companyRepository.deleteAll();
-        tenantRepository.deleteAll();
+        databaseCleaner().clean();
 
         tenantRepository.save(new Tenant(TENANT_ID, "Tenant Contexto"));
         tenantRepository.save(new Tenant(OTHER_TENANT_ID, "Tenant Externo"));

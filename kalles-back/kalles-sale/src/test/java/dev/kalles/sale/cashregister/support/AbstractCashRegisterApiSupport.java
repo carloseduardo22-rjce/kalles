@@ -13,8 +13,8 @@ import dev.kalles.sale.core.entity.Tenant;
 import dev.kalles.sale.core.repository.CompanyRepository;
 import dev.kalles.sale.core.repository.SaleAuditEventRepository;
 import dev.kalles.sale.core.repository.TenantRepository;
-import dev.kalles.sale.mercadopago.adapter.out.persistence.entity.MercadoPagoCaixaEntity;
-import dev.kalles.sale.mercadopago.adapter.out.persistence.repository.SpringDataMercadoPagoCaixaRepository;
+import dev.kalles.sale.payment.adapter.out.mercadopago.persistence.entity.MercadoPagoPointEntity;
+import dev.kalles.sale.payment.adapter.out.mercadopago.persistence.repository.MercadoPagoPointJpaRepository;
 import dev.kalles.sale.security.domain.Account;
 import dev.kalles.sale.security.domain.AccountRole;
 import dev.kalles.sale.security.domain.PosDeviceSession;
@@ -85,7 +85,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     protected PosDeviceSessionRepository posDeviceSessionRepository;
 
     @Autowired
-    protected SpringDataMercadoPagoCaixaRepository mercadoPagoCaixaRepository;
+    protected MercadoPagoPointJpaRepository mercadoPagoPointRepository;
 
     @Autowired
     protected PasswordEncoder passwordEncoder;
@@ -98,15 +98,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        mercadoPagoCaixaRepository.deleteAll();
-        saleAuditEventRepository.deleteAll();
-        cashRegisterSessionRepository.deleteAll();
-        posDeviceSessionRepository.deleteAll();
-        accountRepository.deleteAll();
-        operatorRepository.deleteAll();
-        cashRegisterRepository.deleteAll();
-        companyRepository.deleteAll();
-        tenantRepository.deleteAll();
+        databaseCleaner().clean();
 
         tenantRepository.save(new Tenant(TENANT_ID, "Tenant teste caixa"));
         companyId = companyRepository.save(new Company(
@@ -138,14 +130,13 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     }
 
     protected void configurePaymentIntegration(boolean configured) {
-        mercadoPagoCaixaRepository.deleteAll();
+        mercadoPagoPointRepository.deleteAll();
         if (configured) {
-            mercadoPagoCaixaRepository.save(new MercadoPagoCaixaEntity(
-                    null,
-                    "MP-" + CASH_REGISTER_CODE,
-                    cashRegisterId,
-                    987654321L
-            ));
+            MercadoPagoPointEntity point = new MercadoPagoPointEntity();
+            point.setExternalReference("MP-" + CASH_REGISTER_CODE);
+            point.setCashRegisterId(cashRegisterId);
+            point.setProviderPointId(987654321L);
+            mercadoPagoPointRepository.save(point);
         }
     }
 

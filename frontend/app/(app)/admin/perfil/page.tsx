@@ -1,12 +1,11 @@
 "use client";
 
 import { useCompany } from "@/shared/contexts/company-context";
-import { UserCircle, Mail, MapPin, Building, Key, Bell, Shield, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Mail, Building, Key, Bell, Shield, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 export default function PerfilPage() {
   const { activeCompanyId, companies } = useCompany();

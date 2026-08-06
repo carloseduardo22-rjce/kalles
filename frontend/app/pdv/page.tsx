@@ -2,19 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Store,
-  Lock,
-  RefreshCw,
-  XCircle,
-  User,
-  Package,
-  Gift,
-} from "lucide-react";
+import { Store, RefreshCw, XCircle, User, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductSearch } from "@/features/sales/components/product-search";
 import { SaleItemsList } from "@/features/sales/components/sale-items-list";
 import { PaymentPanel } from "@/features/sales/components/payment-panel";
@@ -50,10 +39,6 @@ type LayoutState = { leftWidth: number; centerWidth: number; bottomHeight: numbe
 const DEFAULT_LAYOUT: LayoutState = { leftWidth: 25, centerWidth: 45, bottomHeight: 25 };
 const MIN_LEFT_WIDTH = 15;
 const MAX_LEFT_WIDTH = 40;
-const MIN_CENTER_WIDTH = 30;
-const MAX_CENTER_WIDTH = 60;
-const MIN_BOTTOM_HEIGHT = 15;
-const MAX_BOTTOM_HEIGHT = 50;
 
 const INTERACTIVE_FOCUS_SELECTOR = [
   "input",
@@ -97,7 +82,9 @@ export default function PdvPage() {
       if (storedLayout) {
         setSavedLayout(JSON.parse(storedLayout));
       }
-    } catch (e) {}
+    } catch {
+      /* layout salvo inválido */
+    }
   }, []);
 
   const handleMouseDownVertical = useCallback(
@@ -534,7 +521,7 @@ export default function PdvPage() {
             <SaleItemsList
               items={sale?.items ?? []}
               saleState={sale?.state ?? "OPEN"}
-              onRemoveItem={(code, type) => {
+              onRemoveItem={(code, _type) => {
                 const item = sale?.items.find(
                   (i) => i.productInternalCode === code,
                 );

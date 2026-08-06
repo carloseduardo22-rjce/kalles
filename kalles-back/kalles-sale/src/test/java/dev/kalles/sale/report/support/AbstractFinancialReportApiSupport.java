@@ -75,14 +75,6 @@ public abstract class AbstractFinancialReportApiSupport extends AbstractCompanyC
     protected JdbcTemplate jdbcTemplate;
 
     protected void resetFinancialReportScenario() {
-        saleRepository.deleteAll();
-        cashRegisterSessionRepository.deleteAll();
-        operatorRepository.deleteAll();
-        cashRegisterRepository.deleteAll();
-        stockEntryRepository.deleteAll();
-        locationRepository.deleteAll();
-        warehouseRepository.deleteAll();
-        productRepository.deleteAll();
         resetScenarioData();
         RestAssured.reset();
         RestAssured.baseURI = "http://localhost";

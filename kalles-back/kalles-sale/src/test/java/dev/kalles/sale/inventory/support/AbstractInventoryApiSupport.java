@@ -57,12 +57,6 @@ public abstract class AbstractInventoryApiSupport extends AbstractCompanyContext
         RestAssured.reset();
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-
-        stockRepository.deleteAll();
-        locationRepository.deleteAll();
-        warehouseRepository.deleteAll();
-        companyProductRepository.deleteAll();
-        productRepository.deleteAll();
     }
 
     protected AuthContext authenticateTenantAdminWithCsrf() {

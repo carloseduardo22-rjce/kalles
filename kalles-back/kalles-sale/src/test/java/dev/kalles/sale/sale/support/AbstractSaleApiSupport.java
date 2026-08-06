@@ -88,15 +88,6 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
 
     protected void prepareSaleScenario(boolean paymentIntegrationConfigured) {
         resetScenarioData();
-        saleRepository.deleteAll();
-        fidelityRepository.deleteAll();
-        fidelityPolicyRepository.deleteAll();
-        clientRepository.deleteAll();
-        stockRepository.deleteAll();
-        locationRepository.deleteAll();
-        warehouseRepository.deleteAll();
-        companyProductRepository.deleteAll();
-        productRepository.deleteAll();
         configurePaymentIntegration(paymentIntegrationConfigured);
         elevateDefaultOperator();
         seedAuthorizationOperators();

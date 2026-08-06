@@ -27,17 +27,6 @@ type FiscalDocumentResponse = {
   rejectionReason?: string | null;
 };
 
-type FiscalConfigurationResponse = {
-  stateCode: string;
-  series: number;
-  nextNumber: number;
-};
-
-type FiscalCertificateResponse = {
-  expiresAt: string;
-  active: boolean;
-};
-
 type FiscalReadinessResponse = {
   ready: boolean;
   missingItems: string[];
@@ -81,19 +70,11 @@ export default function FiscalPage() {
   const [certificateExpiresAt, setCertificateExpiresAt] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPreparation, setSavingPreparation] = useState(false);
-  const [savingConfiguration, setSavingConfiguration] = useState(false);
-  const [savingCertificate, setSavingCertificate] = useState(false);
   const [savingClassification, setSavingClassification] = useState(false);
-  const [savingIssuerProfile, setSavingIssuerProfile] = useState(false);
-  const [savingIssuerAddress, setSavingIssuerAddress] = useState(false);
   const [checkingReadiness, setCheckingReadiness] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [issuingReturn, setIssuingReturn] = useState(false);
   const [document, setDocument] = useState<FiscalDocumentResponse | null>(null);
-  const [configuration, setConfiguration] =
-    useState<FiscalConfigurationResponse | null>(null);
-  const [certificate, setCertificate] =
-    useState<FiscalCertificateResponse | null>(null);
   const [readiness, setReadiness] = useState<FiscalReadinessResponse | null>(null);
 
   const handleSavePreparation = async () => {
@@ -146,54 +127,7 @@ export default function FiscalPage() {
     }
   };
 
-  const handleSaveIssuerProfile = async () => {
-    setSavingIssuerProfile(true);
 
-    try {
-      await api.post("/api/fiscal/issuer-profile", {
-        cnpj: issuerCnpj.trim(),
-        legalName: issuerLegalName.trim(),
-        tradeName: issuerTradeName.trim() || null,
-        stateRegistration: issuerStateRegistration.trim(),
-        taxRegime: issuerTaxRegime,
-        cnae: issuerCnae.trim() || null,
-      });
-
-      setReadiness(null);
-      toast.success("Dados da empresa salvos.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar.");
-    } finally {
-      setSavingIssuerProfile(false);
-    }
-  };
-
-  const handleSaveIssuerAddress = async () => {
-    setSavingIssuerAddress(true);
-
-    try {
-      await api.post("/api/fiscal/issuer-address", {
-        zipCode: issuerZipCode.trim(),
-        stateCode: stateCode.trim().toUpperCase(),
-        stateIbgeCode: Number(issuerStateIbgeCode),
-        cityName: issuerCityName.trim(),
-        cityIbgeCode: Number(issuerCityIbgeCode),
-        district: issuerDistrict.trim(),
-        street: issuerStreet.trim(),
-        number: issuerNumber.trim(),
-        complement: issuerComplement.trim() || null,
-        countryName: "Brasil",
-        countryCode: 1058,
-      });
-
-      setReadiness(null);
-      toast.success("Endereco fiscal salvo.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar.");
-    } finally {
-      setSavingIssuerAddress(false);
-    }
-  };
 
   const handleCheckReadiness = async () => {
     setCheckingReadiness(true);
@@ -245,55 +179,7 @@ export default function FiscalPage() {
     }
   };
 
-  const handleSaveConfiguration = async () => {
-    setSavingConfiguration(true);
 
-    try {
-      const response = await api.post<FiscalConfigurationResponse>(
-        "/api/fiscal/configurations",
-        {
-          model: "NFCE",
-          environment: "HOMOLOGACAO",
-          stateCode: stateCode.trim().toUpperCase(),
-          cscId: cscId.trim() || null,
-          cscToken: cscToken.trim() || null,
-          series: Number(series),
-          nextNumber: Number(nextNumber),
-        },
-      );
-
-      setConfiguration(response);
-      toast.success("Configuracao fiscal salva.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar.");
-    } finally {
-      setSavingConfiguration(false);
-    }
-  };
-
-  const handleRegisterCertificate = async () => {
-    setSavingCertificate(true);
-
-    try {
-      const response = await api.post<FiscalCertificateResponse>(
-        "/api/fiscal/certificates",
-        {
-          certificateBase64: certificateBase64.trim(),
-          password: certificatePassword,
-          expiresAt: new Date(certificateExpiresAt).toISOString(),
-        },
-      );
-
-      setCertificate(response);
-      setCertificatePassword("");
-      setReadiness(null);
-      toast.success("Certificado fiscal salvo.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar.");
-    } finally {
-      setSavingCertificate(false);
-    }
-  };
 
   const handleSaveClassification = async () => {
     setSavingClassification(true);
@@ -669,11 +555,6 @@ export default function FiscalPage() {
               </label>
             </div>
 
-            {certificate ? (
-              <p className="text-sm text-emerald-700">
-                Certificado ativo ate {new Date(certificate.expiresAt).toLocaleDateString("pt-BR")}.
-              </p>
-            ) : null}
           </section>
         </div>
 

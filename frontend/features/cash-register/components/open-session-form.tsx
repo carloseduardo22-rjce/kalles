@@ -348,9 +348,9 @@ export function OpenSessionForm({
           <AlertDialogHeader>
             <AlertDialogTitle>Pagamento nao configurado</AlertDialogTitle>
             <AlertDialogDescription>
-              Pagamento n„o configurado, neste caixa vocÍ apenas poder· operar
-              com dinheiro mas n„o poder· receber pagamentos via pix, vouchers
-              e cartıes de crÈdito.
+              Pagamento n√£o configurado, neste caixa voc√™ apenas poder√° operar
+              com dinheiro mas n√£o poder√° receber pagamentos via pix, vouchers
+              e cart√µes de cr√©dito.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
