@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
@@ -123,6 +124,21 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Argumento inválido");
+        return problem;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadableBody(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        String detail = cause instanceof IllegalArgumentException
+                ? cause.getMessage()
+                : "Corpo da requisicao invalido ou malformado.";
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            detail
+        );
+        problem.setTitle("Requisição inválida");
         return problem;
     }
 
