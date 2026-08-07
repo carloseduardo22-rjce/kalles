@@ -1,10 +1,11 @@
-package dev.kalles.core.service;
+package dev.kalles.inventory.service;
 
-import dev.kalles.core.dto.WarehouseRequest;
-import dev.kalles.core.dto.WarehouseResponse;
-import dev.kalles.core.entity.Warehouse;
 import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.repository.WarehouseRepository;
+import dev.kalles.inventory.dto.WarehouseRequest;
+import dev.kalles.inventory.dto.WarehouseResponse;
+import dev.kalles.inventory.entity.Warehouse;
+import dev.kalles.inventory.repository.WarehouseRepository;
+import dev.kalles.inventory.service.WarehouseService;
 import dev.kalles.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

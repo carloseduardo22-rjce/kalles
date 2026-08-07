@@ -31,8 +31,9 @@ import dev.kalles.core.entity.SaleAuditEvent;
 import dev.kalles.core.repository.ProductRepository;
 import dev.kalles.core.repository.SaleAuditEventRepository;
 import dev.kalles.core.repository.SaleRepository;
-import dev.kalles.core.repository.StockRepository;
 import dev.kalles.fidelity.service.FidelityService;
+import dev.kalles.inventory.entity.Stock;
+import dev.kalles.inventory.repository.StockRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 
@@ -530,7 +531,7 @@ class SaleServiceTest {
             when(saleRepository.findPaidSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
                 when(stockRepository.sumQuantityByProductId(product.getId(), COMPANY_ID)).thenReturn(10);
                 when(stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), COMPANY_ID))
-                    .thenReturn(java.util.List.of(new dev.kalles.core.entity.Stock(UUID.randomUUID(), null, product, null, 10)));
+                    .thenReturn(java.util.List.of(new Stock(UUID.randomUUID(), null, product, null, 10)));
 
             saleService.completeSale(SESSION_TOKEN);
 

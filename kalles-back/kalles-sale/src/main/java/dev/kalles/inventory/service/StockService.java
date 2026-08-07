@@ -1,18 +1,18 @@
-package dev.kalles.core.service;
+package dev.kalles.inventory.service;
 
-import dev.kalles.core.dto.StockRequest;
-import dev.kalles.core.dto.StockResponse;
 import dev.kalles.core.entity.CompanyProduct;
-import dev.kalles.core.entity.Location;
 import dev.kalles.core.entity.Product;
-import dev.kalles.core.entity.Stock;
-import dev.kalles.core.entity.StockEntry;
 import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.core.repository.CompanyProductRepository;
-import dev.kalles.core.repository.LocationRepository;
 import dev.kalles.core.repository.ProductRepository;
-import dev.kalles.core.repository.StockEntryRepository;
-import dev.kalles.core.repository.StockRepository;
+import dev.kalles.inventory.dto.StockRequest;
+import dev.kalles.inventory.dto.StockResponse;
+import dev.kalles.inventory.entity.Location;
+import dev.kalles.inventory.entity.Stock;
+import dev.kalles.inventory.entity.StockEntry;
+import dev.kalles.inventory.repository.LocationRepository;
+import dev.kalles.inventory.repository.StockEntryRepository;
+import dev.kalles.inventory.repository.StockRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;

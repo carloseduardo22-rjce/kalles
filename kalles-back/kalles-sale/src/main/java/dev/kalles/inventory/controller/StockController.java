@@ -1,8 +1,8 @@
-package dev.kalles.api.stock;
+package dev.kalles.inventory.controller;
 
-import dev.kalles.core.dto.StockRequest;
-import dev.kalles.core.dto.StockResponse;
-import dev.kalles.core.service.StockService;
+import dev.kalles.inventory.dto.StockRequest;
+import dev.kalles.inventory.dto.StockResponse;
+import dev.kalles.inventory.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

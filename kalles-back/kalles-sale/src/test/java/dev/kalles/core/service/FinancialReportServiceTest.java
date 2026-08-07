@@ -3,7 +3,7 @@ package dev.kalles.core.service;
 import dev.kalles.core.dto.ProfitSupplierExpenseReportResponse;
 import dev.kalles.core.dto.SupplierExpenseProductSummary;
 import dev.kalles.core.repository.SaleRepository;
-import dev.kalles.core.repository.StockEntryRepository;
+import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

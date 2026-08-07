@@ -1,6 +1,6 @@
-package dev.kalles.core.repository;
+package dev.kalles.inventory.repository;
 
-import dev.kalles.core.entity.Warehouse;
+import dev.kalles.inventory.entity.Warehouse;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

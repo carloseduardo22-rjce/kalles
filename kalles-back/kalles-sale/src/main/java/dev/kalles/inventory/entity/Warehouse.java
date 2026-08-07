@@ -1,4 +1,4 @@
-package dev.kalles.core.entity;
+package dev.kalles.inventory.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

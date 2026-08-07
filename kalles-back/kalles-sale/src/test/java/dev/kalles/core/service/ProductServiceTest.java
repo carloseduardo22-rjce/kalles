@@ -9,7 +9,7 @@ import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.core.repository.CompanyProductReadRepository;
 import dev.kalles.core.repository.CompanyProductRepository;
 import dev.kalles.core.repository.ProductRepository;
-import dev.kalles.core.repository.ProductStockQueryRepository;
+import dev.kalles.inventory.repository.ProductStockQueryRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;

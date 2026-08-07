@@ -1,4 +1,4 @@
-package dev.kalles.core.exception;
+package dev.kalles.inventory.exception;
 
 public class InsufficientStockException extends RuntimeException {
 

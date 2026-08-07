@@ -1,6 +1,6 @@
-package dev.kalles.core.repository;
+package dev.kalles.inventory.repository;
 
-import dev.kalles.core.entity.Stock;
+import dev.kalles.inventory.entity.Stock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

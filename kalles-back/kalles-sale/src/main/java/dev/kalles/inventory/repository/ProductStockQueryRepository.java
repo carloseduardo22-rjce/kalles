@@ -1,8 +1,8 @@
-package dev.kalles.core.repository;
+package dev.kalles.inventory.repository;
 
-import dev.kalles.core.dto.ProductLocationStockView;
-import dev.kalles.core.dto.ProductStockSummary;
-import dev.kalles.core.entity.Stock;
+import dev.kalles.inventory.dto.ProductLocationStockView;
+import dev.kalles.inventory.dto.ProductStockSummary;
+import dev.kalles.inventory.entity.Stock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +14,7 @@ import java.util.UUID;
 public interface ProductStockQueryRepository extends Repository<Stock, UUID> {
 
     @Query("""
-        SELECT new dev.kalles.core.dto.ProductStockSummary(
+        SELECT new dev.kalles.inventory.dto.ProductStockSummary(
             s.product.id, COALESCE(SUM(s.quantity), 0)
         )
         FROM Stock s
@@ -27,7 +27,7 @@ public interface ProductStockQueryRepository extends Repository<Stock, UUID> {
     List<ProductStockSummary> summarizeByCompany(@Param("companyId") UUID companyId, @Param("productIds") Collection<UUID> productIds);
 
     @Query("""
-        SELECT new dev.kalles.core.dto.ProductLocationStockView(
+        SELECT new dev.kalles.inventory.dto.ProductLocationStockView(
             w.id, w.name, l.id, l.code, SUM(s.quantity)
         )
         FROM Stock s

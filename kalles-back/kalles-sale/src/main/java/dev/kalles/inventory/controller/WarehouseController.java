@@ -1,11 +1,11 @@
-package dev.kalles.api.warehouse;
+package dev.kalles.inventory.controller;
 
-import dev.kalles.core.dto.LocationRequest;
-import dev.kalles.core.dto.LocationResponse;
-import dev.kalles.core.dto.WarehouseRequest;
-import dev.kalles.core.dto.WarehouseResponse;
-import dev.kalles.core.service.LocationService;
-import dev.kalles.core.service.WarehouseService;
+import dev.kalles.inventory.dto.LocationRequest;
+import dev.kalles.inventory.dto.LocationResponse;
+import dev.kalles.inventory.dto.WarehouseRequest;
+import dev.kalles.inventory.dto.WarehouseResponse;
+import dev.kalles.inventory.service.LocationService;
+import dev.kalles.inventory.service.WarehouseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

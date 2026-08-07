@@ -1,6 +1,6 @@
-package dev.kalles.core.dto;
+package dev.kalles.inventory.dto;
 
-import dev.kalles.core.entity.Stock;
+import dev.kalles.inventory.entity.Stock;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;

@@ -1,5 +1,6 @@
-package dev.kalles.core.entity;
+package dev.kalles.inventory.entity;
 
+import dev.kalles.core.entity.Product;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,30 +11,32 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
 @Table(
-    name = "stock_entries",
     indexes = {
-        @Index(name = "idx_stock_entries_company_id", columnList = "company_id"),
-        @Index(name = "idx_stock_entries_created_at", columnList = "created_at"),
-        @Index(name = "idx_stock_entries_product_id", columnList = "product_id")
+        @Index(name = "idx_stock_product_id", columnList = "product_id"),
+        @Index(name = "idx_stock_location_id", columnList = "location_id")
     },
-    comment = "Historico financeiro das entradas de mercadorias no estoque"
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_stock_product_location",
+        columnNames = {"product_id", "location_id"}
+    ),
+    comment = "Quantidade de um produto numa localização específica de um depósito"
 )
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockEntry extends BaseAuditableEntity {
+public class Stock {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,9 +44,6 @@ public class StockEntry extends BaseAuditableEntity {
 
     @Version
     private Long version;
-
-    @Column(name = "company_id", nullable = false)
-    private UUID companyId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
@@ -53,12 +53,12 @@ public class StockEntry extends BaseAuditableEntity {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
-    @Column(name = "quantity_added", nullable = false)
-    private int quantityAdded;
+    @Column(nullable = false)
+    private int quantity;
 
-    @Column(name = "unit_cost", nullable = false, precision = 19, scale = 2)
-    private BigDecimal unitCost;
-
-    @Column(name = "total_cost", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalCost;
+    public Stock(Product product, Location location, int quantity) {
+        this.product = product;
+        this.location = location;
+        this.quantity = quantity;
+    }
 }
