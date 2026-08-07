@@ -20,10 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.entity.Sale;
 import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.core.state.CompletedState;
+import dev.kalles.product.entity.Product;
 import dev.kalles.security.context.CompanyContextHolder;
 
 @Tag("unit")

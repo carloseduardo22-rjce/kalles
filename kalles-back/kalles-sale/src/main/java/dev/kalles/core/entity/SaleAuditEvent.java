@@ -1,6 +1,7 @@
 package dev.kalles.core.entity;
 
 import dev.kalles.cashregister.entity.Operator;
+import dev.kalles.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

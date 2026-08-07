@@ -1,6 +1,6 @@
 package dev.kalles.inventory.entity;
 
-import dev.kalles.core.entity.Product;
+import dev.kalles.product.entity.Product;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

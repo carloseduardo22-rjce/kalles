@@ -3,6 +3,7 @@ package dev.kalles.core.entity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import dev.kalles.product.entity.Product;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;

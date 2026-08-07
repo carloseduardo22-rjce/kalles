@@ -1,10 +1,6 @@
 package dev.kalles.inventory.service;
 
-import dev.kalles.core.entity.CompanyProduct;
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.repository.CompanyProductRepository;
-import dev.kalles.core.repository.ProductRepository;
 import dev.kalles.inventory.dto.StockRequest;
 import dev.kalles.inventory.dto.StockResponse;
 import dev.kalles.inventory.entity.Location;
@@ -14,6 +10,10 @@ import dev.kalles.inventory.repository.LocationRepository;
 import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.inventory.repository.StockRepository;
 import dev.kalles.inventory.service.StockService;
+import dev.kalles.product.entity.CompanyProduct;
+import dev.kalles.product.entity.Product;
+import dev.kalles.product.repository.CompanyProductRepository;
+import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;

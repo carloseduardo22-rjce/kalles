@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.product.entity.Product;
 
 @DisplayName("Sale - Entidade de Domínio da Venda")
 class SaleTest {

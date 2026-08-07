@@ -3,8 +3,8 @@ package dev.kalles.core.state;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.entity.Sale;
+import dev.kalles.product.entity.Product;
 
 public interface SaleState {
 

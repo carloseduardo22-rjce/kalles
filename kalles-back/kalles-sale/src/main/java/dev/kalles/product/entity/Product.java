@@ -1,4 +1,4 @@
-package dev.kalles.core.entity;
+package dev.kalles.product.entity;
 
 import java.math.BigDecimal;
 import java.util.UUID;

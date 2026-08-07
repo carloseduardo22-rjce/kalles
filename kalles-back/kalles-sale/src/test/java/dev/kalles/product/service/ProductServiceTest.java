@@ -1,15 +1,16 @@
-package dev.kalles.core.service;
+package dev.kalles.product.service;
 
-import dev.kalles.core.dto.CompanyProductListItem;
-import dev.kalles.core.dto.ProductCatalogResponse;
-import dev.kalles.core.dto.ProductRequest;
-import dev.kalles.core.entity.CompanyProduct;
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.repository.CompanyProductReadRepository;
-import dev.kalles.core.repository.CompanyProductRepository;
-import dev.kalles.core.repository.ProductRepository;
 import dev.kalles.inventory.repository.ProductStockQueryRepository;
+import dev.kalles.product.dto.CompanyProductListItem;
+import dev.kalles.product.dto.ProductCatalogResponse;
+import dev.kalles.product.dto.ProductRequest;
+import dev.kalles.product.entity.CompanyProduct;
+import dev.kalles.product.entity.Product;
+import dev.kalles.product.repository.CompanyProductReadRepository;
+import dev.kalles.product.repository.CompanyProductRepository;
+import dev.kalles.product.repository.ProductRepository;
+import dev.kalles.product.service.ProductService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;

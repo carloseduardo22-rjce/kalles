@@ -1,4 +1,4 @@
-package dev.kalles.core.dto;
+package dev.kalles.product.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;

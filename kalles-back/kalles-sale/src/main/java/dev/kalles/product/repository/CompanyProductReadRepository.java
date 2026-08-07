@@ -1,7 +1,7 @@
-package dev.kalles.core.repository;
+package dev.kalles.product.repository;
 
-import dev.kalles.core.dto.CompanyProductListItem;
-import dev.kalles.core.entity.CompanyProduct;
+import dev.kalles.product.dto.CompanyProductListItem;
+import dev.kalles.product.entity.CompanyProduct;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -14,7 +14,7 @@ import java.util.UUID;
 public interface CompanyProductReadRepository extends Repository<CompanyProduct, UUID> {
 
     @Query("""
-        SELECT new dev.kalles.core.dto.CompanyProductListItem(
+        SELECT new dev.kalles.product.dto.CompanyProductListItem(
             p.id, p.name, p.internalCode, p.barcode,
             cp.price, cp.costPrice, p.description, cp.active
         )
@@ -28,7 +28,7 @@ public interface CompanyProductReadRepository extends Repository<CompanyProduct,
 
     @Query(
             value = """
-        SELECT new dev.kalles.core.dto.CompanyProductListItem(
+        SELECT new dev.kalles.product.dto.CompanyProductListItem(
             p.id, p.name, p.internalCode, p.barcode,
             cp.price, cp.costPrice, p.description, cp.active
         )
@@ -53,7 +53,7 @@ public interface CompanyProductReadRepository extends Repository<CompanyProduct,
     );
 
     @Query("""
-        SELECT new dev.kalles.core.dto.CompanyProductListItem(
+        SELECT new dev.kalles.product.dto.CompanyProductListItem(
             p.id, p.name, p.internalCode, p.barcode,
             cp.price, cp.costPrice, p.description, cp.active
         )

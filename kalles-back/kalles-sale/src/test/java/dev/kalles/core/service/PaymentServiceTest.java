@@ -17,7 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.entity.Sale;
 import dev.kalles.core.enums.payment.PaymentMethod;
 import dev.kalles.core.exception.NotFoundException;
@@ -29,6 +28,7 @@ import dev.kalles.core.strategy.PaymentFactory;
 import dev.kalles.core.strategy.PaymentResult;
 import dev.kalles.core.strategy.PaymentStrategy;
 import dev.kalles.core.strategy.PixPaymentStrategy;
+import dev.kalles.product.entity.Product;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PaymentService - ServiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o de Pagamento")

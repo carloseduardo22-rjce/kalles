@@ -1,4 +1,4 @@
-package dev.kalles.core.enums.product;
+package dev.kalles.product.enums;
 
 public enum ProductCodeType {
     INTERNAL_CODE,

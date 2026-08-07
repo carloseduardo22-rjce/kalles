@@ -11,6 +11,7 @@ import dev.kalles.client.entity.Client;
 import dev.kalles.core.state.OpenState;
 import dev.kalles.core.state.SaleState;
 import dev.kalles.core.state.SaleStateConverter;
+import dev.kalles.product.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;

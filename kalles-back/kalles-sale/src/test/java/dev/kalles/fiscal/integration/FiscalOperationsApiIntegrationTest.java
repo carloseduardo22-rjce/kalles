@@ -1,10 +1,8 @@
 package dev.kalles.fiscal.integration;
 
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.core.entity.Product;
 import dev.kalles.core.entity.Sale;
 import dev.kalles.core.repository.PaymentRepository;
-import dev.kalles.core.repository.ProductRepository;
 import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.core.state.CompletedState;
 import dev.kalles.fiscal.adapter.out.persistence.entity.FiscalDocumentEntity;
@@ -17,6 +15,8 @@ import dev.kalles.fiscal.adapter.out.persistence.repository.SpringDataFiscalProd
 import dev.kalles.fiscal.domain.FiscalDocumentModel;
 import dev.kalles.fiscal.domain.FiscalDocumentStatus;
 import dev.kalles.fiscal.domain.FiscalEnvironment;
+import dev.kalles.product.entity.Product;
+import dev.kalles.product.repository.ProductRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.http.ContentType;

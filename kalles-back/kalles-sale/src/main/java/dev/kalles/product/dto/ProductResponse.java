@@ -1,9 +1,9 @@
-package dev.kalles.core.dto;
+package dev.kalles.product.dto;
+
+import dev.kalles.product.entity.Product;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-
-import dev.kalles.core.entity.Product;
 
 public record ProductResponse(
     UUID id,
