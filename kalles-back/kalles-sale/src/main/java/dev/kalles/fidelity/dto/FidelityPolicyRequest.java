@@ -1,6 +1,6 @@
-package dev.kalles.core.dto;
+package dev.kalles.fidelity.dto;
 
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 

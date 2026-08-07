@@ -1,6 +1,7 @@
 package dev.kalles.fidelity.integration;
 
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
+import dev.kalles.fidelity.entity.FidelityPolicy;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
 import dev.kalles.fidelity.support.AbstractFidelityPolicyApiSupport;
 import dev.kalles.payment.support.LocalHttpTestClient;
 import io.restassured.response.Response;

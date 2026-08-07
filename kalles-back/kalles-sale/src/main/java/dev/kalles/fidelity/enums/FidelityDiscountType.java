@@ -1,4 +1,4 @@
-package dev.kalles.core.enums.fidelity;
+package dev.kalles.fidelity.enums;
 
 public enum FidelityDiscountType {
     FIXED,

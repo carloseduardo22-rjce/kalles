@@ -1,7 +1,7 @@
-package dev.kalles.core.dto;
+package dev.kalles.fidelity.dto;
 
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
-import dev.kalles.core.entity.Fidelity;
+import dev.kalles.fidelity.entity.Fidelity;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

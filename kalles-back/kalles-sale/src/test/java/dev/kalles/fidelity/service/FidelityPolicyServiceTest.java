@@ -1,11 +1,12 @@
-package dev.kalles.core.service;
+package dev.kalles.fidelity.service;
 
-import dev.kalles.core.dto.FidelityPolicyRequest;
-import dev.kalles.core.dto.FidelityPolicyResponse;
-import dev.kalles.core.entity.FidelityPolicy;
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
 import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.repository.FidelityPolicyRepository;
+import dev.kalles.fidelity.dto.FidelityPolicyRequest;
+import dev.kalles.fidelity.dto.FidelityPolicyResponse;
+import dev.kalles.fidelity.entity.FidelityPolicy;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
+import dev.kalles.fidelity.repository.FidelityPolicyRepository;
+import dev.kalles.fidelity.service.FidelityPolicyService;
 import dev.kalles.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

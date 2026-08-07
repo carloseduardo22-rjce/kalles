@@ -1,7 +1,7 @@
-package dev.kalles.core.entity;
+package dev.kalles.fidelity.entity;
 
 import dev.kalles.client.entity.Client;
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

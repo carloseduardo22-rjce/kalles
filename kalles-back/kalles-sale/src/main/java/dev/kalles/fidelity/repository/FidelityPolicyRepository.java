@@ -1,6 +1,6 @@
-package dev.kalles.core.repository;
+package dev.kalles.fidelity.repository;
 
-import dev.kalles.core.entity.FidelityPolicy;
+import dev.kalles.fidelity.entity.FidelityPolicy;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

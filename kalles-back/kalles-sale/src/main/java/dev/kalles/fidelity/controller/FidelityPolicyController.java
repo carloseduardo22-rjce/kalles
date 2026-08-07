@@ -1,8 +1,8 @@
-package dev.kalles.api.fidelity;
+package dev.kalles.fidelity.controller;
 
-import dev.kalles.core.dto.FidelityPolicyRequest;
-import dev.kalles.core.dto.FidelityPolicyResponse;
-import dev.kalles.core.service.FidelityPolicyService;
+import dev.kalles.fidelity.dto.FidelityPolicyRequest;
+import dev.kalles.fidelity.dto.FidelityPolicyResponse;
+import dev.kalles.fidelity.service.FidelityPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

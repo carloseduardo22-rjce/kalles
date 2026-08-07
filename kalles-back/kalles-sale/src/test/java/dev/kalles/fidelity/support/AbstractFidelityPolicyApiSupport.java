@@ -2,9 +2,9 @@ package dev.kalles.fidelity.support;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.kalles.core.entity.FidelityPolicy;
-import dev.kalles.core.enums.fidelity.FidelityDiscountType;
-import dev.kalles.core.repository.FidelityPolicyRepository;
+import dev.kalles.fidelity.entity.FidelityPolicy;
+import dev.kalles.fidelity.enums.FidelityDiscountType;
+import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.security.support.AbstractCompanyContextApiSupport;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;

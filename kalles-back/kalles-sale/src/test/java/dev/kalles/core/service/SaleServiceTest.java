@@ -32,6 +32,7 @@ import dev.kalles.core.repository.ProductRepository;
 import dev.kalles.core.repository.SaleAuditEventRepository;
 import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.core.repository.StockRepository;
+import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 
