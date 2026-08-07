@@ -1,6 +1,6 @@
 package dev.kalles.support.application.service;
 
-import dev.kalles.sale.security.context.TenantContextHolder;
+import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.support.infrastructure.persistence.repository.TicketRepository;
 import dev.kalles.support.infrastructure.persistence.repository.UserRepository;
 import dev.kalles.support.infrastructure.persistence.mapper.TicketMapper;
@@ -38,7 +38,7 @@ class SupportTenantIsolationServiceTest {
     private CategoryService categoryService;
 
     @Mock
-    private dev.kalles.sale.security.repository.AccountRepository accountRepository;
+    private dev.kalles.security.repository.AccountRepository accountRepository;
 
     @Mock
     private TicketMapper mapper;

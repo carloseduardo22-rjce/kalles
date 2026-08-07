@@ -1,6 +1,6 @@
 package dev.kalles.support.application.service;
 
-import dev.kalles.sale.security.context.TenantContextHolder;
+import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.support.application.exception.NotFoundException;
 import dev.kalles.support.infrastructure.persistence.entity.UserEntity;
 import dev.kalles.support.infrastructure.persistence.repository.UserRepository;
