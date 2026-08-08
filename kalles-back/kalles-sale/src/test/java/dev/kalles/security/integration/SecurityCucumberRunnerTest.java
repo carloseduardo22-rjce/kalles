@@ -10,7 +10,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/security")
+@SelectClasspathResource("features/security/login_e_pareamento_pos.feature")
 @ConfigurationParameter(
         key = GLUE_PROPERTY_NAME,
         value = "dev.kalles.security.cucumber"
