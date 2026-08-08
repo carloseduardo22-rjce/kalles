@@ -1,7 +1,4 @@
 spring:
-  profiles:
-    active: local # Ativa o application-local.yml
-
   application:
     name: kalles-sale
 
@@ -58,6 +55,9 @@ billing:
 
 mercadopago:
   app-id: ${MERCADOPAGO_APP_ID:448684586415948}
+  access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
+  client-id: ${MERCADOPAGO_CLIENT_ID:}
+  client-secret: ${MERCADOPAGO_CLIENT_SECRET:}
   redirect-uri: ${MERCADOPAGO_REDIRECT_URI:https://localhost:3000/admin/pagamentos/mp-callback}
   webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
 
