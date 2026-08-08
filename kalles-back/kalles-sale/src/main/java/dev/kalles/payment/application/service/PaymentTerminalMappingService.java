@@ -2,8 +2,8 @@ package dev.kalles.payment.application.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
-import dev.kalles.core.entity.Company;
-import dev.kalles.core.repository.CompanyRepository;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.payment.application.port.in.GetPaymentTerminalMappingUseCase;
 import dev.kalles.payment.application.port.in.ListPaymentTerminalMappingsUseCase;
 import dev.kalles.payment.application.port.in.MapPaymentTerminalUseCase;

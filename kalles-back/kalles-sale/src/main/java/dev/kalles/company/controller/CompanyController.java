@@ -1,7 +1,7 @@
-package dev.kalles.api.company;
+package dev.kalles.company.controller;
 
-import dev.kalles.core.entity.Company;
-import dev.kalles.core.service.CompanyService;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.service.CompanyService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.http.ResponseEntity;

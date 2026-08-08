@@ -1,6 +1,6 @@
-package dev.kalles.core.repository;
+package dev.kalles.company.repository;
 
-import dev.kalles.core.entity.Company;
+import dev.kalles.company.entity.Company;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

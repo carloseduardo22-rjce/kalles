@@ -1,6 +1,6 @@
 package dev.kalles.security.service;
 
-import dev.kalles.core.repository.TenantRepository;
+import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.application.AccountVerificationService;
 import dev.kalles.security.domain.Account;
 import dev.kalles.security.domain.AccountRole;

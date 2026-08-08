@@ -1,4 +1,4 @@
-package dev.kalles.core.entity;
+package dev.kalles.company.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

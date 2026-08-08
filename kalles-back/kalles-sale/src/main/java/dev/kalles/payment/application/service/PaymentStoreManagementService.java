@@ -1,7 +1,7 @@
 package dev.kalles.payment.application.service;
 
-import dev.kalles.core.entity.Company;
-import dev.kalles.core.repository.CompanyRepository;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.payment.application.port.in.CreatePaymentStoreUseCase;
 import dev.kalles.payment.application.port.in.GetPaymentStoreStatusUseCase;
 import dev.kalles.payment.application.port.in.ListPaymentStoresUseCase;

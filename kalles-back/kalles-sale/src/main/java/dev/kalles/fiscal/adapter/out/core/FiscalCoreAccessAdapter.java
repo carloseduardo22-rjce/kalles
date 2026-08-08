@@ -1,6 +1,6 @@
 package dev.kalles.fiscal.adapter.out.core;
 
-import dev.kalles.core.repository.CompanyRepository;
+import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.fiscal.application.port.out.FiscalCompanyAccessPort;
 import dev.kalles.fiscal.application.port.out.FiscalProductAccessPort;
 import dev.kalles.product.repository.ProductRepository;

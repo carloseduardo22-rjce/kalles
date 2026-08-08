@@ -1,8 +1,8 @@
 package dev.kalles.fiscal.adapter.out.sale;
 
-import dev.kalles.core.entity.Company;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.core.entity.Sale;
-import dev.kalles.core.repository.CompanyRepository;
 import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.fiscal.application.port.out.FiscalProductClassificationRepository;
 import dev.kalles.fiscal.application.port.out.FiscalSaleReader;

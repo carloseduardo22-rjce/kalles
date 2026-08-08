@@ -1,7 +1,7 @@
 package dev.kalles.security.filter;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import dev.kalles.core.repository.CompanyRepository;
+import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.PosContextHolder;
 import dev.kalles.security.context.TenantContextHolder;

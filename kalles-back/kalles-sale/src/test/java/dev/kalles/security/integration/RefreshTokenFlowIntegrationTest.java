@@ -1,10 +1,10 @@
 package dev.kalles.security.integration;
 
 import dev.kalles.KallesSaleApplication;
-import dev.kalles.core.entity.Company;
-import dev.kalles.core.entity.Tenant;
-import dev.kalles.core.repository.CompanyRepository;
-import dev.kalles.core.repository.TenantRepository;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.entity.Tenant;
+import dev.kalles.company.repository.CompanyRepository;
+import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.domain.Account;
 import dev.kalles.security.domain.AccountRole;
 import dev.kalles.security.repository.AccountRepository;

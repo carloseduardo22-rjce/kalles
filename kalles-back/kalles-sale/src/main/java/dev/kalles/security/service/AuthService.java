@@ -1,7 +1,7 @@
 package dev.kalles.security.service;
 
-import dev.kalles.core.entity.Tenant;
-import dev.kalles.core.repository.TenantRepository;
+import dev.kalles.company.entity.Tenant;
+import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.dto.LoginRequest;
 import dev.kalles.security.dto.RegisterRequest;
 import dev.kalles.security.dto.RegisterResponse;

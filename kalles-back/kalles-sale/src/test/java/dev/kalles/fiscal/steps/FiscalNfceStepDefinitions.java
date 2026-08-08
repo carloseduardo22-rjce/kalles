@@ -1,7 +1,8 @@
 package dev.kalles.fiscal.steps;
 
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.core.entity.Company;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.entity.Tenant;
 import dev.kalles.core.entity.Payment;
 import dev.kalles.core.entity.Sale;
 import dev.kalles.core.enums.payment.PaymentMethod;
@@ -337,7 +338,7 @@ public class FiscalNfceStepDefinitions extends AbstractCashRegisterApiSupport {
     }
 
     private UUID seedForeignTenantCompany() {
-        tenantRepository.save(new dev.kalles.core.entity.Tenant(OTHER_TENANT_ID, "Tenant Fiscal Externo"));
+        tenantRepository.save(new Tenant(OTHER_TENANT_ID, "Tenant Fiscal Externo"));
         return companyRepository.save(new Company(
                 null,
                 "Loja fiscal externa",

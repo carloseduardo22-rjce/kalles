@@ -1,7 +1,7 @@
-package dev.kalles.core.service;
+package dev.kalles.company.service;
 
-import dev.kalles.core.entity.Company;
-import dev.kalles.core.repository.CompanyRepository;
+import dev.kalles.company.entity.Company;
+import dev.kalles.company.repository.CompanyRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
