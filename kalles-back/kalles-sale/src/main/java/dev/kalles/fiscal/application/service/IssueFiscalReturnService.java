@@ -1,6 +1,5 @@
 package dev.kalles.fiscal.application.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fiscal.application.port.in.IssueFiscalReturnCommand;
 import dev.kalles.fiscal.application.port.in.IssueFiscalReturnUseCase;
 import dev.kalles.fiscal.application.port.out.FiscalDocumentRepository;

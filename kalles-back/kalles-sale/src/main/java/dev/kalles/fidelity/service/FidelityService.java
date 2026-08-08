@@ -2,13 +2,13 @@ package dev.kalles.fidelity.service;
 
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fidelity.dto.FidelityResponse;
 import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

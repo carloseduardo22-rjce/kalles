@@ -1,13 +1,13 @@
 package dev.kalles.payment.application.service;
 
-import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.Session;
 import dev.kalles.payment.application.port.in.ProcessPaymentUseCase;
 import dev.kalles.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.payment.domain.PaymentCommand;
 import dev.kalles.payment.domain.PaymentFlow;
 import dev.kalles.payment.domain.PaymentOrder;
 import dev.kalles.payment.domain.PaymentResult;
+import dev.kalles.shared.service.CheckoutSessionService;
+import dev.kalles.shared.service.Session;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;

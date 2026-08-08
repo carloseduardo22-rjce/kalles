@@ -1,4 +1,4 @@
-package dev.kalles.core.entity;
+package dev.kalles.shared.entity;
 
 import java.time.LocalDateTime;
 

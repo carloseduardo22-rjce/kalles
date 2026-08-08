@@ -1,9 +1,9 @@
 package dev.kalles.product.controller;
 
-import dev.kalles.api.dto.PageResponse;
 import dev.kalles.product.dto.ProductCatalogResponse;
 import dev.kalles.product.dto.ProductRequest;
 import dev.kalles.product.service.ProductService;
+import dev.kalles.shared.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

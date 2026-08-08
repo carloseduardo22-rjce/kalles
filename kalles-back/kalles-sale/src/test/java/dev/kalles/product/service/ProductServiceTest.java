@@ -1,6 +1,5 @@
 package dev.kalles.product.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.inventory.repository.ProductStockQueryRepository;
 import dev.kalles.product.dto.CompanyProductListItem;
 import dev.kalles.product.dto.ProductCatalogResponse;
@@ -13,6 +12,7 @@ import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.product.service.ProductService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

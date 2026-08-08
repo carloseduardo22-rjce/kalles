@@ -1,11 +1,11 @@
 package dev.kalles.inventory.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.inventory.dto.WarehouseRequest;
 import dev.kalles.inventory.dto.WarehouseResponse;
 import dev.kalles.inventory.entity.Warehouse;
 import dev.kalles.inventory.repository.WarehouseRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

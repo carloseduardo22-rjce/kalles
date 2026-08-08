@@ -17,14 +17,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.Session;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.strategy.*;
+import dev.kalles.shared.exception.NotFoundException;
+import dev.kalles.shared.service.CheckoutSessionService;
+import dev.kalles.shared.service.Session;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PaymentService - ServiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o de Pagamento")

@@ -3,11 +3,11 @@ package dev.kalles.sale.entity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.shared.entity.BaseAuditableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
-import dev.kalles.core.entity.BaseAuditableEntity;
-import dev.kalles.sale.enums.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;

@@ -1,6 +1,6 @@
 package dev.kalles.support.api.ticket;
 
-import dev.kalles.api.dto.PageResponse;
+import dev.kalles.shared.dto.PageResponse;
 import dev.kalles.support.application.dto.AgentMessageRequest;
 import dev.kalles.support.application.dto.AssignTicketRequest;
 import dev.kalles.support.application.dto.CustomerMessageRequest;

@@ -1,6 +1,5 @@
 package dev.kalles.payment.application.service;
 
-import dev.kalles.core.service.CheckoutSessionService;
 import dev.kalles.payment.application.port.out.PaymentGatewayPort;
 import dev.kalles.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.payment.domain.PaymentCommand;
@@ -10,6 +9,7 @@ import dev.kalles.payment.domain.PaymentOrder;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.shared.service.CheckoutSessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

@@ -1,6 +1,5 @@
 package dev.kalles.fiscal.application.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fiscal.application.port.in.IssueNfceCommand;
 import dev.kalles.fiscal.application.port.in.IssueNfceUseCase;
 import dev.kalles.fiscal.application.port.out.FiscalCertificateRepository;
@@ -16,6 +15,7 @@ import dev.kalles.fiscal.domain.FiscalEnvironment;
 import dev.kalles.fiscal.exception.FiscalConflictException;
 import dev.kalles.fiscal.exception.FiscalRejectionException;
 import dev.kalles.fiscal.exception.FiscalValidationException;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;

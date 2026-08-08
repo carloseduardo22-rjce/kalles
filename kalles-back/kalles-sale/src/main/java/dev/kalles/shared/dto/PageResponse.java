@@ -1,4 +1,4 @@
-package dev.kalles.api.dto;
+package dev.kalles.shared.dto;
 
 import org.springframework.data.domain.Page;
 

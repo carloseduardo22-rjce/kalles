@@ -1,4 +1,4 @@
-package dev.kalles.core.service;
+package dev.kalles.shared.service;
 
 public interface Session {
     

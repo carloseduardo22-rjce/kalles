@@ -1,4 +1,4 @@
-package dev.kalles.core.exception;
+package dev.kalles.shared.exception;
 
 public class NotFoundException extends RuntimeException {
 

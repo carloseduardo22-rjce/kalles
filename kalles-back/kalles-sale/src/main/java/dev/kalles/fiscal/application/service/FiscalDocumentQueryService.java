@@ -1,12 +1,12 @@
 package dev.kalles.fiscal.application.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fiscal.application.port.in.FiscalDocumentQueryUseCase;
 import dev.kalles.fiscal.application.port.out.DanfeRendererPort;
 import dev.kalles.fiscal.application.port.out.FiscalDocumentRepository;
 import dev.kalles.fiscal.domain.FiscalDocument;
 import dev.kalles.fiscal.domain.FiscalDocumentStatus;
 import dev.kalles.fiscal.exception.FiscalConflictException;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;

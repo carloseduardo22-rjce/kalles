@@ -1,6 +1,5 @@
 package dev.kalles.inventory.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.inventory.dto.LocationRequest;
 import dev.kalles.inventory.dto.LocationResponse;
 import dev.kalles.inventory.entity.Location;
@@ -9,6 +8,7 @@ import dev.kalles.inventory.repository.LocationRepository;
 import dev.kalles.inventory.repository.WarehouseRepository;
 import dev.kalles.inventory.service.LocationService;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

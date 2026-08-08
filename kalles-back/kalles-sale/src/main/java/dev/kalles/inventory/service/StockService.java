@@ -1,6 +1,5 @@
 package dev.kalles.inventory.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.inventory.dto.StockRequest;
 import dev.kalles.inventory.dto.StockResponse;
 import dev.kalles.inventory.entity.Location;
@@ -15,6 +14,7 @@ import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

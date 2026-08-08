@@ -1,12 +1,12 @@
 package dev.kalles.goal.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.goal.dto.GoalRequest;
 import dev.kalles.goal.dto.GoalResponse;
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.repository.GoalRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

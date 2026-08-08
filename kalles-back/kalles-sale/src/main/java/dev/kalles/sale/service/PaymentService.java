@@ -1,8 +1,5 @@
 package dev.kalles.sale.service;
 
-import dev.kalles.core.exception.NotFoundException;
-import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.Session;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
@@ -11,6 +8,9 @@ import dev.kalles.sale.state.OpenState;
 import dev.kalles.sale.strategy.PaymentFactory;
 import dev.kalles.sale.strategy.PaymentResult;
 import dev.kalles.sale.strategy.PaymentStrategy;
+import dev.kalles.shared.exception.NotFoundException;
+import dev.kalles.shared.service.CheckoutSessionService;
+import dev.kalles.shared.service.Session;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -23,9 +23,6 @@ import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
 import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.core.exception.ForbiddenOperationException;
-import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.Session;
 import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.entity.Stock;
 import dev.kalles.inventory.repository.StockRepository;
@@ -39,6 +36,9 @@ import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
+import dev.kalles.shared.service.CheckoutSessionService;
+import dev.kalles.shared.service.Session;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SaleService - Serviço de Venda")

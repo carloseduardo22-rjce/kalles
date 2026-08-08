@@ -1,7 +1,7 @@
 package dev.kalles.inventory.entity;
 
-import dev.kalles.core.entity.BaseAuditableEntity;
 import dev.kalles.product.entity.Product;
+import dev.kalles.shared.entity.BaseAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

@@ -1,8 +1,8 @@
-package dev.kalles.core.service;
+package dev.kalles.shared.service;
+
+import dev.kalles.shared.exception.NotFoundException;
 
 import java.util.Optional;
-
-import dev.kalles.core.exception.NotFoundException;
 
 public interface CheckoutSessionService {
 

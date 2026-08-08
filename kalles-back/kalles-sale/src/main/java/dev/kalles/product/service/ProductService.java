@@ -1,6 +1,5 @@
 package dev.kalles.product.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.inventory.dto.ProductStockSummary;
 import dev.kalles.inventory.repository.ProductStockQueryRepository;
 import dev.kalles.product.dto.CompanyProductListItem;
@@ -13,6 +12,7 @@ import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

@@ -8,11 +8,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import dev.kalles.client.entity.Client;
-import dev.kalles.core.entity.BaseAuditableEntity;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.sale.state.SaleState;
 import dev.kalles.sale.state.SaleStateConverter;
+import dev.kalles.shared.entity.BaseAuditableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;

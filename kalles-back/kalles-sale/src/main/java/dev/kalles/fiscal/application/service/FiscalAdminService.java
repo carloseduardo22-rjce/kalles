@@ -1,6 +1,5 @@
 package dev.kalles.fiscal.application.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fiscal.application.port.in.FiscalAdminUseCase;
 import dev.kalles.fiscal.application.port.in.RegisterFiscalCertificateCommand;
 import dev.kalles.fiscal.application.port.in.SaveFiscalConfigurationCommand;
@@ -23,6 +22,7 @@ import dev.kalles.fiscal.domain.FiscalProductClassification;
 import dev.kalles.fiscal.domain.FiscalReadiness;
 import dev.kalles.fiscal.exception.FiscalValidationException;
 import dev.kalles.note.application.port.out.CryptoPort;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

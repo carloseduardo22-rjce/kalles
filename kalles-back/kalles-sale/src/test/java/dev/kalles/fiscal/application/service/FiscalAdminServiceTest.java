@@ -1,6 +1,5 @@
 package dev.kalles.fiscal.application.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.fiscal.application.port.in.RegisterFiscalCertificateCommand;
 import dev.kalles.fiscal.application.port.in.SaveFiscalConfigurationCommand;
 import dev.kalles.fiscal.application.port.in.SaveFiscalIssuerAddressCommand;
@@ -25,6 +24,7 @@ import dev.kalles.fiscal.domain.FiscalReadiness;
 import dev.kalles.fiscal.domain.FiscalTaxRegime;
 import dev.kalles.fiscal.exception.FiscalValidationException;
 import dev.kalles.note.application.port.out.CryptoPort;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

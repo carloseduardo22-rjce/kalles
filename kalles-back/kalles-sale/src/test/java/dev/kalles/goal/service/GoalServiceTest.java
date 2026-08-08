@@ -1,6 +1,5 @@
 package dev.kalles.goal.service;
 
-import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.goal.dto.GoalRequest;
 import dev.kalles.goal.dto.GoalResponse;
 import dev.kalles.goal.entity.Goal;
@@ -9,6 +8,7 @@ import dev.kalles.goal.enums.Periodicity;
 import dev.kalles.goal.exception.GoalDomainException;
 import dev.kalles.goal.repository.GoalRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
