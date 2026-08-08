@@ -1,10 +1,10 @@
-package dev.kalles.core.service;
+package dev.kalles.report.service;
 
-import dev.kalles.core.dto.ProfitSupplierExpenseReportResponse;
-import dev.kalles.core.dto.SupplierExpenseProductItemResponse;
-import dev.kalles.core.dto.SupplierExpenseProductSummary;
 import dev.kalles.core.repository.SaleRepository;
+import dev.kalles.inventory.dto.SupplierExpenseProductSummary;
 import dev.kalles.inventory.repository.StockEntryRepository;
+import dev.kalles.report.dto.ProfitSupplierExpenseReportResponse;
+import dev.kalles.report.dto.SupplierExpenseProductItemResponse;
 import dev.kalles.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

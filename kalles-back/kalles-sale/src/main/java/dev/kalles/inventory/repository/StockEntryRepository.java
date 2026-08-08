@@ -1,6 +1,6 @@
 package dev.kalles.inventory.repository;
 
-import dev.kalles.core.dto.SupplierExpenseProductSummary;
+import dev.kalles.inventory.dto.SupplierExpenseProductSummary;
 import dev.kalles.inventory.entity.StockEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,7 +27,7 @@ public interface StockEntryRepository extends JpaRepository<StockEntry, UUID> {
     );
 
     @Query("""
-        SELECT new dev.kalles.core.dto.SupplierExpenseProductSummary(
+        SELECT new dev.kalles.inventory.dto.SupplierExpenseProductSummary(
             se.product.id,
             se.product.name,
             se.product.internalCode,

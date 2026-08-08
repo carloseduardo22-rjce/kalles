@@ -1,4 +1,4 @@
-package dev.kalles.core.dto;
+package dev.kalles.report.dto;
 
 import java.math.BigDecimal;
 import java.util.UUID;

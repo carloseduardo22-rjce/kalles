@@ -1,7 +1,7 @@
-package dev.kalles.api.report;
+package dev.kalles.report.controller;
 
-import dev.kalles.core.dto.ProfitSupplierExpenseReportResponse;
-import dev.kalles.core.service.FinancialReportService;
+import dev.kalles.report.dto.ProfitSupplierExpenseReportResponse;
+import dev.kalles.report.service.FinancialReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
