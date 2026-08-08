@@ -1,6 +1,6 @@
 package dev.kalles.cashregister.dto;
 
-import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

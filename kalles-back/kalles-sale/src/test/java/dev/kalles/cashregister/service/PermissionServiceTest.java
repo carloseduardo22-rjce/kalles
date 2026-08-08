@@ -1,7 +1,7 @@
-package dev.kalles.core.service;
+package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.entity.Operator;
-import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

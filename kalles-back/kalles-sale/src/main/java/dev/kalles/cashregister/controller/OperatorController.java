@@ -1,4 +1,4 @@
-package dev.kalles.api.operator;
+package dev.kalles.cashregister.controller;
 
 import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;

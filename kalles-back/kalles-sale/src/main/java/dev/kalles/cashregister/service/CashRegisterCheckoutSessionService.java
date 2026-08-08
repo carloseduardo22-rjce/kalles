@@ -1,7 +1,9 @@
-package dev.kalles.core.service;
+package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
+import dev.kalles.core.service.CheckoutSessionService;
+import dev.kalles.core.service.Session;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;

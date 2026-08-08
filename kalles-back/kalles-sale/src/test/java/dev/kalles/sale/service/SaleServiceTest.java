@@ -19,12 +19,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import dev.kalles.cashregister.entity.Operator;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
+import dev.kalles.cashregister.service.PermissionService;
 import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.core.enums.operator.PermissionLevel;
 import dev.kalles.core.exception.ForbiddenOperationException;
 import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.PermissionService;
 import dev.kalles.core.service.Session;
 import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.entity.Stock;

@@ -1,7 +1,7 @@
 package dev.kalles.cashregister.integration;
 
+import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.core.enums.operator.PermissionLevel;
 import dev.kalles.payment.support.LocalHttpTestClient;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;

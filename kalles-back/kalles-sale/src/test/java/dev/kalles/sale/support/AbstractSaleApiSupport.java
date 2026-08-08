@@ -1,9 +1,9 @@
 package dev.kalles.sale.support;
 
 import dev.kalles.cashregister.entity.Operator;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.core.enums.operator.PermissionLevel;
 import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.enums.FidelityDiscountType;

@@ -1,6 +1,6 @@
 package dev.kalles.operator.integration;
 
-import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.operator.support.AbstractOperatorApiSupport;
 import dev.kalles.payment.support.LocalHttpTestClient;
 import io.restassured.response.Response;

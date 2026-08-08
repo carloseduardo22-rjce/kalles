@@ -1,4 +1,4 @@
-package dev.kalles.core.enums.operator;
+package dev.kalles.cashregister.enums;
 
 public enum PermissionLevel {
 

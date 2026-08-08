@@ -1,10 +1,11 @@
-package dev.kalles.core.service;
+package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.core.exception.NotFoundException;
+import dev.kalles.core.service.Session;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

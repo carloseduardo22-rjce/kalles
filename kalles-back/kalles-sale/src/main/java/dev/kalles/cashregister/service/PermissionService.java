@@ -1,9 +1,9 @@
-package dev.kalles.core.service;
+package dev.kalles.cashregister.service;
 
 import org.springframework.stereotype.Service;
 
 import dev.kalles.cashregister.entity.Operator;
-import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.cashregister.enums.PermissionLevel;
 
 @Service
 public class PermissionService {

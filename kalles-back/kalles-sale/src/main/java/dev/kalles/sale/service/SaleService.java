@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.repository.OperatorRepository;
+import dev.kalles.cashregister.service.PermissionService;
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.core.exception.ForbiddenOperationException;
 import dev.kalles.core.exception.NotFoundException;
 import dev.kalles.core.service.CheckoutSessionService;
-import dev.kalles.core.service.PermissionService;
 import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.entity.Stock;
 import dev.kalles.inventory.exception.InsufficientStockException;

@@ -1,6 +1,6 @@
 package dev.kalles.cashregister.entity;
 
-import dev.kalles.core.enums.operator.PermissionLevel;
+import dev.kalles.cashregister.enums.PermissionLevel;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
