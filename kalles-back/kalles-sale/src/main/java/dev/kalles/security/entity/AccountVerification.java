@@ -1,4 +1,4 @@
-package dev.kalles.security.domain;
+package dev.kalles.security.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

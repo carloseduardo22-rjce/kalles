@@ -1,7 +1,7 @@
 package dev.kalles.security.controller;
 
-import dev.kalles.security.application.usecase.GeneratePosPairingTokenUseCase;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
+import dev.kalles.security.service.GeneratePosPairingTokenUseCase;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

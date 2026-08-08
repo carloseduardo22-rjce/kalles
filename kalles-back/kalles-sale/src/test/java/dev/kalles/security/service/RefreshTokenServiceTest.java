@@ -1,8 +1,8 @@
 package dev.kalles.security.service;
 
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.AccountRole;
-import dev.kalles.security.domain.RefreshTokenSession;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.entity.RefreshTokenSession;
+import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.repository.RefreshTokenSessionRepository;
 import org.junit.jupiter.api.BeforeEach;

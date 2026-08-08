@@ -1,6 +1,6 @@
 package dev.kalles.security.dto;
 
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
 
 public record AuthMeResponse(
         String accountId,

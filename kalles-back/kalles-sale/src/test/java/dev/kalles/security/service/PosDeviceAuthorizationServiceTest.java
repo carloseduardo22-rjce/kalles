@@ -1,8 +1,8 @@
 package dev.kalles.security.service;
 
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.AccountRole;
-import dev.kalles.security.domain.PosDeviceSession;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.entity.PosDeviceSession;
+import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

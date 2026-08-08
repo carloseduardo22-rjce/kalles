@@ -1,7 +1,7 @@
 package dev.kalles.security.service;
 
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.AccountRole;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.enums.AccountRole;
 import org.springframework.stereotype.Component;
 
 @Component

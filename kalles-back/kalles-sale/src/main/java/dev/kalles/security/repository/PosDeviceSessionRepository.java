@@ -1,6 +1,6 @@
 package dev.kalles.security.repository;
 
-import dev.kalles.security.domain.PosDeviceSession;
+import dev.kalles.security.entity.PosDeviceSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -2,7 +2,7 @@ package dev.kalles.support.application.service;
 
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.support.application.exception.NotFoundException;
 import dev.kalles.support.domain.Agent;

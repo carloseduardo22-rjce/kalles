@@ -1,6 +1,6 @@
 package dev.kalles.security.repository;
 
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,11 +1,11 @@
 
-package dev.kalles.security.application;
+package dev.kalles.security.service;
 
 import dev.kalles.email.domain.EmailData;
 import dev.kalles.email.application.port.in.SendEmailUseCase;
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.AccountVerification;
-import dev.kalles.security.domain.AccountVerificationRepository;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.entity.AccountVerification;
+import dev.kalles.security.repository.AccountVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

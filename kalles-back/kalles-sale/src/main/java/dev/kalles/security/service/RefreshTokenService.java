@@ -1,7 +1,7 @@
 package dev.kalles.security.service;
 
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.RefreshTokenSession;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.entity.RefreshTokenSession;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.repository.RefreshTokenSessionRepository;
 import lombok.RequiredArgsConstructor;

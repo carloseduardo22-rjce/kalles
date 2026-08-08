@@ -1,10 +1,9 @@
 package dev.kalles.security.service;
 
 import dev.kalles.company.repository.TenantRepository;
-import dev.kalles.security.application.AccountVerificationService;
-import dev.kalles.security.domain.Account;
-import dev.kalles.security.domain.AccountRole;
 import dev.kalles.security.dto.LoginRequest;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

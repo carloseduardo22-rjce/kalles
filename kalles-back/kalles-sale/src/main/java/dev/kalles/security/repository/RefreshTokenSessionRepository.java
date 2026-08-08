@@ -1,6 +1,6 @@
 package dev.kalles.security.repository;
 
-import dev.kalles.security.domain.RefreshTokenSession;
+import dev.kalles.security.entity.RefreshTokenSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

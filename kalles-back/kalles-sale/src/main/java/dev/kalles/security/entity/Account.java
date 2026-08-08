@@ -1,5 +1,6 @@
-package dev.kalles.security.domain;
+package dev.kalles.security.entity;
 
+import dev.kalles.security.enums.AccountRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

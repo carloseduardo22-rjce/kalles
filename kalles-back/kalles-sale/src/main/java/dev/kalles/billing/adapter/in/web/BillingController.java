@@ -4,6 +4,7 @@ import dev.kalles.billing.application.port.out.BillingGateway;
 import dev.kalles.billing.application.service.CreateBillingCheckoutSessionUseCase;
 import dev.kalles.billing.application.service.CreateBillingPortalSessionUseCase;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.security.entity.Account;
 import dev.kalles.security.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -4,7 +4,7 @@ import dev.kalles.note.adapter.in.web.dto.SensitiveContentRequest;
 import dev.kalles.note.application.port.in.DecryptSensitiveContentUseCase;
 import dev.kalles.note.application.port.in.EncryptSensitiveContentUseCase;
 import dev.kalles.security.context.TenantContextHolder;
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
 import dev.kalles.security.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package dev.kalles.security.application.usecase;
+package dev.kalles.security.service;
 
-import dev.kalles.security.domain.PosDeviceSession;
+import dev.kalles.security.entity.PosDeviceSession;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

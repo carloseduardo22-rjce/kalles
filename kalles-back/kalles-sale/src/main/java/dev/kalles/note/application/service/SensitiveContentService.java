@@ -1,11 +1,11 @@
 package dev.kalles.note.application.service;
 
-import dev.kalles.security.domain.Account;
 import dev.kalles.note.application.port.in.DecryptSensitiveContentUseCase;
 import dev.kalles.note.application.port.in.EncryptSensitiveContentUseCase;
 import dev.kalles.note.application.port.out.CryptoPort;
 import dev.kalles.note.application.port.out.SensitiveContentRepositoryPort;
 import dev.kalles.note.domain.SensitiveContent;
+import dev.kalles.security.entity.Account;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

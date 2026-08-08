@@ -6,9 +6,9 @@ import dev.kalles.security.dto.LoginRequest;
 import dev.kalles.security.dto.RegisterRequest;
 import dev.kalles.security.dto.RegisterResponse;
 import dev.kalles.security.dto.VerifyCodeRequest;
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
-import dev.kalles.security.application.AccountVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -84,7 +84,7 @@ public class AuthService {
                 request.name(),
                 request.email(),
                 encryptedPassword,
-                dev.kalles.security.domain.AccountRole.ADMIN);
+                AccountRole.ADMIN);
 
         accountRepository.save(newAccount);
 

@@ -8,7 +8,7 @@ import dev.kalles.payment.application.port.in.LinkPaymentProviderAccountUseCase;
 import dev.kalles.payment.application.service.PaymentProviderOAuthStateService;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.security.context.TenantContextHolder;
-import dev.kalles.security.domain.Account;
+import dev.kalles.security.entity.Account;
 import dev.kalles.security.repository.AccountRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
