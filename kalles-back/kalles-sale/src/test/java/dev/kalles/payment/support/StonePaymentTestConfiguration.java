@@ -1,10 +1,10 @@
 package dev.kalles.payment.support;
 
-import dev.kalles.core.service.PaymentService;
 import dev.kalles.payment.adapter.out.stone.StoneWebClient;
 import dev.kalles.payment.application.port.in.ProcessPaymentWebhookUseCase;
 import dev.kalles.payment.adapter.out.stone.StonePaymentWebhookAdapter;
 import dev.kalles.payment.domain.PaymentProvider;
+import dev.kalles.sale.service.PaymentService;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;

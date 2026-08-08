@@ -1,7 +1,5 @@
 package dev.kalles.payment.application.service;
 
-import dev.kalles.core.enums.payment.PaymentMethod;
-import dev.kalles.core.service.PaymentService;
 import dev.kalles.payment.application.port.in.ProcessPaymentWebhookUseCase;
 import dev.kalles.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.payment.application.port.out.PaymentWebhookEventObserver;
@@ -10,6 +8,8 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentOrder;
 import dev.kalles.payment.domain.PaymentStatus;
 import dev.kalles.payment.domain.PaymentWebhookEvent;
+import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.service.PaymentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,10 +1,10 @@
 package dev.kalles.report.service;
 
-import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.inventory.dto.SupplierExpenseProductSummary;
 import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.report.dto.ProfitSupplierExpenseReportResponse;
 import dev.kalles.report.service.FinancialReportService;
+import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

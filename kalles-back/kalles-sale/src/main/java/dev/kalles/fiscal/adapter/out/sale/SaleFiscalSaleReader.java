@@ -2,13 +2,13 @@ package dev.kalles.fiscal.adapter.out.sale;
 
 import dev.kalles.company.entity.Company;
 import dev.kalles.company.repository.CompanyRepository;
-import dev.kalles.core.entity.Sale;
-import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.fiscal.application.port.out.FiscalProductClassificationRepository;
 import dev.kalles.fiscal.application.port.out.FiscalSaleReader;
 import dev.kalles.fiscal.domain.FiscalSale;
 import dev.kalles.fiscal.domain.FiscalSaleItem;
 import dev.kalles.fiscal.domain.FiscalSaleStatus;
+import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.repository.SaleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

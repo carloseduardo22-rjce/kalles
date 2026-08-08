@@ -1,7 +1,7 @@
 package dev.kalles.fiscal.adapter.out.core;
 
-import dev.kalles.core.repository.PaymentRepository;
 import dev.kalles.fiscal.application.port.out.FiscalRefundReader;
+import dev.kalles.sale.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

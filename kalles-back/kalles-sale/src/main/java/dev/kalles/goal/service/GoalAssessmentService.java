@@ -1,7 +1,7 @@
 package dev.kalles.goal.service;
 
-import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.goal.entity.Goal;
+import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,10 +1,6 @@
 package dev.kalles.fiscal.integration;
 
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.core.entity.Sale;
-import dev.kalles.core.repository.PaymentRepository;
-import dev.kalles.core.repository.SaleRepository;
-import dev.kalles.core.state.CompletedState;
 import dev.kalles.fiscal.adapter.out.persistence.entity.FiscalDocumentEntity;
 import dev.kalles.fiscal.adapter.out.persistence.repository.SpringDataFiscalCertificateRepository;
 import dev.kalles.fiscal.adapter.out.persistence.repository.SpringDataFiscalConfigurationRepository;
@@ -17,6 +13,13 @@ import dev.kalles.fiscal.domain.FiscalDocumentStatus;
 import dev.kalles.fiscal.domain.FiscalEnvironment;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
+import dev.kalles.sale.entity.Payment;
+import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.entity.SaleItem;
+import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.repository.PaymentRepository;
+import dev.kalles.sale.repository.SaleRepository;
+import dev.kalles.sale.state.CompletedState;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.http.ContentType;
@@ -432,15 +435,15 @@ class FiscalOperationsApiIntegrationTest extends AbstractCashRegisterApiSupport 
         sale.setSubtotal(new BigDecimal("10.00"));
         sale.setTotal(new BigDecimal("10.00"));
         sale.setAmountDue(BigDecimal.ZERO);
-        sale.getItems().add(new dev.kalles.core.entity.SaleItem(sale, product, 1, new BigDecimal("10.00")));
+        sale.getItems().add(new SaleItem(sale, product, 1, new BigDecimal("10.00")));
         return saleRepository.save(sale).getId();
     }
 
     private void seedRefund(UUID saleId) {
         Sale sale = saleRepository.findById(saleId).orElseThrow();
-        paymentRepository.save(new dev.kalles.core.entity.Payment(
+        paymentRepository.save(new Payment(
                 sale,
-                dev.kalles.core.enums.payment.PaymentMethod.CASH,
+                PaymentMethod.CASH,
                 new BigDecimal("10.00"),
                 BigDecimal.ZERO,
                 "refund:" + saleId,

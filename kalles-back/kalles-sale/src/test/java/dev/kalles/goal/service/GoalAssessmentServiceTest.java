@@ -1,8 +1,8 @@
 package dev.kalles.goal.service;
 
-import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.Periodicity;
+import dev.kalles.sale.repository.SaleRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

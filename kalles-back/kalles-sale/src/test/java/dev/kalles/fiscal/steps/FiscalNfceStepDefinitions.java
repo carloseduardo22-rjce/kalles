@@ -3,13 +3,6 @@ package dev.kalles.fiscal.steps;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
 import dev.kalles.company.entity.Company;
 import dev.kalles.company.entity.Tenant;
-import dev.kalles.core.entity.Payment;
-import dev.kalles.core.entity.Sale;
-import dev.kalles.core.enums.payment.PaymentMethod;
-import dev.kalles.core.repository.PaymentRepository;
-import dev.kalles.core.repository.SaleRepository;
-import dev.kalles.core.state.CompletedState;
-import dev.kalles.core.state.OpenState;
 import dev.kalles.fiscal.adapter.out.persistence.entity.FiscalCertificateEntity;
 import dev.kalles.fiscal.adapter.out.persistence.entity.FiscalConfigurationEntity;
 import dev.kalles.fiscal.adapter.out.persistence.entity.FiscalDocumentEntity;
@@ -24,6 +17,14 @@ import dev.kalles.fiscal.domain.FiscalEnvironment;
 import dev.kalles.fiscal.support.ControllableSefazAuthorizationPort;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
+import dev.kalles.sale.entity.Payment;
+import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.entity.SaleItem;
+import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.repository.PaymentRepository;
+import dev.kalles.sale.repository.SaleRepository;
+import dev.kalles.sale.state.CompletedState;
+import dev.kalles.sale.state.OpenState;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.E;
@@ -280,7 +281,7 @@ public class FiscalNfceStepDefinitions extends AbstractCashRegisterApiSupport {
         sale.setSubtotal(new BigDecimal("10.00"));
         sale.setTotal(new BigDecimal("10.00"));
         sale.setAmountDue(completed ? BigDecimal.ZERO : new BigDecimal("10.00"));
-        sale.getItems().add(new dev.kalles.core.entity.SaleItem(sale, product, 1, new BigDecimal("10.00")));
+        sale.getItems().add(new SaleItem(sale, product, 1, new BigDecimal("10.00")));
         if (completed) {
             sale.getPayments().add(new Payment(sale, PaymentMethod.CASH, new BigDecimal("10.00"), BigDecimal.ZERO, "cash-fiscal", true));
         }

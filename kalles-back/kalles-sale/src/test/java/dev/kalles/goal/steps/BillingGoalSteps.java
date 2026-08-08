@@ -1,6 +1,5 @@
 package dev.kalles.goal.steps;
 
-import dev.kalles.core.repository.SaleRepository;
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
@@ -8,6 +7,7 @@ import dev.kalles.goal.exception.GoalDomainException;
 import dev.kalles.goal.service.GoalAssessmentResult;
 import dev.kalles.goal.service.GoalAssessmentService;
 import dev.kalles.goal.service.OverlapValidator;
+import dev.kalles.sale.repository.SaleRepository;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
