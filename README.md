@@ -125,7 +125,7 @@ Dentro de cada feature o layout é o mesmo: `controller/ dto/ entity/ enums/ rep
 
 Os erros da API seguem **RFC 7807 (`application/problem+json`)** via `ProblemDetail`.
 
-> **Nota de transparência:** `support/` ainda usa um layout próprio (`api/`, `application/`, `domain/`, `infrastructure/`), com modelo de domínio separado das entidades JPA e mapper entre os dois. A normalização para o padrão acima está no [roadmap](#roadmap).
+`support/` segue o mesmo layout, com uma pasta a mais: `domain/` guarda o modelo rico de chamado (`Ticket` e seus estados), separado das entidades JPA por um mapper. É uma separação deliberada, não um resquício.
 
 ### Frontend
 
@@ -272,7 +272,6 @@ O backend combina testes unitários, testes de API com REST Assured e **26 featu
 Melhorias identificadas em code review, em ordem de prioridade:
 
 - [ ] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
-- [ ] Normalizar `support/` para o layout por feature dos demais domínios
 - [ ] Decompor `SaleService` em use cases por operação
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [ ] Testcontainers como padrão nos testes de integração, no lugar do H2
