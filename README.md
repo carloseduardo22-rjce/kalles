@@ -115,8 +115,8 @@ kalles-back/kalles-sale/src/main/java/dev/kalles/
 │
 │   # Transversais
 ├── security/       # JWT, contexto de tenant, autorização
-├── shared/         # Base de entidade auditável, exceções e DTOs comuns
-└── exception/      # Tratamento global de erros (RFC 7807)
+└── shared/         # Base de entidade auditável, exceções, DTOs comuns
+                    # e o tratamento global de erros (RFC 7807)
 ```
 
 Dentro de cada feature o layout é o mesmo: `controller/ dto/ entity/ enums/ repository/ service/`, com pastas extras quando o domínio pede — `sale/` tem `state/` e `strategy/`, `inventory/` tem `exception/`.

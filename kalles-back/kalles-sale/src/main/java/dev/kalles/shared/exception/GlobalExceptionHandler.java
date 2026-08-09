@@ -1,4 +1,4 @@
-package dev.kalles.exception;
+package dev.kalles.shared.exception;
 
 import dev.kalles.billing.exception.BillingIntegrationException;
 import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
@@ -14,8 +14,6 @@ import dev.kalles.goal.exception.GoalDomainException;
 import dev.kalles.inventory.exception.InsufficientStockException;
 import dev.kalles.security.exception.RateLimitExceededException;
 import dev.kalles.security.service.InvalidRefreshTokenException;
-import dev.kalles.shared.exception.ForbiddenOperationException;
-import dev.kalles.shared.exception.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
