@@ -276,7 +276,6 @@ Melhorias identificadas em code review, em ordem de prioridade:
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [ ] Testcontainers como padrão nos testes de integração, no lugar do H2
 - [ ] Hierarquia de exceções de domínio no lugar de `IllegalStateException`/`IllegalArgumentException`
-- [ ] Reativar checagem de tipos no build do frontend e configurar ESLint
 - [ ] Testes unitários de frontend (Vitest + Testing Library)
 - [ ] Quebrar páginas do admin em componentes menores
 
