@@ -25,7 +25,6 @@ Construído como plataforma **multi-tenant**: uma instalação atende várias em
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Testes](#testes)
 - [Estrutura do repositório](#estrutura-do-repositório)
-- [Decisões técnicas](#decisões-técnicas)
 - [Roadmap](#roadmap)
 - [Licença](#licença)
 
@@ -90,28 +89,43 @@ Sistema de tickets interno com histórico por empresa.
 
 ## Arquitetura
 
-Monólito modular. O backend é um projeto Maven multi-módulo com um módulo de aplicação (`kalles-sale`), organizado internamente por domínio:
+Monólito modular. O backend é um projeto Maven multi-módulo com um módulo de aplicação (`kalles-sale`), organizado internamente **por feature** — cada domínio é um pacote autocontido, não uma fatia de camada técnica global.
 
 ```
-kalles-back/kalles-sale/src/main/java/dev/kalles/sale/
-├── api/            # Controllers REST por recurso
-├── core/           # Domínio central: venda, produto, cliente, estoque
-├── cashregister/   # Caixa, sessão de caixa, operador, permissões
-├── payment/        # Pagamento — portas e adaptadores (MP, Stone)
-├── mercadopago/    # Integração Mercado Pago (lojas, POS, webhooks)
-├── billing/        # Assinatura SaaS via Stripe
+kalles-back/kalles-sale/src/main/java/dev/kalles/
+│
+│   # Features de negócio — MVC por feature
+├── sale/           # Venda: itens, estados, pagamento, histórico
+├── cashregister/   # Caixa, sessão, operador, permissões
+├── inventory/      # Estoque, entrada, depósito, localização
+├── product/        # Produto e produto por empresa
+├── client/         # Cliente
+├── fidelity/       # Programa de fidelidade
+├── goal/           # Metas
+├── company/        # Empresa e tenant
+├── report/         # Relatórios financeiros
+├── support/        # Chamados e atendimento
+│
+│   # Integrações — arquitetura hexagonal
+├── payment/        # Pagamento: portas e adaptadores (Mercado Pago, Stone)
 ├── fiscal/         # Emissão de documento fiscal
-├── security/       # JWT, contexto de tenant, autorização
+├── billing/        # Assinatura SaaS via Stripe
+├── note/           # Notas e conteúdo sensível
 ├── email/          # Envio transacional
-├── note/           # Notas e anotações
+│
+│   # Transversais
+├── security/       # JWT, contexto de tenant, autorização
+├── shared/         # Base de entidade auditável, exceções e DTOs comuns
 └── exception/      # Tratamento global de erros (RFC 7807)
 ```
 
-Os módulos de integração (`payment`, `billing`, `fiscal`, `mercadopago`, `email`) seguem **arquitetura hexagonal** — o domínio define portas, os adaptadores implementam contra SDKs externos. Isso mantém a regra de negócio testável sem rede.
+Dentro de cada feature o layout é o mesmo: `controller/ dto/ entity/ enums/ repository/ service/`, com pastas extras quando o domínio pede — `sale/` tem `state/` e `strategy/`, `inventory/` tem `exception/`.
+
+**Dois estilos convivem de propósito.** As integrações seguem **arquitetura hexagonal** — o domínio define portas, os adaptadores implementam contra SDKs externos, o que mantém a regra de negócio testável sem rede. As features de negócio seguem **MVC por feature**, que é mais direto para CRUD transacional e não paga o custo de indireção de portas onde não há fornecedor externo a trocar.
 
 Os erros da API seguem **RFC 7807 (`application/problem+json`)** via `ProblemDetail`.
 
-> **Nota de transparência:** os módulos `core` e `cashregister` ainda usam organização em camadas clássica (controller/service/repository), herdada do início do projeto. A convergência para um padrão único está no [roadmap](#roadmap).
+`support/` segue o mesmo layout, com uma pasta a mais: `domain/` guarda o modelo rico de chamado (`Ticket` e seus estados), separado das entidades JPA por um mapper. É uma separação deliberada, não um resquício.
 
 ### Frontend
 
@@ -163,12 +177,20 @@ Sobe PostgreSQL em `localhost:5432` e pgAdmin em `localhost:8081`.
 
 ### 2. Backend
 
-Crie `kalles-back/kalles-sale/src/main/resources/application-local.yml` com suas credenciais (veja [variáveis de ambiente](#variáveis-de-ambiente)):
+A aplicação sobe apenas com `TENANT_CREDENTIALS_SECRET` definida — as demais variáveis têm default e desabilitam a integração correspondente quando ausentes (veja [variáveis de ambiente](#variáveis-de-ambiente)):
 
 ```bash
 cd kalles-back
-./mvnw spring-boot:run -pl kalles-sale
+TENANT_CREDENTIALS_SECRET=dev-secret ./mvnw spring-boot:run -pl kalles-sale
 ```
+
+Como alternativa às variáveis, crie `kalles-sale/src/main/resources/application-local.yml` (ignorado pelo git) e ative o profile:
+
+```bash
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run -pl kalles-sale
+```
+
+> O profile `local` **não** é ativado automaticamente. Ele foi retirado do `application.yml` versionado justamente porque apontava para um arquivo ignorado pelo git: quem clonasse o repositório não conseguia subir a aplicação, e a CI quebrava em todo build.
 
 API em `http://localhost:8080`. Swagger em `http://localhost:8080/swagger-ui.html`.
 
@@ -192,15 +214,18 @@ Nenhum segredo é versionado. O backend lê de variáveis de ambiente ou de `app
 
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
-| `TENANT_CREDENTIALS_SECRET` | ✅ | Chave de cifragem das credenciais de gateway por tenant |
-| `MAIL_USERNAME` | ✅ | Conta SMTP para e-mails transacionais |
-| `MAIL_PASSWORD` | ✅ | Senha de app da conta SMTP |
+| `TENANT_CREDENTIALS_SECRET` | ✅ | Chave de cifragem das credenciais de gateway por tenant. **Única sem default** — sem ela a aplicação não sobe |
+| `MAIL_USERNAME` | | Conta SMTP para e-mails transacionais |
+| `MAIL_PASSWORD` | | Senha de app da conta SMTP |
 | `APP_SECURE_COOKIES` | | `true` em produção (exige HTTPS). Padrão: `false` |
 | `STRIPE_SECRET_KEY` | | Cobrança de assinatura |
 | `STRIPE_PUBLISHABLE_KEY` | | Chave pública Stripe (frontend) |
 | `STRIPE_WEBHOOK_SECRET` | | Validação de webhook Stripe |
 | `STRIPE_MONTHLY_PRICE_ID` | | ID do plano mensal |
 | `MERCADOPAGO_APP_ID` | | Aplicação Mercado Pago (OAuth) |
+| `MERCADOPAGO_ACCESS_TOKEN` | | Token de acesso Mercado Pago (fallback da aplicação) |
+| `MERCADOPAGO_CLIENT_ID` | | Client ID do OAuth Mercado Pago |
+| `MERCADOPAGO_CLIENT_SECRET` | | Client secret do OAuth Mercado Pago |
 | `MERCADOPAGO_REDIRECT_URI` | | Callback do OAuth Mercado Pago |
 | `MERCADOPAGO_WEBHOOK_SECRET` | | Validação de webhook Mercado Pago |
 | `STONE_WEBHOOK_SECRET` | | Validação de webhook Stone |
@@ -242,29 +267,11 @@ O backend combina testes unitários, testes de API com REST Assured e **26 featu
 
 ---
 
-## Decisões técnicas
-
-**Monólito modular, não microsserviços.** O domínio de PDV é fortemente transacional — venda, estoque e caixa mudam juntos. Distribuir isso trocaria uma transação ACID por saga distribuída sem ganho real na escala alvo.
-
-**JWT em cookie `HttpOnly` + CSRF, não `localStorage`.** Token em `localStorage` é acessível a qualquer script na página. Cookie `HttpOnly` não é — em troca, exige proteção CSRF, feita com `CookieCsrfTokenRepository` e header `X-XSRF-TOKEN`.
-
-**Confirmação de pagamento por webhook, não por resposta síncrona.** O terminal físico é assíncrono por natureza. A venda só é concluída quando o provedor confirma, o que evita marcar como paga uma transação que o cliente cancelou na maquininha.
-
-**Credenciais de gateway cifradas em banco.** Cada tenant conecta a própria conta Mercado Pago/Stone. Os tokens são cifrados com chave da aplicação antes de persistir.
-
-**Flyway com migrations versionadas, `ddl-auto: none`.** O schema é um artefato explícito e revisável, não um efeito colateral do mapeamento JPA.
-
-**Erros em RFC 7807.** Respostas de erro padronizadas em `application/problem+json`, com `code` estável para o frontend tratar.
-
----
-
 ## Roadmap
 
 Melhorias identificadas em code review, em ordem de prioridade:
 
-- [ ] Pipeline de CI (build + testes das duas stacks)
 - [ ] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
-- [ ] Converger `core` e `cashregister` para o padrão hexagonal dos demais módulos
 - [ ] Decompor `SaleService` em use cases por operação
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [ ] Testcontainers como padrão nos testes de integração, no lugar do H2

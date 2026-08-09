@@ -1,6 +1,6 @@
 package dev.kalles.support.domain;
 
-import dev.kalles.support.domain.exception.InvalidStateTransitionException;
+import dev.kalles.support.exception.InvalidStateTransitionException;
 
 /**
  * State: RESOLVED — agent has provided a solution; awaiting customer confirmation.

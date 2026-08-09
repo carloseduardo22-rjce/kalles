@@ -8,7 +8,7 @@ import dev.kalles.support.domain.Priority;
 import dev.kalles.support.domain.Ticket;
 import dev.kalles.support.domain.TicketStatus;
 import dev.kalles.support.domain.User;
-import dev.kalles.support.domain.exception.TicketDomainException;
+import dev.kalles.support.exception.TicketDomainException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
