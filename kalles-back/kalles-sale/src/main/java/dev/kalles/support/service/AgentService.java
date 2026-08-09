@@ -1,8 +1,8 @@
 package dev.kalles.support.service;
 
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.support.entity.AgentEntity;
-import dev.kalles.support.exception.NotFoundException;
 import dev.kalles.support.repository.AgentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
