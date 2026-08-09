@@ -1,7 +1,7 @@
 package dev.kalles.support.domain;
 
-import dev.kalles.support.domain.exception.InvalidStateTransitionException;
-import dev.kalles.support.domain.exception.TicketDomainException;
+import dev.kalles.support.exception.InvalidStateTransitionException;
+import dev.kalles.support.exception.TicketDomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

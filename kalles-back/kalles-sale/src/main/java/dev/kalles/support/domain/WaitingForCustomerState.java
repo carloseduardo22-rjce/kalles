@@ -1,6 +1,6 @@
 package dev.kalles.support.domain;
 
-import dev.kalles.support.domain.exception.InvalidStateTransitionException;
+import dev.kalles.support.exception.InvalidStateTransitionException;
 
 /**
  * State: WAITING_FOR_CUSTOMER — agent asked a question; SLA is paused.
