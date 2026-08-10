@@ -2,7 +2,7 @@ package dev.kalles.goal.steps;
 
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;

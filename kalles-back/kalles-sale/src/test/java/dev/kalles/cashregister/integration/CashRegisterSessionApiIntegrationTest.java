@@ -2,7 +2,7 @@ package dev.kalles.cashregister.integration;
 
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;

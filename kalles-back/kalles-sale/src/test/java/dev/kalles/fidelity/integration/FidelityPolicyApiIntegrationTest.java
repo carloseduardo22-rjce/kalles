@@ -3,7 +3,7 @@ package dev.kalles.fidelity.integration;
 import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.enums.FidelityDiscountType;
 import dev.kalles.fidelity.support.AbstractFidelityPolicyApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

@@ -1,7 +1,7 @@
 package dev.kalles.fidelity.steps;
 
 import dev.kalles.fidelity.enums.FidelityDiscountType;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;

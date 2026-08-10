@@ -1,6 +1,6 @@
 package dev.kalles.security.integration;
 
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import dev.kalles.security.support.AbstractCompanyContextApiSupport;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;

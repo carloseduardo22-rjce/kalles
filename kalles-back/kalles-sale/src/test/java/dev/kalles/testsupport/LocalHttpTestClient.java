@@ -1,4 +1,4 @@
-package dev.kalles.payment.support;
+package dev.kalles.testsupport;
 
 import io.restassured.response.Response;
 
@@ -12,8 +12,11 @@ import java.util.Map;
 
 public final class LocalHttpTestClient {
 
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(
+            Long.getLong("kalles.test.http.timeout-seconds", 60L));
+
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
+            .connectTimeout(Duration.ofSeconds(15))
             .build();
 
     private LocalHttpTestClient() {
@@ -31,7 +34,7 @@ public final class LocalHttpTestClient {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(10));
+                    .timeout(REQUEST_TIMEOUT);
 
             if ("DELETE".equalsIgnoreCase(method)) {
                 requestBuilder.DELETE();

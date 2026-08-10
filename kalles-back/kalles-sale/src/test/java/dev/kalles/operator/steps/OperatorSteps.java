@@ -1,7 +1,7 @@
 package dev.kalles.operator.steps;
 
 import dev.kalles.cashregister.enums.PermissionLevel;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;

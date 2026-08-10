@@ -1,4 +1,4 @@
-package dev.kalles.payment.support;
+package dev.kalles.testsupport;
 
 import io.restassured.builder.ResponseBuilder;
 import io.restassured.http.Header;
