@@ -16,6 +16,8 @@ import dev.kalles.security.exception.RateLimitExceededException;
 import dev.kalles.security.service.InvalidRefreshTokenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ProblemDetail;
@@ -31,6 +33,7 @@ import jakarta.persistence.OptimisticLockException;
 
 import java.util.stream.Collectors;
 
+@Order(Ordered.LOWEST_PRECEDENCE)
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
