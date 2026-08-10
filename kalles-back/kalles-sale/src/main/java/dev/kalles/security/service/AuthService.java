@@ -31,8 +31,8 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationProtectionService authenticationProtectionService;
 
-    public AuthTokens authenticate(LoginRequest request, String posToken, String clientFingerprint) {
-        authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId(), clientFingerprint);
+    public AuthTokens authenticate(LoginRequest request, String posToken) {
+        authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId());
         try {
             var account = resolveAccount(request.email(), request.tenantId());
             if (!passwordEncoder.matches(request.password(), account.getPassword())) {
@@ -61,10 +61,10 @@ public class AuthService {
             posId = session.getPosId();
         } */
 
-            authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId(), clientFingerprint);
+            authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId());
             return buildSessionTokens(account, posId);
         } catch (RuntimeException ex) {
-            authenticationProtectionService.registerLoginFailure(request.email(), request.tenantId(), clientFingerprint);
+            authenticationProtectionService.registerLoginFailure(request.email(), request.tenantId());
             throw ex;
         }
     }
@@ -97,8 +97,8 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthTokens verifyCode(VerifyCodeRequest request, String clientFingerprint) {
-        authenticationProtectionService.assertVerificationAllowed(request.email(), request.tenantId(), clientFingerprint);
+    public AuthTokens verifyCode(VerifyCodeRequest request) {
+        authenticationProtectionService.assertVerificationAllowed(request.email(), request.tenantId());
         try {
             Account account = resolveAccountOptional(request.email(), request.tenantId())
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
@@ -112,18 +112,18 @@ public class AuthService {
         // auto-save.
         // But let's be explicit:
             accountRepository.save(account);
-            authenticationProtectionService.registerVerificationSuccess(request.email(), request.tenantId(), clientFingerprint);
+            authenticationProtectionService.registerVerificationSuccess(request.email(), request.tenantId());
 
             return buildSessionTokens(account, null);
         } catch (RuntimeException ex) {
-            authenticationProtectionService.registerVerificationFailure(request.email(), request.tenantId(), clientFingerprint);
+            authenticationProtectionService.registerVerificationFailure(request.email(), request.tenantId());
             throw ex;
             }
     }
 
     @Transactional
-    public void resendVerificationCode(String email, String tenantId, String clientFingerprint) {
-        authenticationProtectionService.assertResendAllowed(email, tenantId, clientFingerprint);
+    public void resendVerificationCode(String email, String tenantId) {
+        authenticationProtectionService.assertResendAllowed(email, tenantId);
         Account account = resolveAccountOptional(email, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
 
