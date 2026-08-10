@@ -16,6 +16,7 @@ import dev.kalles.fiscal.exception.FiscalConflictException;
 import dev.kalles.fiscal.exception.FiscalRejectionException;
 import dev.kalles.fiscal.exception.FiscalValidationException;
 import dev.kalles.shared.exception.NotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -92,11 +93,19 @@ public class IssueNfceService implements IssueNfceUseCase {
                 : FiscalDocument.rejected(command.tenantId(), command.companyId(), command.saleId(), command.model(),
                         command.environment(), authorization, now);
 
-        FiscalDocument savedDocument = documentRepository.save(document);
+        FiscalDocument savedDocument = saveEnforcingSingleAuthorization(document);
         if (!authorization.authorized()) {
             throw new FiscalRejectionException(savedDocument);
         }
         return savedDocument;
+    }
+
+    private FiscalDocument saveEnforcingSingleAuthorization(FiscalDocument document) {
+        try {
+            return documentRepository.save(document);
+        } catch (DataIntegrityViolationException ex) {
+            throw new FiscalConflictException("A venda ja possui documento fiscal autorizado");
+        }
     }
 
     private void ensureProductionReadiness(UUID tenantId, UUID companyId) {
