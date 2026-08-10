@@ -95,7 +95,7 @@ class PaymentLifecycleServiceTest {
     }
 
     @Test
-    void shouldKeepExistingIdempotencyKeyAndSkipPersistenceForQrPayments() {
+    void shouldKeepExistingIdempotencyKeyAndPersistOrderForQrPayments() {
         PaymentCommand command = new PaymentCommand(
                 PaymentProvider.MERCADO_PAGO,
                 PaymentFlow.QR_CODE,
@@ -119,7 +119,11 @@ class PaymentLifecycleServiceTest {
         paymentLifecycleService.execute(command);
 
         verify(paymentGatewayPort).processPayment(any(PaymentCommand.class));
-        verify(paymentOrderRepository, never()).save(any(PaymentOrder.class));
+
+        ArgumentCaptor<PaymentOrder> orderCaptor = ArgumentCaptor.forClass(PaymentOrder.class);
+        verify(paymentOrderRepository).save(orderCaptor.capture());
+        assertThat(orderCaptor.getValue().providerOrderId()).isEqualTo("MP-QR-ORDER-1");
+        assertThat(orderCaptor.getValue().flow()).isEqualTo(PaymentFlow.QR_CODE);
 
         ArgumentCaptor<PaymentCommand> commandCaptor = ArgumentCaptor.forClass(PaymentCommand.class);
         verify(paymentGatewayPort).processPayment(commandCaptor.capture());

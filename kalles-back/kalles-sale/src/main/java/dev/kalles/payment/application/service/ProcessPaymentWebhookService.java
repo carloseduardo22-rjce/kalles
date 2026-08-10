@@ -75,13 +75,20 @@ public class ProcessPaymentWebhookService implements ProcessPaymentWebhookUseCas
                     event.externalReference(),
                     toCorePaymentMethod(event.methodType()),
                     event.amount(),
-                    event.providerPaymentId()
+                    idempotencyReferenceOf(event)
             );
         }
 
         observers.forEach(observer -> observer.onEvent(event));
 
         return true;
+    }
+
+    private String idempotencyReferenceOf(PaymentWebhookEvent event) {
+        if (event.providerPaymentId() != null && !event.providerPaymentId().isBlank()) {
+            return event.providerPaymentId();
+        }
+        return event.providerOrderId();
     }
 
     private boolean isApproved(PaymentStatus status) {
