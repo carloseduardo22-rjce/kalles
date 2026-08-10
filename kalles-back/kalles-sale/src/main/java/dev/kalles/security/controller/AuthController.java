@@ -9,7 +9,6 @@ import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.filter.JwtAuthenticationFilter;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,10 +54,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Void> login(
             @Valid @RequestBody LoginRequest request,
-            @CookieValue(value = "kalles_pos_token", required = false) String posToken,
-            HttpServletRequest httpServletRequest) {
+            @CookieValue(value = "kalles_pos_token", required = false) String posToken) {
 
-        var tokens = authService.authenticate(request, posToken, resolveClientFingerprint(httpServletRequest));
+        var tokens = authService.authenticate(request, posToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, createAuthCookie(tokens.accessToken()).toString())
                 .header(HttpHeaders.SET_COOKIE, createRefreshCookie(tokens.refreshToken()).toString())
@@ -71,8 +69,8 @@ public class AuthController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Void> verify(@Valid @RequestBody VerifyCodeRequest request, HttpServletRequest httpServletRequest) {
-        var tokens = authService.verifyCode(request, resolveClientFingerprint(httpServletRequest));
+    public ResponseEntity<Void> verify(@Valid @RequestBody VerifyCodeRequest request) {
+        var tokens = authService.verifyCode(request);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, createAuthCookie(tokens.accessToken()).toString())
                 .header(HttpHeaders.SET_COOKIE, createRefreshCookie(tokens.refreshToken()).toString())
@@ -92,9 +90,8 @@ public class AuthController {
     @PostMapping("/resend-code")
     public ResponseEntity<Void> resendCode(
             @RequestParam String email,
-            @RequestParam(required = false) String tenantId,
-            HttpServletRequest httpServletRequest) {
-        authService.resendVerificationCode(email, tenantId, resolveClientFingerprint(httpServletRequest));
+            @RequestParam(required = false) String tenantId) {
+        authService.resendVerificationCode(email, tenantId);
         return ResponseEntity.ok().build();
     }
 
@@ -150,12 +147,4 @@ public class AuthController {
                 .build();
     }
 
-    private String resolveClientFingerprint(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        String ip = (forwardedFor != null && !forwardedFor.isBlank())
-                ? forwardedFor.split(",")[0].trim()
-                : request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent");
-        return ip + "|" + (userAgent == null ? "unknown-agent" : userAgent);
-    }
 }

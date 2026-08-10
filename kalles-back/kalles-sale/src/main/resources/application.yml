@@ -3,20 +3,14 @@ spring:
     name: kalles-sale
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/kalles
-    username: kalles_admin
-    password: kalles_password
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kalles}
+    username: ${DB_USERNAME:kalles_admin}
+    password: ${DB_PASSWORD:kalles_password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        highlight_sql: true
-        use_sql_comments: true
 
   flyway:
     enabled: true
@@ -35,6 +29,11 @@ spring:
           starttls:
             enable: true
 
+api:
+  security:
+    token:
+      secret: ${API_TOKEN_SECRET}
+
 security:
   encryption:
     tenant-credentials-secret: ${TENANT_CREDENTIALS_SECRET}
@@ -43,6 +42,10 @@ app:
   security:
     cookies:
       secure: ${APP_SECURE_COOKIES:false}
+
+payment:
+  oauth:
+    state-secret: ${PAYMENT_OAUTH_STATE_SECRET}
 
 billing:
   stripe:
@@ -60,9 +63,6 @@ mercadopago:
   client-secret: ${MERCADOPAGO_CLIENT_SECRET:}
   redirect-uri: ${MERCADOPAGO_REDIRECT_URI:https://localhost:3000/admin/pagamentos/mp-callback}
   webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
-
-stone:
-  webhook-secret: ${STONE_WEBHOOK_SECRET:}
 
 payments:
   simulation:

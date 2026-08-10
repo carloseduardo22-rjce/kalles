@@ -16,7 +16,7 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
-    @Value("${api.security.token.secret:my-very-secret-default-key-keep-it-safe}")
+    @Value("${api.security.token.secret}")
     private String secret;
 
     @Value("${api.security.access-token.expiration-minutes:720}")

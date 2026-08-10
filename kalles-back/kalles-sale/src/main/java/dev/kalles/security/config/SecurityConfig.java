@@ -51,8 +51,7 @@ public class SecurityConfig {
                         "/api/auth/logout",
                         "/api/pos/setup",
                         "/api/billing/webhook",
-                        "/api/webhooks/mercadopago",
-                        "/api/webhooks/stone"
+                        "/api/webhooks/mercadopago"
                 )
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -63,7 +62,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code", "/api/auth/refresh", "/api/auth/logout", "/api/pos/setup").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago", "/api/webhooks/stone").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/error").permitAll()
 

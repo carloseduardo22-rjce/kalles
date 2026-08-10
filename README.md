@@ -115,8 +115,8 @@ kalles-back/kalles-sale/src/main/java/dev/kalles/
 │
 │   # Transversais
 ├── security/       # JWT, contexto de tenant, autorização
-├── shared/         # Base de entidade auditável, exceções e DTOs comuns
-└── exception/      # Tratamento global de erros (RFC 7807)
+└── shared/         # Base de entidade auditável, exceções, DTOs comuns
+                    # e o tratamento global de erros (RFC 7807)
 ```
 
 Dentro de cada feature o layout é o mesmo: `controller/ dto/ entity/ enums/ repository/ service/`, com pastas extras quando o domínio pede — `sale/` tem `state/` e `strategy/`, `inventory/` tem `exception/`.
@@ -276,7 +276,6 @@ Melhorias identificadas em code review, em ordem de prioridade:
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [ ] Testcontainers como padrão nos testes de integração, no lugar do H2
 - [ ] Hierarquia de exceções de domínio no lugar de `IllegalStateException`/`IllegalArgumentException`
-- [ ] Reativar checagem de tipos no build do frontend e configurar ESLint
 - [ ] Testes unitários de frontend (Vitest + Testing Library)
 - [ ] Quebrar páginas do admin em componentes menores
 

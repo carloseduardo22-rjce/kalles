@@ -20,35 +20,35 @@ public class AuthenticationProtectionService {
     private final Map<String, FailureState> verificationFailures = new ConcurrentHashMap<>();
     private final Map<String, RateState> resendAttempts = new ConcurrentHashMap<>();
 
-    public void assertLoginAllowed(String email, String tenantId, String clientFingerprint) {
-        assertFailurePolicyAllowed(loginFailures, buildScopedKey(email, tenantId, clientFingerprint), LOGIN_POLICY,
+    public void assertLoginAllowed(String email, String tenantId) {
+        assertFailurePolicyAllowed(loginFailures, buildScopedKey(email, tenantId), LOGIN_POLICY,
                 "Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.");
     }
 
-    public void registerLoginFailure(String email, String tenantId, String clientFingerprint) {
-        registerFailure(loginFailures, buildScopedKey(email, tenantId, clientFingerprint), LOGIN_POLICY);
+    public void registerLoginFailure(String email, String tenantId) {
+        registerFailure(loginFailures, buildScopedKey(email, tenantId), LOGIN_POLICY);
     }
 
-    public void registerLoginSuccess(String email, String tenantId, String clientFingerprint) {
-        loginFailures.remove(buildScopedKey(email, tenantId, clientFingerprint));
+    public void registerLoginSuccess(String email, String tenantId) {
+        loginFailures.remove(buildScopedKey(email, tenantId));
     }
 
-    public void assertVerificationAllowed(String email, String tenantId, String clientFingerprint) {
-        assertFailurePolicyAllowed(verificationFailures, buildScopedKey(email, tenantId, clientFingerprint), VERIFY_POLICY,
+    public void assertVerificationAllowed(String email, String tenantId) {
+        assertFailurePolicyAllowed(verificationFailures, buildScopedKey(email, tenantId), VERIFY_POLICY,
                 "Muitas tentativas de verificacao. Aguarde alguns minutos antes de tentar novamente.");
     }
 
-    public void registerVerificationFailure(String email, String tenantId, String clientFingerprint) {
-        registerFailure(verificationFailures, buildScopedKey(email, tenantId, clientFingerprint), VERIFY_POLICY);
+    public void registerVerificationFailure(String email, String tenantId) {
+        registerFailure(verificationFailures, buildScopedKey(email, tenantId), VERIFY_POLICY);
     }
 
-    public void registerVerificationSuccess(String email, String tenantId, String clientFingerprint) {
-        verificationFailures.remove(buildScopedKey(email, tenantId, clientFingerprint));
+    public void registerVerificationSuccess(String email, String tenantId) {
+        verificationFailures.remove(buildScopedKey(email, tenantId));
     }
 
-    public void assertResendAllowed(String email, String tenantId, String clientFingerprint) {
+    public void assertResendAllowed(String email, String tenantId) {
         Instant now = Instant.now();
-        String key = buildScopedKey(email, tenantId, clientFingerprint);
+        String key = buildScopedKey(email, tenantId);
         resendAttempts.compute(key, (ignored, existing) -> {
             RateState state = existing;
             if (state == null || now.isAfter(state.windowStartedAt.plus(RESEND_POLICY.window()))) {
@@ -104,8 +104,8 @@ public class AuthenticationProtectionService {
         });
     }
 
-    private String buildScopedKey(String email, String tenantId, String clientFingerprint) {
-        return normalize(email) + "|" + normalize(tenantId) + "|" + normalize(clientFingerprint);
+    private String buildScopedKey(String email, String tenantId) {
+        return normalize(email) + "|" + normalize(tenantId);
     }
 
     private String normalize(String value) {

@@ -79,7 +79,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(account, null)).thenReturn("jwt-admin");
         when(refreshTokenService.issue(account, null)).thenReturn("refresh-admin");
 
-        AuthTokens tokens = authService.authenticate(request, null, null);
+        AuthTokens tokens = authService.authenticate(request, null);
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());
@@ -101,7 +101,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(account, posId)).thenReturn("jwt-operator");
         when(refreshTokenService.issue(account, posId)).thenReturn("refresh-operator");
 
-        AuthTokens tokens = authService.authenticate(request, "token-pos", null);
+        AuthTokens tokens = authService.authenticate(request, "token-pos");
 
         assertEquals("jwt-operator", tokens.accessToken());
         assertEquals("refresh-operator", tokens.refreshToken());
@@ -120,7 +120,7 @@ class AuthServiceTest {
 
         when(accountRepository.findAllByEmailIgnoreCase(tenantA.getEmail())).thenReturn(List.of(tenantA, tenantB));
 
-        assertThrows(IllegalArgumentException.class, () -> authService.authenticate(request, null, null));
+        assertThrows(IllegalArgumentException.class, () -> authService.authenticate(request, null));
     }
 
     @Test
@@ -136,7 +136,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(account, null)).thenReturn("jwt-admin");
         when(refreshTokenService.issue(account, null)).thenReturn("refresh-admin");
 
-        AuthTokens tokens = authService.authenticate(request, null, null);
+        AuthTokens tokens = authService.authenticate(request, null);
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());

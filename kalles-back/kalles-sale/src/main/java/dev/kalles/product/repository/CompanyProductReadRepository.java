@@ -9,6 +9,7 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CompanyProductReadRepository extends Repository<CompanyProduct, UUID> {
@@ -51,6 +52,18 @@ public interface CompanyProductReadRepository extends Repository<CompanyProduct,
             @Param("includeInactive") boolean includeInactive,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT new dev.kalles.product.dto.CompanyProductListItem(
+            p.id, p.name, p.internalCode, p.barcode,
+            cp.price, cp.costPrice, p.description, cp.active
+        )
+        FROM CompanyProduct cp
+        JOIN cp.product p
+        WHERE cp.companyId = :companyId
+          AND p.id = :productId
+    """)
+    Optional<CompanyProductListItem> findCatalogItem(@Param("companyId") UUID companyId, @Param("productId") UUID productId);
 
     @Query("""
         SELECT new dev.kalles.product.dto.CompanyProductListItem(

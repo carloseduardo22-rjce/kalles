@@ -130,8 +130,6 @@ public class SaleController {
             @PathVariable @NotBlank String sessionToken,
             @Valid @RequestBody AddItemRequest request) {
 
-        System.out.print("Requisição addItem: " + request);
-
         Sale sale = switch (request.type()) {
             case INTERNAL_CODE -> saleService.addItemByInternalCode(sessionToken, request.code(), request.quantity());
             case BAR_CODE -> saleService.addItemByBarCode(sessionToken, request.code(), request.quantity());

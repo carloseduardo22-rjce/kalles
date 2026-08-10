@@ -60,23 +60,23 @@ class PaymentTerminalMappingServiceTest {
     }
 
     @Test
-    void shouldMapStoneTerminalToAccessibleCashRegister() {
+    void shouldMapTerminalToAccessibleCashRegister() {
         CashRegister cashRegister = accessibleCashRegister();
         when(cashRegisterRepository.findByIdAndCompanyId(CASH_REGISTER_ID, COMPANY_ID))
                 .thenReturn(Optional.of(cashRegister));
         when(mappingRepository.findActiveByCompanyIdAndProviderAndTerminalSerial(
                 COMPANY_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234"
         )).thenReturn(Optional.empty());
-        when(mappingRepository.findActiveByCashRegisterIdAndProvider(CASH_REGISTER_ID, PaymentProvider.STONE))
+        when(mappingRepository.findActiveByCashRegisterIdAndProvider(CASH_REGISTER_ID, PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.empty());
         when(mappingRepository.save(any(PaymentTerminalMapping.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         PaymentTerminalMapping result = service.execute(new MapPaymentTerminalCommand(
                 CASH_REGISTER_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 " 6n021234 "
         ));
 
@@ -95,14 +95,14 @@ class PaymentTerminalMappingServiceTest {
                 .thenReturn(Optional.of(cashRegister));
         when(mappingRepository.findActiveByCompanyIdAndProviderAndTerminalSerial(
                 COMPANY_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234"
         )).thenReturn(Optional.of(new PaymentTerminalMapping(
                 UUID.randomUUID(),
                 TENANT_ID,
                 COMPANY_ID,
                 otherCashRegisterId,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234",
                 true,
                 null,
@@ -111,7 +111,7 @@ class PaymentTerminalMappingServiceTest {
 
         assertThatThrownBy(() -> service.execute(new MapPaymentTerminalCommand(
                 CASH_REGISTER_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234"
         ))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Este numero de serie ja esta vinculado a outro caixa desta filial.");
@@ -124,7 +124,7 @@ class PaymentTerminalMappingServiceTest {
 
         assertThatThrownBy(() -> service.execute(new GetPaymentTerminalMappingQuery(
                 CASH_REGISTER_ID,
-                PaymentProvider.STONE
+                PaymentProvider.MERCADO_PAGO
         ))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Caixa nao encontrado na filial ativa.");
     }
@@ -135,7 +135,7 @@ class PaymentTerminalMappingServiceTest {
 
         assertThatThrownBy(() -> service.execute(new MapPaymentTerminalCommand(
                 CASH_REGISTER_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234"
         ))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Filial nao encontrada para o tenant atual.");
@@ -150,19 +150,19 @@ class PaymentTerminalMappingServiceTest {
                 TENANT_ID,
                 COMPANY_ID,
                 CASH_REGISTER_ID,
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "6N021234",
                 true,
                 null,
                 null
         );
-        when(mappingRepository.findActiveByCompanyIdAndProvider(COMPANY_ID, PaymentProvider.STONE))
+        when(mappingRepository.findActiveByCompanyIdAndProvider(COMPANY_ID, PaymentProvider.MERCADO_PAGO))
                 .thenReturn(List.of(mapping));
 
-        List<PaymentTerminalMapping> result = service.execute(PaymentProvider.STONE);
+        List<PaymentTerminalMapping> result = service.execute(PaymentProvider.MERCADO_PAGO);
 
         assertThat(result).containsExactly(mapping);
-        verify(mappingRepository).findActiveByCompanyIdAndProvider(COMPANY_ID, PaymentProvider.STONE);
+        verify(mappingRepository).findActiveByCompanyIdAndProvider(COMPANY_ID, PaymentProvider.MERCADO_PAGO);
     }
 
     private CashRegister accessibleCashRegister() {

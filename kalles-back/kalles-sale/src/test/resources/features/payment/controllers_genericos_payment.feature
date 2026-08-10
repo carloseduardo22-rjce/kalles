@@ -38,17 +38,17 @@ Funcionalidade: Controllers genericos de payment
     E a resposta de pagamento deve conter metadata "qrData" "000201010212"
 
   Cenario: Fechamento de pedido usa status generico do dominio
-    Dado um pedido generico existente com provider "STONE" e orderId "OR-STONE-1"
+    Dado um pedido generico existente com provider "MERCADO_PAGO" e orderId "OR-MP-1"
     Quando o controller generico de pagamentos solicitar o fechamento com status "APPROVED"
-    Entao o caso de uso de fechamento deve receber o provider "STONE"
-    E o caso de uso de fechamento deve receber o orderId "OR-STONE-1"
+    Entao o caso de uso de fechamento deve receber o provider "MERCADO_PAGO"
+    E o caso de uso de fechamento deve receber o orderId "OR-MP-1"
     E o caso de uso de fechamento deve receber o status "APPROVED"
     E a resposta de fechamento generico deve ter status HTTP 200
 
   Cenario: Impressao de documento usa contrato generico do bounded context payment
-    Dado uma solicitacao generica de impressao com provider "STONE", orderId "OR-STONE-2", type "NFE", sizeVertical 128, sizeHorizontal 384, format "png" e content "BASE64"
+    Dado uma solicitacao generica de impressao com provider "MERCADO_PAGO", orderId "OR-MP-2", type "NFE", sizeVertical 128, sizeHorizontal 384, format "png" e content "BASE64"
     Quando o controller generico de pagamentos solicitar a impressao do documento
-    Entao o caso de uso de impressao deve receber o provider "STONE"
-    E o caso de uso de impressao deve receber o orderId "OR-STONE-2"
+    Entao o caso de uso de impressao deve receber o provider "MERCADO_PAGO"
+    E o caso de uso de impressao deve receber o orderId "OR-MP-2"
     E o caso de uso de impressao deve receber o type "NFE"
     E a resposta de impressao generica deve ter status HTTP 200
