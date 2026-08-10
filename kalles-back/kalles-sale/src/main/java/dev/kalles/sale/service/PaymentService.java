@@ -57,7 +57,7 @@ public class PaymentService {
 
     /**
      * Registra um pagamento ja capturado e confirmado por um provider externo
-     * (ex.: terminal Mercado Pago/Stone via webhook). Nao executa strategy local
+     * (ex.: terminal Mercado Pago via webhook). Nao executa strategy local
      * e e idempotente por transactionId, pois providers reenviam webhooks.
      */
     @Transactional

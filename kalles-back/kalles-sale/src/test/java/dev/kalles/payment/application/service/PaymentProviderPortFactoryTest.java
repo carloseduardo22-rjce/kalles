@@ -54,14 +54,12 @@ class PaymentProviderPortFactoryTest {
 
     @Test
     void shouldRejectProvidersWithoutRegisteredPorts() {
-        PaymentGatewayPort gatewayPort = mock(PaymentGatewayPort.class);
         PaymentProviderAccountPort providerAccountPort = mock(PaymentProviderAccountPort.class);
         PaymentStorePort storePort = mock(PaymentStorePort.class);
         PaymentPointPort pointPort = mock(PaymentPointPort.class);
         PaymentTerminalPort terminalPort = mock(PaymentTerminalPort.class);
         PaymentWebhookPort webhookPort = mock(PaymentWebhookPort.class);
 
-        when(gatewayPort.provider()).thenReturn(PaymentProvider.MERCADO_PAGO);
         when(providerAccountPort.provider()).thenReturn(PaymentProvider.MERCADO_PAGO);
         when(storePort.provider()).thenReturn(PaymentProvider.MERCADO_PAGO);
         when(pointPort.provider()).thenReturn(PaymentProvider.MERCADO_PAGO);
@@ -69,7 +67,7 @@ class PaymentProviderPortFactoryTest {
         when(webhookPort.provider()).thenReturn(PaymentProvider.MERCADO_PAGO);
 
         PaymentProviderPortFactory factory = new PaymentProviderPortFactory(
-                List.of(gatewayPort),
+                List.<PaymentGatewayPort>of(),
                 List.of(providerAccountPort),
                 List.of(storePort),
                 List.of(pointPort),
@@ -77,9 +75,9 @@ class PaymentProviderPortFactoryTest {
                 List.of(webhookPort)
         );
 
-        assertThatThrownBy(() -> factory.gateway(PaymentProvider.STONE))
+        assertThatThrownBy(() -> factory.gateway(PaymentProvider.MERCADO_PAGO))
                 .isInstanceOf(PaymentProviderNotSupportedException.class)
-                .hasMessageContaining("STONE")
+                .hasMessageContaining("MERCADO_PAGO")
                 .hasMessageContaining("PaymentGatewayPort");
     }
 }

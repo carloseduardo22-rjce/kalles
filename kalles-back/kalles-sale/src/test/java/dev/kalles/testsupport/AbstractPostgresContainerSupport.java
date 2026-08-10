@@ -1,11 +1,11 @@
-package dev.kalles.payment.support;
+package dev.kalles.testsupport;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.PostgreSQLContainer;
 
-public abstract class AbstractStonePaymentContainerSupport {
+public abstract class AbstractPostgresContainerSupport {
 
     protected static final boolean DOCKER_AVAILABLE = isDockerAvailable();
     protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER =
@@ -25,15 +25,13 @@ public abstract class AbstractStonePaymentContainerSupport {
             registry.add("spring.datasource.password", POSTGRESQL_CONTAINER::getPassword);
             registry.add("spring.datasource.driver-class-name", POSTGRESQL_CONTAINER::getDriverClassName);
         } else {
-            registry.add("spring.datasource.url", () -> "jdbc:h2:mem:stone-testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL");
+            registry.add("spring.datasource.url", () -> "jdbc:h2:mem:shared-testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL");
             registry.add("spring.datasource.username", () -> "sa");
             registry.add("spring.datasource.password", () -> "");
             registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
         }
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.flyway.enabled", () -> "false");
-        registry.add("stone.secret-key", () -> "sk_test_stone");
-        registry.add("stone.service-referer-name", () -> "partner-test-service");
         registry.add("security.encryption.tenant-credentials-secret", () -> "test-tenant-credentials-secret");
     }
 

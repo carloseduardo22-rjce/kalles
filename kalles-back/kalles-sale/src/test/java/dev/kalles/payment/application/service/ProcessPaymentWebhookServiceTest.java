@@ -53,16 +53,16 @@ class ProcessPaymentWebhookServiceTest {
                 List.of(observer)
         );
 
-        when(portFactory.webhook(PaymentProvider.STONE)).thenReturn(webhookPort);
+        when(portFactory.webhook(PaymentProvider.MERCADO_PAGO)).thenReturn(webhookPort);
     }
 
     @Test
     void shouldRegisterSalePaymentOnlyAfterApprovedWebhook() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.paid",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.APPROVED,
@@ -72,29 +72,29 @@ class ProcessPaymentWebhookServiceTest {
         PaymentOrder existingOrder = existingOrder(PaymentStatus.PENDING);
 
         when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder));
 
-        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
+        boolean processed = service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.paid"));
 
         assertThat(processed).isTrue();
         verify(paymentService).registerExternalPayment(
-                "session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"), "ch_stone_123");
+                "session-token-1", PaymentMethod.CREDIT_CARD, new BigDecimal("125.00"), "ch_mp_123");
         verify(observer).onEvent(event);
 
         ArgumentCaptor<PaymentOrder> orderCaptor = ArgumentCaptor.forClass(PaymentOrder.class);
         verify(paymentOrderRepository).save(orderCaptor.capture());
         assertThat(orderCaptor.getValue().status()).isEqualTo(PaymentStatus.APPROVED);
-        assertThat(orderCaptor.getValue().providerPaymentId()).isEqualTo("ch_stone_123");
+        assertThat(orderCaptor.getValue().providerPaymentId()).isEqualTo("ch_mp_123");
     }
 
     @Test
     void shouldNotRegisterSalePaymentAgainWhenApprovedWebhookIsResent() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.paid",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.APPROVED,
@@ -103,10 +103,10 @@ class ProcessPaymentWebhookServiceTest {
         );
 
         when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder(PaymentStatus.APPROVED)));
 
-        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
+        boolean processed = service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.paid"));
 
         assertThat(processed).isTrue();
         verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
@@ -116,10 +116,10 @@ class ProcessPaymentWebhookServiceTest {
     @Test
     void shouldPropagateFailureWhenRegisteringSalePaymentFails() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.paid",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.APPROVED,
@@ -128,12 +128,12 @@ class ProcessPaymentWebhookServiceTest {
         );
 
         when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder(PaymentStatus.PENDING)));
         when(paymentService.registerExternalPayment(any(), any(), any(), any()))
                 .thenThrow(new IllegalStateException("sessao fechada"));
 
-        assertThatThrownBy(() -> service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid")))
+        assertThatThrownBy(() -> service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.paid")))
                 .isInstanceOf(IllegalStateException.class);
 
         verify(observer, never()).onEvent(event);
@@ -142,10 +142,10 @@ class ProcessPaymentWebhookServiceTest {
     @Test
     void shouldMapUnspecifiedMethodTypeToOther() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.paid",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.APPROVED,
@@ -154,22 +154,22 @@ class ProcessPaymentWebhookServiceTest {
         );
 
         when(webhookPort.parseEvent(Map.of("type", "charge.paid"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder(PaymentStatus.PENDING)));
 
-        service.execute(PaymentProvider.STONE, Map.of("type", "charge.paid"));
+        service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.paid"));
 
         verify(paymentService).registerExternalPayment(
-                "session-token-1", PaymentMethod.OTHER, new BigDecimal("125.00"), "ch_stone_123");
+                "session-token-1", PaymentMethod.OTHER, new BigDecimal("125.00"), "ch_mp_123");
     }
 
     @Test
     void shouldNotRegisterSalePaymentWhenWebhookIsNotApproved() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.created",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.PENDING,
@@ -178,10 +178,10 @@ class ProcessPaymentWebhookServiceTest {
         );
 
         when(webhookPort.parseEvent(Map.of("type", "charge.created"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder(PaymentStatus.PENDING)));
 
-        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.created"));
+        boolean processed = service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.created"));
 
         assertThat(processed).isTrue();
         verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
@@ -191,10 +191,10 @@ class ProcessPaymentWebhookServiceTest {
     @Test
     void shouldNotRegisterSalePaymentForRefundWebhook() {
         PaymentWebhookEvent event = new PaymentWebhookEvent(
-                PaymentProvider.STONE,
+                PaymentProvider.MERCADO_PAGO,
                 "charge.refunded",
-                "or_stone_123",
-                "ch_stone_123",
+                "or_mp_123",
+                "ch_mp_123",
                 "session-token-1",
                 new BigDecimal("125.00"),
                 PaymentStatus.REFUNDED,
@@ -203,10 +203,10 @@ class ProcessPaymentWebhookServiceTest {
         );
 
         when(webhookPort.parseEvent(Map.of("type", "charge.refunded"))).thenReturn(event);
-        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE))
+        when(paymentOrderRepository.findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO))
                 .thenReturn(Optional.of(existingOrder(PaymentStatus.APPROVED)));
 
-        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.refunded"));
+        boolean processed = service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.refunded"));
 
         assertThat(processed).isTrue();
         verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
@@ -217,18 +217,18 @@ class ProcessPaymentWebhookServiceTest {
     void shouldIgnoreUnsupportedWebhookPayload() {
         when(webhookPort.parseEvent(Map.of("type", "charge.unknown"))).thenReturn(null);
 
-        boolean processed = service.execute(PaymentProvider.STONE, Map.of("type", "charge.unknown"));
+        boolean processed = service.execute(PaymentProvider.MERCADO_PAGO, Map.of("type", "charge.unknown"));
 
         assertThat(processed).isFalse();
-        verify(paymentOrderRepository, never()).findByProviderOrderIdAndProvider("or_stone_123", PaymentProvider.STONE);
+        verify(paymentOrderRepository, never()).findByProviderOrderIdAndProvider("or_mp_123", PaymentProvider.MERCADO_PAGO);
         verify(paymentService, never()).registerExternalPayment(any(), any(), any(), any());
         verify(observer, never()).onEvent(null);
     }
 
     private PaymentOrder existingOrder(PaymentStatus status) {
         return new PaymentOrder(
-                PaymentProvider.STONE,
-                "or_stone_123",
+                PaymentProvider.MERCADO_PAGO,
+                "or_mp_123",
                 null,
                 status,
                 "session-token-1",

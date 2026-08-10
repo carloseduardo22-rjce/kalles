@@ -27,7 +27,7 @@ public class CreditCardPaymentStrategy implements PaymentStrategy {
         if (!simulationEnabled) {
             // Sem integração real neste fluxo: confirmar aqui marcaria a venda como
             // paga sem nenhuma cobrança. Cartão deve ser cobrado via terminal
-            // integrado (Mercado Pago/Stone), confirmado por webhook.
+            // integrado (Mercado Pago), confirmado por webhook.
             throw new IllegalStateException(
                     "Pagamento com cartão de crédito indisponível neste fluxo. Utilize o terminal integrado.");
         }

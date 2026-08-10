@@ -6,7 +6,6 @@ import dev.kalles.payment.adapter.in.web.PaymentPointController;
 import dev.kalles.payment.adapter.in.web.PaymentProviderAccountController;
 import dev.kalles.payment.adapter.in.web.PaymentStoreController;
 import dev.kalles.payment.adapter.in.web.PaymentTerminalController;
-import dev.kalles.payment.adapter.in.web.StoneWebhookController;
 import dev.kalles.payment.application.port.in.ActivatePaymentTerminalUseCase;
 import dev.kalles.payment.application.port.in.CancelPaymentUseCase;
 import dev.kalles.payment.application.port.in.ClosePaymentOrderUseCase;
@@ -49,7 +48,6 @@ class KallesSaleApplicationTests {
         assertThat(applicationContext.getBeansOfType(PaymentPointController.class)).hasSize(1);
         assertThat(applicationContext.getBeansOfType(PaymentTerminalController.class)).hasSize(1);
         assertThat(applicationContext.getBeansOfType(MercadoPagoWebhookController.class)).hasSize(1);
-        assertThat(applicationContext.getBeansOfType(StoneWebhookController.class)).hasSize(1);
     }
 
     @Configuration
@@ -221,11 +219,5 @@ class KallesSaleApplicationTests {
             return new MercadoPagoWebhookController(processPaymentWebhookUseCase, "");
         }
 
-        @Bean
-        StoneWebhookController stoneWebhookController(
-                ProcessPaymentWebhookUseCase processPaymentWebhookUseCase
-        ) {
-            return new StoneWebhookController(processPaymentWebhookUseCase);
-        }
     }
 }

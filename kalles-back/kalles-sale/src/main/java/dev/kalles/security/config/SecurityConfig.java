@@ -63,7 +63,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/verify", "/api/auth/resend-code", "/api/auth/refresh", "/api/auth/logout", "/api/pos/setup").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago").permitAll()
-                .requestMatchers("/api/webhooks/stone").denyAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/error").permitAll()
 

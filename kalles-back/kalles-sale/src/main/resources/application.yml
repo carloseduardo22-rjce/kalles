@@ -64,9 +64,6 @@ mercadopago:
   redirect-uri: ${MERCADOPAGO_REDIRECT_URI:https://localhost:3000/admin/pagamentos/mp-callback}
   webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:}
 
-stone:
-  webhook-secret: ${STONE_WEBHOOK_SECRET:}
-
 payments:
   simulation:
     # Quando false (default), cartão/PIX pelo fluxo direto são rejeitados e o
