@@ -21,7 +21,7 @@ import java.util.UUID;
 @Service
 public class PaymentProviderOAuthStateService {
 
-    @Value("${payment.oauth.state-secret:${api.security.token.secret:my-very-secret-default-key-keep-it-safe}}")
+    @Value("${payment.oauth.state-secret}")
     private String secret;
 
     @Value("${payment.oauth.state.expiration-minutes:10}")

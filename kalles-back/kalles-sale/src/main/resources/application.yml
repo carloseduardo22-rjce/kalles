@@ -35,6 +35,11 @@ spring:
           starttls:
             enable: true
 
+api:
+  security:
+    token:
+      secret: ${API_TOKEN_SECRET}
+
 security:
   encryption:
     tenant-credentials-secret: ${TENANT_CREDENTIALS_SECRET}
@@ -43,6 +48,10 @@ app:
   security:
     cookies:
       secure: ${APP_SECURE_COOKIES:false}
+
+payment:
+  oauth:
+    state-secret: ${PAYMENT_OAUTH_STATE_SECRET}
 
 billing:
   stripe:
