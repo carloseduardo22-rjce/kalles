@@ -65,10 +65,7 @@ public class ProductService {
     public ProductCatalogResponse findById(UUID id) {
         findTenantProduct(id);
         UUID companyId = getCompanyId();
-        List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, true);
-        CompanyProductListItem item = catalog.stream()
-                .filter(c -> c.productId().equals(id))
-                .findFirst()
+        CompanyProductListItem item = companyProductReadRepository.findCatalogItem(companyId, id)
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + id));
         Map<UUID, Long> stockMap = buildStockMap(companyId, List.of(id));
         return ProductCatalogResponse.from(item, stockMap.getOrDefault(id, 0L));

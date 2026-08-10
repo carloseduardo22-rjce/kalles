@@ -92,7 +92,7 @@ class ProductServiceTest {
 
         when(productRepository.save(any(Product.class))).thenReturn(savedProduct);
         when(productRepository.findByIdAndTenantId(productId, TENANT_ID)).thenReturn(Optional.of(savedProduct));
-        when(companyProductReadRepository.listCatalog(COMPANY_ID, true)).thenReturn(List.of(
+        when(companyProductReadRepository.findCatalogItem(COMPANY_ID, productId)).thenReturn(Optional.of(
                 new CompanyProductListItem(
                         productId,
                         request.name(),
