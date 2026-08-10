@@ -12,15 +12,9 @@ import java.util.UUID;
 
 public interface FidelityPolicyRepository extends JpaRepository<FidelityPolicy, UUID> {
 
-    Optional<FidelityPolicy> findFirstByActiveTrue();
-
     Optional<FidelityPolicy> findFirstByCompanyIdAndActiveTrue(UUID companyId);
 
     List<FidelityPolicy> findAllByCompanyIdOrderByCreatedAtDesc(UUID companyId);
-
-    @Modifying
-    @Query("UPDATE FidelityPolicy fp SET fp.active = false WHERE fp.active = true")
-    void deactivateAll();
 
     @Modifying
     @Query("UPDATE FidelityPolicy fp SET fp.active = false WHERE fp.active = true AND fp.companyId = :companyId")

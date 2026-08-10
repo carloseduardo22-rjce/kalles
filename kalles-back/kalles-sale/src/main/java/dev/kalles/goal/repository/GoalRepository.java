@@ -11,8 +11,6 @@ import java.util.UUID;
 
 public interface GoalRepository extends JpaRepository<Goal, UUID> {
 
-    List<Goal> findByPeriodicityAndStatus(Periodicity periodicity, GoalStatus status);
-
     List<Goal> findByCompanyIdAndPeriodicityAndStatus(UUID companyId, Periodicity periodicity, GoalStatus status);
 
     List<Goal> findAllByCompanyIdOrderByStartDateDesc(UUID companyId);
