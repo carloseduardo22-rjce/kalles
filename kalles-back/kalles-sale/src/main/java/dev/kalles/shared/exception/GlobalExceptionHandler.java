@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ProblemDetail;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
@@ -183,8 +184,8 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler(OptimisticLockException.class)
-    public ProblemDetail handleOptimisticLock(OptimisticLockException ex) {
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ProblemDetail handleOptimisticLock(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT,
             "A venda foi modificada por outra operação. Tente novamente."
