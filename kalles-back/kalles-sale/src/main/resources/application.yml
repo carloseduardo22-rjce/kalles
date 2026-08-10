@@ -3,20 +3,14 @@ spring:
     name: kalles-sale
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/kalles
-    username: kalles_admin
-    password: kalles_password
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kalles}
+    username: ${DB_USERNAME:kalles_admin}
+    password: ${DB_PASSWORD:kalles_password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        highlight_sql: true
-        use_sql_comments: true
 
   flyway:
     enabled: true
