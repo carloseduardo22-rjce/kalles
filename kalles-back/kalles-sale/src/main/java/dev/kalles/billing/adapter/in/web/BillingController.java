@@ -33,7 +33,7 @@ public class BillingController {
             return ResponseEntity.status(401).build();
         }
 
-        var account = accountRepository.findByEmail(authentication.getName())
+        var account = accountRepository.findByTenantIdAndEmailIgnoreCase(tenantId, authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("Conta autenticada nao encontrada."));
 
         BillingGateway.CheckoutSession checkoutSession = createBillingCheckoutSessionUseCase.execute(
