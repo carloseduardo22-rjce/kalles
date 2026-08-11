@@ -1,11 +1,14 @@
 package dev.kalles.inventory.service;
 
+import dev.kalles.inventory.dto.StockAdjustmentRequest;
 import dev.kalles.inventory.dto.StockRequest;
 import dev.kalles.inventory.dto.StockResponse;
 import dev.kalles.inventory.entity.Location;
 import dev.kalles.inventory.entity.Stock;
+import dev.kalles.inventory.entity.StockAdjustment;
 import dev.kalles.inventory.entity.StockEntry;
 import dev.kalles.inventory.repository.LocationRepository;
+import dev.kalles.inventory.repository.StockAdjustmentRepository;
 import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.inventory.repository.StockRepository;
 import dev.kalles.product.entity.CompanyProduct;
@@ -29,6 +32,7 @@ public class StockService {
 
     private final StockRepository stockRepository;
     private final StockEntryRepository stockEntryRepository;
+    private final StockAdjustmentRepository stockAdjustmentRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final CompanyProductRepository companyProductRepository;
@@ -58,6 +62,36 @@ public class StockService {
 
         stock.setQuantity(request.quantity());
         return StockResponse.from(stockRepository.save(stock));
+    }
+
+    @Transactional
+    public StockResponse adjustStock(StockAdjustmentRequest request) {
+        UUID companyId = getCompanyId();
+        Product product = findTenantProduct(request.productId());
+        companyProductRepository.findByCompanyIdAndProductId(companyId, product.getId())
+                .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial: " + request.productId()));
+
+        Location location = locationRepository.findByIdAndCompanyId(request.locationId(), companyId)
+                .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + request.locationId()));
+
+        Stock stock = stockRepository
+                .findByProductIdAndLocationId(product.getId(), location.getId())
+                .orElseGet(() -> new Stock(product, location, 0));
+
+        int previousQuantity = stock.getQuantity();
+        stock.setQuantity(request.quantity());
+        StockResponse response = StockResponse.from(stockRepository.save(stock));
+
+        StockAdjustment adjustment = new StockAdjustment();
+        adjustment.setCompanyId(companyId);
+        adjustment.setProduct(product);
+        adjustment.setLocation(location);
+        adjustment.setPreviousQuantity(previousQuantity);
+        adjustment.setNewQuantity(request.quantity());
+        adjustment.setReason(request.reason());
+        stockAdjustmentRepository.save(adjustment);
+
+        return response;
     }
 
     @Transactional(readOnly = true)
