@@ -5,14 +5,18 @@ import dev.kalles.cashregister.dto.SessionResponse;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
+import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
+import dev.kalles.cashregister.exception.OperatorAlreadyInSessionException;
 import dev.kalles.cashregister.exception.OperatorNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
+import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,9 +80,24 @@ public class OpenSessionUseCase {
             cashOnlyOperation
         );
 
-        CashRegisterSession savedSession = sessionRepository.save(session);
+        CashRegisterSession savedSession = saveEnforcingSingleOpenSession(session, cashRegister, operator);
 
         return SessionResponse.fromEntity(savedSession);
+    }
+
+    private CashRegisterSession saveEnforcingSingleOpenSession(
+        CashRegisterSession session,
+        CashRegister cashRegister,
+        Operator operator
+    ) {
+        try {
+            return sessionRepository.saveAndFlush(session);
+        } catch (DataIntegrityViolationException ex) {
+            if (sessionRepository.existsByOperatorAndStatus(operator, SessionStatus.OPEN)) {
+                throw new OperatorAlreadyInSessionException(operator.getCode());
+            }
+            throw new ActiveSessionAlreadyExistsException(cashRegister.getCode());
+        }
     }
 
     private UUID getCompanyId() {

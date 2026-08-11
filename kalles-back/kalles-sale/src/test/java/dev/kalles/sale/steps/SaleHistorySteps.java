@@ -356,6 +356,7 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
 
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, BigDecimal.ZERO);
         ReflectionTestUtils.setField(session.getSessionPeriod(), "openedAt", openedAt);
+        session.close();
         session = cashRegisterSessionRepository.save(session);
 
         Product product = new Product();
