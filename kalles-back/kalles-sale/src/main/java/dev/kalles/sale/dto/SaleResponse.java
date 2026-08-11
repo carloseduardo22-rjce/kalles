@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record SaleResponse(
     UUID id,
     String sessionToken,
-    @Schema(description = "Estado atual da venda", allowableValues = {"OPEN", "ON_HOLD", "PAYMENT_IN_PROGRESS", "PAID", "COMPLETED", "CANCELED"})
+    @Schema(description = "Estado atual da venda", allowableValues = {"OPEN", "PAYMENT_IN_PROGRESS", "PAID", "COMPLETED", "CANCELED"})
     String state,
     List<SaleItemResponse> items,
     List<PaymentResponse> payments,

@@ -13,7 +13,6 @@ public class SaleStateFactory {
 
         return switch (stateName) {
             case OpenState.NAME -> new OpenState();
-            case OnHoldState.NAME -> new OnHoldState();
             case PaymentInProgressState.NAME -> new PaymentInProgressState();
             case PaidState.NAME -> new PaidState();
             case CanceledState.NAME -> new CanceledState();

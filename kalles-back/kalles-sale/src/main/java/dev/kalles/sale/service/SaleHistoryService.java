@@ -25,7 +25,6 @@ public class SaleHistoryService {
 
     private static final Set<String> ALLOWED_STATES = Set.of(
             "OPEN",
-            "ON_HOLD",
             "PAYMENT_IN_PROGRESS",
             "PAID",
             "COMPLETED",

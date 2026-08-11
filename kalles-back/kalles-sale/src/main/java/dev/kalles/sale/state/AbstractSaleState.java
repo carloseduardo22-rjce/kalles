@@ -45,18 +45,6 @@ public abstract class AbstractSaleState implements SaleState {
     }
 
     @Override
-    public void hold(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível colocar em espera no estado: " + getDescription());
-    }
-
-    @Override
-    public void resume(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível retomar no estado: " + getDescription());
-    }
-
-    @Override
     public void completeSale(Sale sale) {
         throw new IllegalStateException(
                 "Não é possível finalizar a venda no estado: " + getDescription());

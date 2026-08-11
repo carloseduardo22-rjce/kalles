@@ -123,14 +123,6 @@ public class Sale extends BaseAuditableEntity {
         state.cancel(this);
     }
 
-    public void hold() {
-        state.hold(this);
-    }
-
-    public void resume() {
-        state.resume(this);
-    }
-
     public void completeSale() {
         state.completeSale(this);
     }

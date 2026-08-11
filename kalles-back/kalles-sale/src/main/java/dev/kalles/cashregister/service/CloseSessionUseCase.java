@@ -15,7 +15,6 @@ import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.CanceledState;
 import dev.kalles.sale.state.CompletedState;
-import dev.kalles.sale.state.OnHoldState;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -105,8 +104,7 @@ public class CloseSessionUseCase {
 
         long blockingSales = 0;
         for (Sale sale : pendingSales) {
-            boolean idleState = OpenState.NAME.equals(sale.getStateName())
-                    || OnHoldState.NAME.equals(sale.getStateName());
+            boolean idleState = OpenState.NAME.equals(sale.getStateName());
             boolean emptySale = sale.getItems().isEmpty() && sale.getPayments().isEmpty();
 
             if (idleState && emptySale) {

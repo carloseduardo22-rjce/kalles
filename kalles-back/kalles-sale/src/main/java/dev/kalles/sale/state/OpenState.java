@@ -45,11 +45,6 @@ public class OpenState extends AbstractSaleState {
     }
 
     @Override
-    public void hold(Sale sale) {
-        sale.setState(new OnHoldState());
-    }
-
-    @Override
     public void cancel(Sale sale) {
         sale.setState(new CanceledState());
     }
