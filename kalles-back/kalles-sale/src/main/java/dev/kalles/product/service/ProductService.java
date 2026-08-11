@@ -135,13 +135,7 @@ public class ProductService {
         productRepository.save(product);
 
         CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), product.getId())
-                .orElseGet(() -> {
-                    CompanyProduct newCp = new CompanyProduct();
-                    newCp.setCompanyId(getCompanyId());
-                    newCp.setProduct(product);
-                    newCp.setActive(true);
-                    return newCp;
-                });
+                .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial."));
         cp.setPrice(request.price());
         cp.setCostPrice(request.costPrice());
         companyProductRepository.save(cp);
