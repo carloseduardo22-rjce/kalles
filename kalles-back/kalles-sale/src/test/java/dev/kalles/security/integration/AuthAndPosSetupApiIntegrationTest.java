@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.blankOrNullString;
 class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupport {
 
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final String RATE_LIMITED_EMAIL = "alvo.rate.limit@sistema.local";
 
     @LocalServerPort
     private int port;
@@ -240,6 +241,31 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .post("/api/pos/admin/generate-token")
                 .then()
                 .statusCode(400);
+    }
+
+    @Test
+    void shouldReturnTooManyRequestsAfterRepeatedLoginFailures() {
+        accountRepository.save(newAccount("Alvo do rate limit", RATE_LIMITED_EMAIL, AccountRole.ADMIN, companyId));
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            RestAssured.given()
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("email", RATE_LIMITED_EMAIL, "password", "senha-errada"))
+                    .when()
+                    .post("/api/auth/login")
+                    .then()
+                    .statusCode(400);
+        }
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", RATE_LIMITED_EMAIL, "password", "senha-errada"))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(429)
+                .body("title", equalTo("Muitas tentativas"))
+                .body("detail", equalTo("Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente."));
     }
 
     private Account newAccount(String name, String email, AccountRole role, UUID companyId) {

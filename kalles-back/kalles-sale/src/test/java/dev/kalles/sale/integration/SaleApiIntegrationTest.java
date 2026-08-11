@@ -299,6 +299,32 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 .contains("sale_id", "method", "change_amount");
     }
 
+    @Test
+    void shouldRejectAddingItemBeyondAvailableStock() {
+        AuthContext auth = authenticateOperator();
+        String sessionToken = openSession(auth, false);
+
+        givenAuthenticated(auth, sessionToken)
+                .when()
+                .post("/api/sales/{sessionToken}")
+                .then()
+                .statusCode(201);
+
+        givenAuthenticated(auth, sessionToken)
+                .contentType(ContentType.JSON)
+                .body(Map.of(
+                        "type", "INTERNAL_CODE",
+                        "code", PRODUCT_INTERNAL_CODE,
+                        "quantity", 999
+                ))
+                .when()
+                .post("/api/sales/{sessionToken}/items")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Estoque insuficiente"))
+                .body("detail", equalTo("Estoque insuficiente para o produto 'Produto PDV'. Quantidade disponível: 20"));
+    }
+
     private io.restassured.specification.RequestSpecification givenAuthenticated(AuthContext auth, String sessionToken) {
         return given()
                 .cookie("kalles_auth_token", auth.authCookie())
