@@ -6,8 +6,10 @@ import dev.kalles.fiscal.application.port.out.FiscalConfigurationRepository;
 import dev.kalles.fiscal.domain.FiscalConfiguration;
 import dev.kalles.fiscal.domain.FiscalDocumentModel;
 import dev.kalles.fiscal.domain.FiscalEnvironment;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +24,19 @@ public class FiscalConfigurationPersistenceAdapter implements FiscalConfiguratio
     public Optional<FiscalConfiguration> findByCompany(UUID tenantId, UUID companyId, FiscalDocumentModel model, FiscalEnvironment environment) {
         return repository.findByTenantIdAndCompanyIdAndModelAndEnvironment(tenantId, companyId, model, environment)
                 .map(FiscalConfigurationEntity::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public long reserveNextNumber(UUID tenantId, UUID companyId, FiscalDocumentModel model, FiscalEnvironment environment) {
+        FiscalConfigurationEntity entity = repository
+                .findForNumberReservation(tenantId, companyId, model, environment)
+                .orElseThrow(() -> new NotFoundException("Configuracao fiscal da filial nao encontrada"));
+
+        long reserved = entity.getNextNumber() == null ? 1L : entity.getNextNumber();
+        entity.setNextNumber(reserved + 1);
+        repository.save(entity);
+        return reserved;
     }
 
     @Override

@@ -86,7 +86,11 @@ public class IssueNfceService implements IssueNfceUseCase {
             throw new FiscalValidationException("Todos os itens da NFC-e devem possuir classificacao fiscal minima");
         }
 
-        var authorization = sefazAuthorizationPort.authorize(sale, configuration, certificate);
+        long documentNumber = configurationRepository.reserveNextNumber(
+                command.tenantId(), command.companyId(), command.model(), command.environment());
+
+        var authorization = sefazAuthorizationPort.authorize(
+                sale, configuration.withDocumentNumber(documentNumber), certificate);
         FiscalDocument document = authorization.authorized()
                 ? FiscalDocument.authorized(command.tenantId(), command.companyId(), command.saleId(), command.model(),
                         command.environment(), authorization, now)

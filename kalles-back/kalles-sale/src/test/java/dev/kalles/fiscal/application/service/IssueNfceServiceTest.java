@@ -106,7 +106,9 @@ class IssueNfceServiceTest {
         when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
                 FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.authorized("35260412345678000123650010000000011000000018", "135260000000001"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -224,7 +226,9 @@ class IssueNfceServiceTest {
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
         when(issuerProfileRepository.findByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(issuerProfile()));
         when(issuerAddressRepository.findByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(issuerAddress()));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.PRODUCAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.authorized("35260412345678000123650010000000011000000018", "135260000000001"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -244,7 +248,9 @@ class IssueNfceServiceTest {
         when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
                 FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.rejected("Rejeicao: total da NFC-e difere do somatorio dos itens"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
