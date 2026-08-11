@@ -27,8 +27,7 @@ import java.util.UUID;
         @Index(name = "idx_stock_adjustments_company_id", columnList = "company_id"),
         @Index(name = "idx_stock_adjustments_created_at", columnList = "created_at"),
         @Index(name = "idx_stock_adjustments_product_id", columnList = "product_id")
-    },
-    comment = "Trilha de ajustes de inventario: correcoes de contagem que nao alteram o custo"
+    }
 )
 @Getter
 @Setter

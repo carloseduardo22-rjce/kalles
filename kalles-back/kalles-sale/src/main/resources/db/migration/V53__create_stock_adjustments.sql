@@ -14,8 +14,6 @@ CREATE TABLE stock_adjustments (
     CONSTRAINT fk_stock_adjustments_location FOREIGN KEY (location_id) REFERENCES location (id)
 );
 
-COMMENT ON TABLE stock_adjustments IS 'Trilha de ajustes de inventario: correcoes de contagem que nao alteram o custo';
-
 CREATE INDEX idx_stock_adjustments_company_id ON stock_adjustments (company_id);
 CREATE INDEX idx_stock_adjustments_created_at ON stock_adjustments (created_at);
 CREATE INDEX idx_stock_adjustments_product_id ON stock_adjustments (product_id);
