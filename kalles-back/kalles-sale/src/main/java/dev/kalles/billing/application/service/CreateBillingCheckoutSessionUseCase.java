@@ -8,7 +8,6 @@ import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.domain.BillingSubscription;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -20,7 +19,6 @@ public class CreateBillingCheckoutSessionUseCase {
     private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final StripeBillingProperties stripeBillingProperties;
 
-    @Transactional
     public BillingGateway.CheckoutSession execute(UUID tenantId, String customerEmail, String customerName, String returnUrl) {
         BillingSubscription currentSubscription = billingSubscriptionRepository
                 .findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE)
