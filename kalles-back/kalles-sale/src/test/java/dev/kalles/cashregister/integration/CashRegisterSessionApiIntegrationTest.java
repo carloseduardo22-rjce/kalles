@@ -220,6 +220,32 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
     }
 
     @Test
+    void shouldReportCashRegisterConflictFirstWhenBothCashRegisterAndOperatorAreBusy() {
+        configurePaymentIntegration(true);
+        AuthContext auth = authenticateOperator();
+        seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of(
+                        "cashRegisterCode", CASH_REGISTER_CODE,
+                        "operatorCode", OPERATOR_CODE,
+                        "initialAmount", 100.00,
+                        "allowCashOnlyOperation", false
+                ))
+                .when()
+                .post("/api/cash-register-sessions/open")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Sessão ativa já existe"))
+                .body("detail", equalTo("O caixa " + CASH_REGISTER_CODE + " já possui uma sessão ativa"));
+    }
+
+    @Test
     void shouldReturnNotFoundWhenOpeningSessionForUnknownCashRegister() {
         AuthContext auth = authenticateOperator();
 
