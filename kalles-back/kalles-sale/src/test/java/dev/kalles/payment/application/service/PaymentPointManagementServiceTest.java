@@ -12,7 +12,7 @@ import dev.kalles.payment.application.port.out.PaymentTerminalRepository;
 import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
-import dev.kalles.payment.exception.PaymentTenantContextException;
+import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -113,7 +113,7 @@ class PaymentPointManagementServiceTest {
 
     @Test
     void shouldRequireTenantContextForTerminalListing() {
-        assertThrows(PaymentTenantContextException.class, () ->
+        assertThrows(TenantContextRequiredException.class, () ->
                 service.execute(new ListPaymentTerminalsQuery(
                         PaymentProvider.MERCADO_PAGO,
                         "store-1",

@@ -32,6 +32,17 @@ public class SecurityExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(TenantContextRequiredException.class)
+    public ProblemDetail handleTenantContextRequired(TenantContextRequiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setTitle("Contexto de tenant obrigatorio");
+        problem.setProperty("code", TenantContextRequiredException.CODE);
+        return problem;
+    }
+
     @ExceptionHandler(RateLimitExceededException.class)
     public ProblemDetail handleRateLimitExceeded(RateLimitExceededException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(

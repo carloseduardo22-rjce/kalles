@@ -19,18 +19,18 @@ public class AgentService {
 
     @Transactional(readOnly = true)
     public List<AgentEntity> listAllActive() {
-        return agentRepository.findAllByTenantIdAndActiveTrueOrderByNameAsc(currentTenantId());
+        return agentRepository.findAllByTenantIdAndActiveTrueOrderByNameAsc(TenantContextHolder.requireTenantId());
     }
 
     @Transactional(readOnly = true)
     public AgentEntity findById(UUID id) {
-        return agentRepository.findByIdAndTenantId(id, currentTenantId())
+        return agentRepository.findByIdAndTenantId(id, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Agent not found: " + id));
     }
 
     @Transactional
     public AgentEntity create(String employeeId, String name) {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         agentRepository.findByTenantIdAndEmployeeId(tenantId, employeeId).ifPresent(existing -> {
             throw new IllegalArgumentException("An agent with this employee ID already exists: " + employeeId);
         });
@@ -45,7 +45,7 @@ public class AgentService {
     @Transactional
     public AgentEntity update(UUID id, String employeeId, String name) {
         AgentEntity agent = findById(id);
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         agentRepository.findByTenantIdAndEmployeeId(tenantId, employeeId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new IllegalArgumentException("Employee ID already used by another agent: " + employeeId);
@@ -61,13 +61,5 @@ public class AgentService {
         AgentEntity agent = findById(id);
         agent.setActive(false);
         agentRepository.save(agent);
-    }
-
-    private UUID currentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context is required for support agents");
-        }
-        return tenantId;
     }
 }

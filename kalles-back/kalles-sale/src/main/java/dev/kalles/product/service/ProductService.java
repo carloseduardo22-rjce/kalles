@@ -80,7 +80,7 @@ public class ProductService {
 
     @Transactional
     public ProductCatalogResponse create(ProductRequest request) {
-        UUID tenantId = getTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
@@ -112,7 +112,7 @@ public class ProductService {
 
     @Transactional
     public ProductCatalogResponse update(UUID id, ProductRequest request) {
-        UUID tenantId = getTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         Product product = findTenantProduct(id);
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
@@ -152,16 +152,8 @@ public class ProductService {
     }
 
 
-    private UUID getTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Nenhum tenant selecionado no contexto da operacao.");
-        }
-        return tenantId;
-    }
-
     private Product findTenantProduct(UUID productId) {
-        return productRepository.findByIdAndTenantId(productId, getTenantId())
+        return productRepository.findByIdAndTenantId(productId, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + productId));
     }
 

@@ -21,7 +21,6 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentTerminal;
 import dev.kalles.payment.domain.TerminalOperationMode;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -173,14 +172,6 @@ public class PaymentPointManagementService implements
     }
 
     private List<Company> accessibleCompanies() {
-        return companyRepository.findByTenantId(getCurrentTenantId());
-    }
-
-    private UUID getCurrentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for this operation");
-        }
-        return tenantId;
+        return companyRepository.findByTenantId(TenantContextHolder.requireTenantId());
     }
 }

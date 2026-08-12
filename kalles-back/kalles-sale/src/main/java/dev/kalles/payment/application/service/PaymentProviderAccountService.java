@@ -7,7 +7,6 @@ import dev.kalles.payment.application.port.out.PaymentAccountRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentProviderAccount;
 import dev.kalles.payment.domain.PaymentProviderAuthorization;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -53,17 +52,9 @@ public class PaymentProviderAccountService implements
 
     @Override
     public boolean execute(PaymentProvider provider) {
-        UUID tenantId = getCurrentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return paymentAccountRepository.findByTenantIdAndProvider(tenantId, provider)
                 .map(PaymentProviderAccount::isLinked)
                 .orElse(false);
-    }
-
-    private UUID getCurrentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for this operation");
-        }
-        return tenantId;
     }
 }

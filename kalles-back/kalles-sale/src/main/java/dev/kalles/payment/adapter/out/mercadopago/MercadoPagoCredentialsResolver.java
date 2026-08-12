@@ -2,7 +2,6 @@ package dev.kalles.payment.adapter.out.mercadopago;
 
 import dev.kalles.payment.application.port.out.PaymentAccountRepository;
 import dev.kalles.payment.domain.PaymentProvider;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,14 +34,14 @@ public class MercadoPagoCredentialsResolver {
     }
 
     public String linkedAccessToken() {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return paymentAccountRepository.findByTenantIdAndProvider(tenantId, PaymentProvider.MERCADO_PAGO)
                 .map(account -> account.accessToken())
                 .orElse(null);
     }
 
     public String linkedUserId() {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return paymentAccountRepository.findByTenantIdAndProvider(tenantId, PaymentProvider.MERCADO_PAGO)
                 .map(account -> account.providerAccountId())
                 .orElse(null);
@@ -62,13 +61,5 @@ public class MercadoPagoCredentialsResolver {
             throw new MercadoPagoAdapterException("Mercado Pago account is not linked");
         }
         return userId;
-    }
-
-    private UUID currentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for Mercado Pago linked-account operations");
-        }
-        return tenantId;
     }
 }

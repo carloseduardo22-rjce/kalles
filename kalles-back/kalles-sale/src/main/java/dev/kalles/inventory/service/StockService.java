@@ -110,14 +110,6 @@ public class StockService {
     }
 
 
-    private UUID getTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Nenhum tenant selecionado no contexto da operacao.");
-        }
-        return tenantId;
-    }
-
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByLocation(UUID locationId) {
         UUID companyId = CompanyContextHolder.requireCompanyId();
@@ -148,7 +140,7 @@ public class StockService {
     }
 
     private Product findTenantProduct(UUID productId) {
-        return productRepository.findByIdAndTenantId(productId, getTenantId())
+        return productRepository.findByIdAndTenantId(productId, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + productId));
     }
 
