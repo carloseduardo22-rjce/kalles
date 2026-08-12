@@ -1,28 +1,24 @@
 
 package dev.kalles.security.service;
 
-import dev.kalles.email.domain.EmailData;
-import dev.kalles.email.application.port.in.SendEmailUseCase;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.AccountVerification;
+import dev.kalles.security.event.VerificationCodeIssued;
 import dev.kalles.security.repository.AccountVerificationRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountVerificationService {
 
     private final AccountVerificationRepository accountVerificationRepository;
-    private final SendEmailUseCase sendEmailUseCase;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 15;
@@ -35,20 +31,12 @@ public class AccountVerificationService {
         AccountVerification verification = new AccountVerification(account.getId(), code, expiresAt);
         accountVerificationRepository.save(verification);
 
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("name", account.getName());
-        variables.put("code", code);
-        variables.put("expiresIn", EXPIRATION_MINUTES);
-
-        EmailData emailData = new EmailData(
+        eventPublisher.publishEvent(new VerificationCodeIssued(
                 account.getEmail(),
-                "Código de Verificação - Kalles",
-                "email/verification-code",
-                variables
-        );
-
-        sendEmailUseCase.sendEmail(emailData);
-        log.info("Código de verificação enviado para o e-mail: {}", account.getEmail());
+                account.getName(),
+                code,
+                EXPIRATION_MINUTES
+        ));
     }
 
     private String generateCode() {
