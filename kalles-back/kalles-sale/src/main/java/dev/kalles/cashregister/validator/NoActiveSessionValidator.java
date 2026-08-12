@@ -8,21 +8,21 @@ import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.specification.ActiveSessionSpecification;
 import dev.kalles.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Scope;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-@Scope("prototype")
+@Order(1)
 @Component
 @RequiredArgsConstructor
-public class NoActiveSessionValidator extends SessionValidator {
+public class NoActiveSessionValidator implements SessionValidator {
 
     private final CashRegisterRepository cashRegisterRepository;
     private final ActiveSessionSpecification activeSessionSpec;
 
     @Override
-    protected void doValidate(OpenSessionRequest request) {
+    public void validate(OpenSessionRequest request) {
         UUID companyId = getCompanyId();
         CashRegister cashRegister = cashRegisterRepository
             .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)

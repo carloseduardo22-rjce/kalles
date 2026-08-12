@@ -15,11 +15,11 @@ import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,7 +28,7 @@ public class OpenSessionUseCase {
     private final CashRegisterRepository cashRegisterRepository;
     private final OperatorRepository operatorRepository;
     private final CashRegisterSessionRepository sessionRepository;
-    private final SessionValidator validatorChain;
+    private final List<SessionValidator> validators;
     private final PairedDeviceSessionGuard pairedDeviceSessionGuard;
     private final CashRegisterPaymentIntegrationService paymentIntegrationService;
 
@@ -36,21 +36,21 @@ public class OpenSessionUseCase {
             CashRegisterRepository cashRegisterRepository,
             OperatorRepository operatorRepository,
             CashRegisterSessionRepository sessionRepository,
-            @Qualifier("sessionValidatorChain") SessionValidator validatorChain,
+            List<SessionValidator> validators,
             PairedDeviceSessionGuard pairedDeviceSessionGuard,
             CashRegisterPaymentIntegrationService paymentIntegrationService
     ) {
         this.cashRegisterRepository = cashRegisterRepository;
         this.operatorRepository = operatorRepository;
         this.sessionRepository = sessionRepository;
-        this.validatorChain = validatorChain;
+        this.validators = validators;
         this.pairedDeviceSessionGuard = pairedDeviceSessionGuard;
         this.paymentIntegrationService = paymentIntegrationService;
     }
 
     @Transactional
     public SessionResponse execute(OpenSessionRequest request) {
-        validatorChain.validate(request);
+        validators.forEach(validator -> validator.validate(request));
 
         UUID companyId = getCompanyId();
 

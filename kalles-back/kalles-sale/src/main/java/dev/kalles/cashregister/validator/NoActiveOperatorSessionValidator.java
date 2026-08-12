@@ -9,21 +9,21 @@ import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Scope;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-@Scope("prototype")
+@Order(2)
 @Component
 @RequiredArgsConstructor
-public class NoActiveOperatorSessionValidator extends SessionValidator {
+public class NoActiveOperatorSessionValidator implements SessionValidator {
 
     private final OperatorRepository operatorRepository;
     private final CashRegisterSessionRepository sessionRepository;
 
     @Override
-    protected void doValidate(OpenSessionRequest request) {
+    public void validate(OpenSessionRequest request) {
         UUID companyId = getCompanyId();
         Operator operator = operatorRepository
             .findByCodeAndCompanyId(request.operatorCode(), companyId)
