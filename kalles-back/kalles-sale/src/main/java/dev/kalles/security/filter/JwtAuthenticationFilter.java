@@ -37,6 +37,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static final String COMPANY_HEADER_NAME = "x-company-id";
     public static final String COMPANY_CONTEXT_ERROR_HEADER = "X-Kalles-Company-Context-Error";
 
+    private static final List<String> COMPANY_AGNOSTIC_PREFIXES = List.of(
+            "/api/auth",
+            "/api/pos",
+            "/api/companies",
+            "/api/billing",
+            "/api/webhooks",
+            "/api/users",
+            "/api/agents",
+            "/api/categories",
+            "/api/notes",
+            "/api/payment-providers",
+            "/api/payment-points",
+            "/api/payment-stores",
+            "/api/payment-terminals"
+    );
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, 
                                     @NonNull HttpServletResponse response, 
@@ -171,20 +187,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
         String path = request.getRequestURI();
-        return path.startsWith("/api/products")
-                || path.startsWith("/api/warehouses")
-                || path.startsWith("/api/stocks")
-                || path.startsWith("/api/operators")
-                || path.startsWith("/api/cash-registers")
-                || path.startsWith("/api/cash-register-sessions")
-                || path.startsWith("/api/sales")
-                || path.startsWith("/api/payments")
-                || path.startsWith("/api/payment-terminal-mappings")
-                || path.startsWith("/api/fiscal")
-                || path.startsWith("/api/clients")
-                || path.startsWith("/api/fidelity")
-                || path.startsWith("/api/fidelity-policies")
-                || path.startsWith("/api/goals")
-                || path.startsWith("/api/reports");
+        return path.startsWith("/api/")
+                && COMPANY_AGNOSTIC_PREFIXES.stream().noneMatch(path::startsWith);
     }
 }

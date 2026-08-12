@@ -84,6 +84,33 @@ class CompanyContextApiIntegrationTest extends AbstractCompanyContextApiSupport 
     }
 
     @Test
+    void shouldRequireCompanyHeaderForTicketsRoute() {
+        String authCookie = loginAndExtractAuthCookie(TENANT_ADMIN_EMAIL);
+
+        Response response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/tickets",
+                java.util.Map.of("Cookie", "kalles_auth_token=" + authCookie)
+        );
+
+        response.then()
+                .statusCode(400)
+                .body("code", equalTo("COMPANY_CONTEXT_REQUIRED"));
+    }
+
+    @Test
+    void shouldAllowTenantScopedRouteWithoutCompanyHeader() {
+        String authCookie = loginAndExtractAuthCookie(TENANT_ADMIN_EMAIL);
+
+        Response response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/users",
+                java.util.Map.of("Cookie", "kalles_auth_token=" + authCookie)
+        );
+
+        response.then()
+                .statusCode(200);
+    }
+
+    @Test
     void shouldRestrictCompanyListingToBoundCompanyWhenTokenHasFixedCompany() {
         String authCookie = loginAndExtractAuthCookie(BOUND_ADMIN_EMAIL);
 
