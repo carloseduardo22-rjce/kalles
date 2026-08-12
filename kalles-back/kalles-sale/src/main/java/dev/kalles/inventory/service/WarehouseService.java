@@ -24,14 +24,14 @@ public class WarehouseService {
         Warehouse warehouse = new Warehouse();
         warehouse.setName(request.name());
         warehouse.setAddress(request.address());
-        warehouse.setCompanyId(getCompanyId());
+        warehouse.setCompanyId(CompanyContextHolder.requireCompanyId());
         warehouse.setActive(true);
         return WarehouseResponse.from(warehouseRepository.save(warehouse));
     }
 
     @Transactional(readOnly = true)
     public List<WarehouseResponse> listActiveWarehouses() {
-        return warehouseRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(getCompanyId())
+        return warehouseRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(CompanyContextHolder.requireCompanyId())
                 .stream()
                 .map(WarehouseResponse::from)
                 .toList();
@@ -39,14 +39,14 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public WarehouseResponse findWarehouseById(UUID id) {
-        return warehouseRepository.findByIdAndCompanyId(id, getCompanyId())
+        return warehouseRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .map(WarehouseResponse::from)
                 .orElseThrow(() -> new NotFoundException("Depósito não encontrado: " + id));
     }
 
     @Transactional
     public WarehouseResponse updateWarehouse(UUID id, WarehouseRequest request) {
-        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(id, getCompanyId())
+        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Depósito não encontrado: " + id));
         warehouse.setName(request.name());
         warehouse.setAddress(request.address());
@@ -55,17 +55,9 @@ public class WarehouseService {
 
     @Transactional
     public void deactivateWarehouse(UUID id) {
-        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(id, getCompanyId())
+        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Depósito não encontrado: " + id));
         warehouse.setActive(false);
         warehouseRepository.save(warehouse);
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

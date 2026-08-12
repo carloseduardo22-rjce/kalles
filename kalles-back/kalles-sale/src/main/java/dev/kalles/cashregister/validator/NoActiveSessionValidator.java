@@ -23,7 +23,7 @@ public class NoActiveSessionValidator implements SessionValidator {
 
     @Override
     public void validate(OpenSessionRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         CashRegister cashRegister = cashRegisterRepository
             .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)
             .orElseThrow(() -> new CashRegisterNotFoundException(request.cashRegisterCode()));
@@ -31,13 +31,5 @@ public class NoActiveSessionValidator implements SessionValidator {
         if (activeSessionSpec.isSatisfiedBy(cashRegister)) {
             throw new ActiveSessionAlreadyExistsException(cashRegister.getCode());
         }
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

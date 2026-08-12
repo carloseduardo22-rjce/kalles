@@ -23,7 +23,7 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public List<ClientResponse> listAll() {
-        return clientRepository.findAllByCompanyIdOrderByNameAsc(getCompanyId())
+        return clientRepository.findAllByCompanyIdOrderByNameAsc(CompanyContextHolder.requireCompanyId())
                 .stream()
                 .map(ClientResponse::from)
                 .toList();
@@ -32,7 +32,7 @@ public class ClientService {
     @Transactional(readOnly = true)
     public Page<ClientResponse> listPage(int page, int size) {
         return clientRepository.findAllByCompanyIdOrderByNameAsc(
-                        getCompanyId(),
+                        CompanyContextHolder.requireCompanyId(),
                         PageRequest.of(page, size)
                 )
                 .map(ClientResponse::from);
@@ -40,7 +40,7 @@ public class ClientService {
 
     @Transactional
     public ClientResponse create(ClientRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
 
         if (request.cpf() != null && !request.cpf().isBlank()) {
             clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
@@ -65,14 +65,14 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public ClientResponse findById(UUID id) {
-        return clientRepository.findByIdAndCompanyId(id, getCompanyId())
+        return clientRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .map(ClientResponse::from)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
     }
 
     @Transactional
     public ClientResponse update(UUID id, ClientRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Client client = clientRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
 
@@ -99,16 +99,8 @@ public class ClientService {
 
     @Transactional
     public void delete(UUID id) {
-        Client client = clientRepository.findByIdAndCompanyId(id, getCompanyId())
+        Client client = clientRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
         clientRepository.delete(client);
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

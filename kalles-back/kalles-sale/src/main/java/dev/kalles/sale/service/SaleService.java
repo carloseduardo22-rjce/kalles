@@ -192,7 +192,7 @@ public class SaleService {
     }
 
     private Operator findOperator(UUID operatorId) {
-        return operatorRepository.findByIdAndCompanyId(operatorId, getCompanyId())
+        return operatorRepository.findByIdAndCompanyId(operatorId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado com o id: " + operatorId));
     }
 
@@ -258,13 +258,6 @@ public class SaleService {
         return saleRepository.save(sale);
     }
 
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
-    }
 
     @Transactional
     public Sale applyFidelityDiscountToSale(String sessionToken) {
@@ -435,5 +428,4 @@ public class SaleService {
             stockRepository.save(stock);
         }
     }
-
 }

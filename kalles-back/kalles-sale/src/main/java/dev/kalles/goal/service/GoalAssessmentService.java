@@ -24,10 +24,7 @@ public class GoalAssessmentService {
     public GoalAssessmentResult autoAssess(Goal goal) {
         LocalDateTime start = goal.getStartDate().atStartOfDay();
         LocalDateTime end = goal.getEndDate().plusDays(1).atStartOfDay();
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         BigDecimal totalSold = saleRepository.sumCompletedTotalsBetween(companyId, start, end);
         return assess(goal, totalSold);
     }

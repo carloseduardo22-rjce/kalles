@@ -39,7 +39,7 @@ public class StockService {
 
     @Transactional
     public StockResponse setStock(StockRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Product product = findTenantProduct(request.productId());
         CompanyProduct companyProduct = companyProductRepository.findByCompanyIdAndProductId(companyId, product.getId())
                 .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial: " + request.productId()));
@@ -66,7 +66,7 @@ public class StockService {
 
     @Transactional
     public StockResponse adjustStock(StockAdjustmentRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Product product = findTenantProduct(request.productId());
         companyProductRepository.findByCompanyIdAndProductId(companyId, product.getId())
                 .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial: " + request.productId()));
@@ -97,7 +97,7 @@ public class StockService {
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByProduct(UUID productId) {
         Product product = findTenantProduct(productId);
-        return stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), getCompanyId())
+        return stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), CompanyContextHolder.requireCompanyId())
                 .stream()
                 .map(StockResponse::from)
                 .toList();
@@ -106,16 +106,9 @@ public class StockService {
     @Transactional(readOnly = true)
     public int getTotalStockByProduct(UUID productId) {
         Product product = findTenantProduct(productId);
-        return stockRepository.sumQuantityByProductId(product.getId(), getCompanyId());
+        return stockRepository.sumQuantityByProductId(product.getId(), CompanyContextHolder.requireCompanyId());
     }
 
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
-    }
 
     private UUID getTenantId() {
         UUID tenantId = TenantContextHolder.getTenantId();
@@ -127,7 +120,7 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public List<StockResponse> getStockByLocation(UUID locationId) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         locationRepository.findByIdAndCompanyId(locationId, companyId)
                 .orElseThrow(() -> new NotFoundException("Localizacao nao encontrada ou nao pertence a esta empresa: " + locationId));
         return stockRepository.findAllByLocationIdAndCompanyId(locationId, companyId)

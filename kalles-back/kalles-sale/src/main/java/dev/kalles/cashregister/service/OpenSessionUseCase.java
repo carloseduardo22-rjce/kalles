@@ -52,7 +52,7 @@ public class OpenSessionUseCase {
     public SessionResponse execute(OpenSessionRequest request) {
         validators.forEach(validator -> validator.validate(request));
 
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
 
         CashRegister cashRegister = cashRegisterRepository
             .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)
@@ -98,13 +98,5 @@ public class OpenSessionUseCase {
             }
             throw new ActiveSessionAlreadyExistsException(cashRegister.getCode());
         }
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

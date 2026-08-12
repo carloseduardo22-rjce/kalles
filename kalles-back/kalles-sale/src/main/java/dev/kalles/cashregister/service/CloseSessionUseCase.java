@@ -80,7 +80,7 @@ public class CloseSessionUseCase {
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
         return sessionRepository
                 .findByCashRegister_CompanyIdAndSessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(
-                        getCompanyId(),
+                        CompanyContextHolder.requireCompanyId(),
                         start,
                         end
                 )
@@ -90,7 +90,7 @@ public class CloseSessionUseCase {
     }
 
     private CashRegisterSession findSessionOrThrow(UUID sessionId) {
-        return sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, getCompanyId())
+        return sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Sessao de caixa nao encontrada: " + sessionId));
     }
 
@@ -134,7 +134,7 @@ public class CloseSessionUseCase {
     }
 
     private Operator findAuthorizedOperator(String operatorCode) {
-        Operator operator = operatorRepository.findByCodeAndCompanyId(operatorCode, getCompanyId())
+        Operator operator = operatorRepository.findByCodeAndCompanyId(operatorCode, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador autorizador nao encontrado: " + operatorCode));
 
         PermissionLevel permissionLevel = operator.getPermissionLevel();
@@ -145,13 +145,6 @@ public class CloseSessionUseCase {
         return operator;
     }
 
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
-    }
 
     private SessionSummaryResponse buildLiveSummary(CashRegisterSession session) {
         return computeSummary(session.getId().toString(), session.getInitialAmountValue());

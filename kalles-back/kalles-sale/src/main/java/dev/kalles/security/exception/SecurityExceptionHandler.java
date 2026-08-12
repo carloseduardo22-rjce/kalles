@@ -21,6 +21,17 @@ public class SecurityExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(CompanyContextRequiredException.class)
+    public ProblemDetail handleCompanyContextRequired(CompanyContextRequiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setTitle("Contexto de filial obrigatorio");
+        problem.setProperty("code", CompanyContextRequiredException.CODE);
+        return problem;
+    }
+
     @ExceptionHandler(RateLimitExceededException.class)
     public ProblemDetail handleRateLimitExceeded(RateLimitExceededException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(

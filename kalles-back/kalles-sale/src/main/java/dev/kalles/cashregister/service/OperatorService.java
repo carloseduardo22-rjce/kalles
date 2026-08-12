@@ -21,7 +21,7 @@ public class OperatorService {
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listAll() {
-        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(getCompanyId())
+        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(CompanyContextHolder.requireCompanyId())
                 .stream()
                 .map(OperatorResponse::fromEntity)
                 .toList();
@@ -29,14 +29,14 @@ public class OperatorService {
 
     @Transactional(readOnly = true)
     public OperatorResponse findById(UUID id) {
-        return operatorRepository.findByIdAndCompanyId(id, getCompanyId())
+        return operatorRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .map(OperatorResponse::fromEntity)
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
     }
 
     @Transactional
     public OperatorResponse create(OperatorRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         operatorRepository.findByCodeAndCompanyId(request.code(), companyId).ifPresent(existing -> {
             throw new IllegalArgumentException("Já existe um operador com o código informado nesta filial.");
         });
@@ -51,7 +51,7 @@ public class OperatorService {
 
     @Transactional
     public OperatorResponse update(UUID id, OperatorRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Operator operator = operatorRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
         operatorRepository.findByCodeAndCompanyId(request.code(), companyId).ifPresent(existing -> {
@@ -67,17 +67,9 @@ public class OperatorService {
 
     @Transactional
     public void deactivate(UUID id) {
-        Operator operator = operatorRepository.findByIdAndCompanyId(id, getCompanyId())
+        Operator operator = operatorRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado: " + id));
         operator.setActive(false);
         operatorRepository.save(operator);
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

@@ -31,7 +31,7 @@ public class FidelityService {
         if (fidelityRepository.existsByClientId(clientId)) {
             throw new IllegalArgumentException("Cliente já está inserido no programa de fidelidade.");
         }
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         FidelityPolicy policy = fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(companyId)
                 .orElseThrow(() -> new IllegalStateException("Nenhuma política de fidelidade ativa encontrada para esta filial."));
         Client client = clientRepository.findByIdAndCompanyId(clientId, companyId)
@@ -47,7 +47,7 @@ public class FidelityService {
 
     @Transactional
     public FidelityResponse getByClientId(UUID clientId) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         clientRepository.findByIdAndCompanyId(clientId, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
 
@@ -96,13 +96,5 @@ public class FidelityService {
             fidelity.setExpired(true);
             fidelityRepository.save(fidelity);
         }
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

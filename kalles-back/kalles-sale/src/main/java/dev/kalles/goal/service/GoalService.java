@@ -24,7 +24,7 @@ public class GoalService {
 
     @Transactional
     public GoalResponse create(GoalRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Goal goal = Goal.create(companyId, request.targetValue(), request.periodicity(), request.startDate(), request.endDate());
         List<Goal> conflicting = goalRepository.findByCompanyIdAndPeriodicityAndStatus(companyId, goal.getPeriodicity(), GoalStatus.ACTIVE);
         OverlapValidator.validate(conflicting, goal);
@@ -33,14 +33,14 @@ public class GoalService {
 
     @Transactional(readOnly = true)
     public List<GoalResponse> listAll() {
-        return goalRepository.findAllByCompanyIdOrderByStartDateDesc(getCompanyId()).stream()
+        return goalRepository.findAllByCompanyIdOrderByStartDateDesc(CompanyContextHolder.requireCompanyId()).stream()
                 .map(GoalResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public GoalResponse findById(UUID id) {
-        return goalRepository.findByIdAndCompanyId(id, getCompanyId())
+        return goalRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .map(GoalResponse::from)
                 .orElseThrow(() -> new NotFoundException("Meta não encontrada: " + id));
     }
@@ -55,7 +55,7 @@ public class GoalService {
 
     @Transactional
     public GoalResponse activate(UUID id) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Goal goal = getGoalOrThrow(id);
         List<Goal> conflicting = goalRepository.findByCompanyIdAndPeriodicityAndStatus(companyId, goal.getPeriodicity(), GoalStatus.ACTIVE);
         OverlapValidator.validate(conflicting, goal);
@@ -89,15 +89,7 @@ public class GoalService {
     }
 
     private Goal getGoalOrThrow(UUID id) {
-        return goalRepository.findByIdAndCompanyId(id, getCompanyId())
+        return goalRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Meta não encontrada: " + id));
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

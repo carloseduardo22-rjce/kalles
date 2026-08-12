@@ -24,7 +24,7 @@ public class LocationService {
 
     @Transactional
     public LocationResponse create(UUID warehouseId, LocationRequest request) {
-        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(warehouseId, getCompanyId())
+        Warehouse warehouse = warehouseRepository.findByIdAndCompanyId(warehouseId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Depósito não encontrado: " + warehouseId));
         Location location = new Location();
         location.setWarehouse(warehouse);
@@ -36,7 +36,7 @@ public class LocationService {
     @Transactional(readOnly = true)
     public List<LocationResponse> listByWarehouse(UUID warehouseId) {
         // Validate warehouse belongs to current company
-        warehouseRepository.findByIdAndCompanyId(warehouseId, getCompanyId())
+        warehouseRepository.findByIdAndCompanyId(warehouseId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Depósito não encontrado: " + warehouseId));
         return locationRepository.findAllByWarehouseIdOrderByCodeAsc(warehouseId)
                 .stream()
@@ -46,14 +46,14 @@ public class LocationService {
 
     @Transactional(readOnly = true)
     public LocationResponse findById(UUID locationId) {
-        return locationRepository.findByIdAndCompanyId(locationId, getCompanyId())
+        return locationRepository.findByIdAndCompanyId(locationId, CompanyContextHolder.requireCompanyId())
                 .map(LocationResponse::from)
                 .orElseThrow(() -> new NotFoundException("Localização não encontrada: " + locationId));
     }
 
     @Transactional
     public LocationResponse update(UUID locationId, LocationRequest request) {
-        Location location = locationRepository.findByIdAndCompanyId(locationId, getCompanyId())
+        Location location = locationRepository.findByIdAndCompanyId(locationId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Localização não encontrada: " + locationId));
         location.setCode(request.code());
         location.setDescription(request.description());
@@ -62,16 +62,8 @@ public class LocationService {
 
     @Transactional
     public void delete(UUID locationId) {
-        Location location = locationRepository.findByIdAndCompanyId(locationId, getCompanyId())
+        Location location = locationRepository.findByIdAndCompanyId(locationId, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Localização não encontrada: " + locationId));
         locationRepository.delete(location);
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

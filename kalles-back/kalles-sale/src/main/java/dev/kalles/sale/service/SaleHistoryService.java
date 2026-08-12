@@ -38,7 +38,7 @@ public class SaleHistoryService {
     public List<SaleHistoryResponse> list(LocalDate startDate, LocalDate endDate, String state) {
         SearchPeriod period = validatePeriod(startDate, endDate);
         String normalizedState = normalizeState(state);
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
 
         List<SaleRepository.SaleHistoryRow> rows = normalizedState == null
                 ? saleRepository.findHistoryRows(companyId, period.start(), period.endExclusive())
@@ -101,13 +101,6 @@ public class SaleHistoryService {
         return normalized;
     }
 
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
-    }
 
     private record SearchPeriod(LocalDateTime start, LocalDateTime endExclusive) {
     }

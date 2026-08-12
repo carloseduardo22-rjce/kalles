@@ -30,7 +30,7 @@ public class FinancialReportService {
             throw new IllegalArgumentException("A data final nao pode ser menor que a data inicial.");
         }
 
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
 
@@ -72,13 +72,5 @@ public class FinancialReportService {
             averageUnitCost,
             summary.totalCost()
         );
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

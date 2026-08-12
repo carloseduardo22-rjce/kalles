@@ -24,7 +24,7 @@ public class NoActiveOperatorSessionValidator implements SessionValidator {
 
     @Override
     public void validate(OpenSessionRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Operator operator = operatorRepository
             .findByCodeAndCompanyId(request.operatorCode(), companyId)
             .orElseThrow(() -> new OperatorNotFoundException(request.operatorCode()));
@@ -32,13 +32,5 @@ public class NoActiveOperatorSessionValidator implements SessionValidator {
         if (sessionRepository.existsByOperatorAndStatus(operator, SessionStatus.OPEN)) {
             throw new OperatorAlreadyInSessionException(request.operatorCode());
         }
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }
