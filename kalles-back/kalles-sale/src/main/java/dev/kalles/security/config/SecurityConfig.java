@@ -87,6 +87,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/notes/sensitive/**").hasAnyRole("ADMIN", "OPERATOR")
 
                 // ── Admin-only: management CRUD ──
+                .requestMatchers(HttpMethod.POST, "/api/pos/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/agents/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/products/**").hasRole("ADMIN")

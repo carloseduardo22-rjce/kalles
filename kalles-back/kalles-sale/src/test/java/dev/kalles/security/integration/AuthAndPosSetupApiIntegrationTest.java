@@ -244,6 +244,65 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     }
 
     @Test
+    void shouldRejectPairingTokenGenerationForOperator() {
+        String pairingToken = seedPairingToken("pairing-token-operador", companyId, cashRegisterId, true);
+        String authCookie = loginOperatorAndExtractAuthCookie(pairingToken);
+        CsrfContext csrf = fetchCsrfToken();
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
+                .body(Map.of(
+                        "companyId", companyId,
+                        "posId", cashRegisterId
+                ))
+                .when()
+                .post("/api/pos/admin/generate-token")
+                .then()
+                .statusCode(403);
+
+        assertThat(posDeviceSessionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectPairingTokenGenerationForCompanyOfAnotherTenant() {
+        UUID otherTenantId = UUID.fromString("99999999-e89b-12d3-a456-426614174000");
+        tenantRepository.save(new Tenant(otherTenantId, "Conta de Outro Cliente"));
+        UUID otherCompanyId = companyRepository.save(new Company(
+                null,
+                "Loja de Outro Cliente",
+                otherTenantId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        )).getId();
+
+        String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
+        CsrfContext csrf = fetchCsrfToken();
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
+                .body(Map.of(
+                        "companyId", otherCompanyId,
+                        "posId", cashRegisterId
+                ))
+                .when()
+                .post("/api/pos/admin/generate-token")
+                .then()
+                .statusCode(403);
+
+        assertThat(posDeviceSessionRepository.count()).isZero();
+    }
+
+    @Test
     void shouldReturnTooManyRequestsAfterRepeatedLoginFailures() {
         accountRepository.save(newAccount("Alvo do rate limit", RATE_LIMITED_EMAIL, AccountRole.ADMIN, companyId));
 
@@ -283,6 +342,18 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(Map.of("email", email, "password", password))
+                .when()
+                .post("/api/auth/login");
+
+        response.then().statusCode(200);
+        return response.getCookie("kalles_auth_token");
+    }
+
+    private String loginOperatorAndExtractAuthCookie(String pairingToken) {
+        Response response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_pos_token", pairingToken)
+                .body(Map.of("email", "operador.caixa01@sistema.local", "password", "123456"))
                 .when()
                 .post("/api/auth/login");
 
