@@ -8,6 +8,7 @@ import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.domain.BillingSubscription;
 import dev.kalles.billing.domain.BillingWebhookEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProcessBillingWebhookUseCase {
@@ -27,12 +29,17 @@ public class ProcessBillingWebhookUseCase {
     @Transactional
     public void execute(String payload, String signature) {
         BillingGateway.WebhookNotification notification = billingGateway.parseWebhook(payload, signature);
+        log.debug("Webhook de cobranca recebido: provedor={}, evento={}, tipo={}",
+                notification.provider(), notification.eventId(), notification.eventType());
 
         if (billingWebhookEventRepository.existsByProviderAndExternalEventId(notification.provider(), notification.eventId())) {
+            log.debug("Webhook de cobranca ignorado por ja ter sido processado: evento={}", notification.eventId());
             return;
         }
 
         if (!shouldPersist(notification)) {
+            log.debug("Webhook de cobranca sem assinatura associada, apenas registrado: evento={}, tipo={}",
+                    notification.eventId(), notification.eventType());
             billingWebhookEventRepository.save(
                     new BillingWebhookEvent(
                             UUID.randomUUID(),
@@ -88,6 +95,8 @@ public class ProcessBillingWebhookUseCase {
         subscription.setPlanCode(stripeBillingProperties.defaultPlanCode());
 
         billingSubscriptionRepository.save(subscription);
+        log.info("Assinatura atualizada por webhook de cobranca: tenant={}, assinatura={}, status={}, evento={}",
+                tenantId, subscription.getExternalSubscriptionId(), subscription.getStatus(), notification.eventType());
 
         billingWebhookEventRepository.save(
                 new BillingWebhookEvent(
@@ -122,7 +131,11 @@ public class ProcessBillingWebhookUseCase {
 
         return existingSubscription
                 .map(BillingSubscription::getTenantId)
-                .orElseThrow(() -> new IllegalStateException("Nao foi possivel resolver o tenant da notificacao Stripe."));
+                .orElseThrow(() -> {
+                    log.warn("Webhook de cobranca sem tenant resolvivel: evento={}, tipo={}, cliente={}",
+                            notification.eventId(), notification.eventType(), notification.customerId());
+                    return new IllegalStateException("Nao foi possivel resolver o tenant da notificacao Stripe.");
+                });
     }
 
     private boolean shouldPersist(BillingGateway.WebhookNotification notification) {
