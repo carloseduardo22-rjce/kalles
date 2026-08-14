@@ -54,10 +54,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     );
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, 
-                                    @NonNull HttpServletResponse response, 
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        
+        try {
+            if (establishRequestContext(request, response)) {
+                filterChain.doFilter(request, response);
+            }
+        } finally {
+            TenantContextHolder.clear();
+            CompanyContextHolder.clear();
+            PosContextHolder.clear();
+        }
+    }
+
+    private boolean establishRequestContext(HttpServletRequest request, HttpServletResponse response) throws IOException {
         var token = this.recoverToken(request);
         if (token != null) {
             DecodedJWT decodedJWT = jwtService.validateToken(token);
@@ -85,23 +96,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (headerCompanyId != null && !headerCompanyId.isBlank()) {
                         UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                         if (requestedCompanyId == null) {
-                            return;
+                            return false;
                         }
                         if (!tokenCompanyId.equals(requestedCompanyId)) {
                             sendCompanyContextForbidden(response, "Company header conflicts with authenticated company");
-                            return;
+                            return false;
                         }
                     }
                     CompanyContextHolder.setCompanyId(tokenCompanyId);
                 } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
                     UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                     if (requestedCompanyId == null) {
-                        return;
+                        return false;
                     }
 
                     if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
                         sendCompanyContextForbidden(response, "Requested company is not accessible for authenticated tenant");
-                        return;
+                        return false;
                     }
                     CompanyContextHolder.setCompanyId(requestedCompanyId);
                 }
@@ -118,17 +129,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
                     "Contexto de filial obrigatorio",
                     "Esta rota exige uma filial ativa. Envie X-Company-ID com uma filial acessivel para o tenant autenticado.");
-            return;
+            return false;
         }
-        
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            // Guarantee cleanup to prevent data leaking into another thread
-            TenantContextHolder.clear();
-            CompanyContextHolder.clear();
-            PosContextHolder.clear();
-        }
+
+        return true;
     }
 
     private String recoverToken(HttpServletRequest request) {
