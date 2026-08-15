@@ -313,7 +313,21 @@ public class AuthAndPosSetupSteps {
     @Dado("que o dispositivo possui um cookie {string} valido para um caixa de outra empresa")
     public void givenDeviceHasCookieFromAnotherCompany(String cookieName) {
         assertThat(cookieName).isEqualTo("kalles_pos_token");
-        currentPosCookie = seedPosDeviceSession("pairing-token-outra-empresa", UUID.randomUUID(), UUID.randomUUID(), true);
+        UUID otherCompanyId = companyRepository.save(new Company(
+                null,
+                "Loja Concorrente",
+                TENANT_ID,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        )).getId();
+        UUID otherCashRegisterId = cashRegisterRepository.save(
+                new CashRegister("CAIXA-99", "Caixa de outra empresa", otherCompanyId)
+        ).getId();
+        currentPosCookie = seedPosDeviceSession("pairing-token-outra-empresa", otherCompanyId, otherCashRegisterId, true);
     }
 
     @Quando("o dispositivo enviar um token de pareamento invalido")
