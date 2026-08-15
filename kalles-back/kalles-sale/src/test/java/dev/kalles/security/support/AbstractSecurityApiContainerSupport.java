@@ -1,6 +1,7 @@
 package dev.kalles.security.support;
 
 import dev.kalles.testsupport.DatabaseCleaner;
+import dev.kalles.testsupport.SharedPostgresContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -8,18 +9,13 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 public abstract class AbstractSecurityApiContainerSupport {
 
-    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER =
-            new PostgreSQLContainer<>("postgres:17-alpine");
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = SharedPostgresContainer.instance();
 
     @Autowired
     private DatabaseCleaner databaseCleaner;
 
     protected DatabaseCleaner databaseCleaner() {
         return databaseCleaner;
-    }
-
-    static {
-        POSTGRESQL_CONTAINER.start();
     }
 
     @DynamicPropertySource

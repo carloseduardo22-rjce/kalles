@@ -15,12 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisplayName("Schema do Flyway confere com as entidades JPA")
 class FlywaySchemaValidationTest {
 
-    private static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:17-alpine");
-
-    static {
-        POSTGRES.start();
-    }
+    private static final PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.instance();
 
     @Autowired
     private Environment environment;
