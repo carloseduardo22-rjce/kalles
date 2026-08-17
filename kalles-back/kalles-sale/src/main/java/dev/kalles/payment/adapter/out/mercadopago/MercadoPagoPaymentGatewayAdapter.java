@@ -1,10 +1,11 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
+import dev.kalles.payment.adapter.out.mercadopago.dto.OrderResponse;
+import dev.kalles.payment.adapter.out.mercadopago.dto.OrderTransactionsRequest;
+import dev.kalles.payment.adapter.out.mercadopago.dto.PointOrderRequest;
+import dev.kalles.payment.adapter.out.mercadopago.dto.QrOrderRequest;
 import dev.kalles.payment.application.port.out.PaymentGatewayPort;
 import dev.kalles.payment.application.port.out.PaymentPointRepository;
 import dev.kalles.payment.domain.PaymentCommand;
@@ -16,6 +17,7 @@ import dev.kalles.payment.domain.PaymentStatus;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,17 +32,20 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
     private final MercadoPagoWebClient mercadoPagoWebClient;
     private final CashRegisterRepository cashRegisterRepository;
     private final PaymentPointRepository paymentPointRepository;
+    private final ObjectMapper objectMapper;
 
     public MercadoPagoPaymentGatewayAdapter(
             MercadoPagoCredentialsResolver credentialsResolver,
             MercadoPagoWebClient mercadoPagoWebClient,
             CashRegisterRepository cashRegisterRepository,
-            PaymentPointRepository paymentPointRepository
+            PaymentPointRepository paymentPointRepository,
+            ObjectMapper objectMapper
     ) {
         this.credentialsResolver = credentialsResolver;
         this.mercadoPagoWebClient = mercadoPagoWebClient;
         this.cashRegisterRepository = cashRegisterRepository;
         this.paymentPointRepository = paymentPointRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -71,7 +76,7 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                         + response.getStatusCode().value() + " - " + response.getBody());
             }
 
-            return toOrderResult(JsonParser.parseString(response.getBody()).getAsJsonObject());
+            return toOrderResult(objectMapper.readValue(response.getBody(), OrderResponse.class));
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to get Point order: " + e.getMessage(), e);
         }
@@ -141,34 +146,19 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
             throw new IllegalStateException("Caixa does not have a Mercado Pago POS configured.");
         }
 
-        JsonObject qrConfig = new JsonObject();
-        qrConfig.addProperty("external_pos_id", point.externalReference());
-        qrConfig.addProperty("mode", "dynamic");
-
-        JsonObject config = new JsonObject();
-        config.add("qr", qrConfig);
-
-        JsonObject paymentReq = new JsonObject();
-        paymentReq.addProperty("amount", command.amount().toPlainString());
-
-        JsonArray paymentsArray = new JsonArray();
-        paymentsArray.add(paymentReq);
-
-        JsonObject transactionsReq = new JsonObject();
-        transactionsReq.add("payments", paymentsArray);
-
-        JsonObject payload = new JsonObject();
-        payload.addProperty("type", "qr");
-        payload.addProperty("total_amount", command.amount().toPlainString());
-        payload.addProperty("external_reference", command.externalReference());
-        payload.add("config", config);
-        payload.add("transactions", transactionsReq);
+        QrOrderRequest payload = new QrOrderRequest(
+                "qr",
+                command.amount().toPlainString(),
+                command.externalReference(),
+                new QrOrderRequest.Config(new QrOrderRequest.Qr(point.externalReference(), "dynamic")),
+                OrderTransactionsRequest.ofSinglePayment(command.amount().toPlainString())
+        );
 
         try {
             ResponseEntity<String> response = mercadoPagoWebClient.exchange(
                     HttpMethod.POST,
                     "https://api.mercadopago.com/v1/orders",
-                    payload.toString(),
+                    objectMapper.writeValueAsString(payload),
                     idempotentJsonAuthorizationHeaders(credentialsResolver.fallbackAccessToken(), command.idempotencyKey())
             );
 
@@ -177,21 +167,20 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                         + response.getStatusCode().value() + " - " + response.getBody());
             }
 
-            JsonObject responseJson = JsonParser.parseString(response.getBody()).getAsJsonObject();
-            if (!responseJson.has("id") || !responseJson.has("type_response")) {
+            OrderResponse order = objectMapper.readValue(response.getBody(), OrderResponse.class);
+            if (order.id() == null || order.typeResponse() == null) {
                 throw new MercadoPagoAdapterException("SDK returned Order without ID or type_response");
             }
 
-            JsonObject typeResponse = responseJson.getAsJsonObject("type_response");
-            if (!typeResponse.has("qr_data")) {
+            if (order.typeResponse().qrData() == null) {
                 throw new MercadoPagoAdapterException("SDK returned Order without qr_data");
             }
 
             Map<String, Object> metadata = new LinkedHashMap<>();
-            metadata.put("qrData", typeResponse.get("qr_data").getAsString());
+            metadata.put("qrData", order.typeResponse().qrData());
 
             return new PaymentResult(
-                    responseJson.get("id").getAsString(),
+                    order.id(),
                     null,
                     PaymentStatus.CREATED,
                     metadata
@@ -202,38 +191,22 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
     }
 
     private PaymentResult createPointOrder(PaymentCommand command) {
-        JsonObject pointConfig = new JsonObject();
-        pointConfig.addProperty("terminal_id", command.targetId());
-        pointConfig.addProperty("print_on_terminal", "no_ticket");
-
-        JsonObject paymentMethod = new JsonObject();
-        paymentMethod.addProperty("default_type", toProviderPaymentMethodType(command.methodType()));
-
-        JsonObject config = new JsonObject();
-        config.add("point", pointConfig);
-        config.add("payment_method", paymentMethod);
-
-        JsonObject paymentReq = new JsonObject();
-        paymentReq.addProperty("amount", command.amount().toPlainString());
-
-        JsonArray paymentsArray = new JsonArray();
-        paymentsArray.add(paymentReq);
-
-        JsonObject transactionsReq = new JsonObject();
-        transactionsReq.add("payments", paymentsArray);
-
-        JsonObject payload = new JsonObject();
-        payload.addProperty("type", "point");
-        payload.addProperty("external_reference", command.externalReference());
-        payload.addProperty("description", command.description());
-        payload.add("config", config);
-        payload.add("transactions", transactionsReq);
+        PointOrderRequest payload = new PointOrderRequest(
+                "point",
+                command.externalReference(),
+                command.description(),
+                new PointOrderRequest.Config(
+                        new PointOrderRequest.Point(command.targetId(), "no_ticket"),
+                        new PointOrderRequest.PaymentMethod(toProviderPaymentMethodType(command.methodType()))
+                ),
+                OrderTransactionsRequest.ofSinglePayment(command.amount().toPlainString())
+        );
 
         try {
             ResponseEntity<String> response = mercadoPagoWebClient.exchange(
                     HttpMethod.POST,
                     "https://api.mercadopago.com/v1/orders",
-                    payload.toString(),
+                    objectMapper.writeValueAsString(payload),
                     idempotentJsonAuthorizationHeaders(credentialsResolver.fallbackAccessToken(), command.idempotencyKey())
             );
 
@@ -242,33 +215,19 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                         + response.getStatusCode().value() + " - " + response.getBody());
             }
 
-            return toOrderResult(JsonParser.parseString(response.getBody()).getAsJsonObject());
+            return toOrderResult(objectMapper.readValue(response.getBody(), OrderResponse.class));
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to create Point order: " + e.getMessage(), e);
         }
     }
 
-    private PaymentResult toOrderResult(JsonObject responseJson) {
-        String paymentId = extractPaymentId(responseJson);
+    private PaymentResult toOrderResult(OrderResponse order) {
         return new PaymentResult(
-                responseJson.get("id").getAsString(),
-                paymentId,
-                toPaymentStatus(responseJson.has("status") ? responseJson.get("status").getAsString() : null),
+                order.id(),
+                order.firstPaymentId(),
+                toPaymentStatus(order.status()),
                 Map.of()
         );
-    }
-
-    private String extractPaymentId(JsonObject responseJson) {
-        if (responseJson.has("transactions") && responseJson.getAsJsonObject("transactions").has("payments")) {
-            JsonArray payments = responseJson.getAsJsonObject("transactions").getAsJsonArray("payments");
-            if (!payments.isEmpty()) {
-                JsonObject payment = payments.get(0).getAsJsonObject();
-                if (payment.has("id") && !payment.get("id").isJsonNull()) {
-                    return payment.get("id").getAsString();
-                }
-            }
-        }
-        return null;
     }
 
     private Map<String, String> authorizationHeaders(String accessToken) {
