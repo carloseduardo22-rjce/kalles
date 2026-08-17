@@ -97,6 +97,8 @@ public class MercadoPagoPaymentStoreAdapter implements PaymentStorePort {
             }
 
             return store.withProviderStoreId(createdStore.id());
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to create MP Store: " + e.getMessage(), e);
         }

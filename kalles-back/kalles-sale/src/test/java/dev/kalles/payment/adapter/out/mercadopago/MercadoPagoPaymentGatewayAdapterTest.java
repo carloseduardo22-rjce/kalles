@@ -200,7 +200,8 @@ class MercadoPagoPaymentGatewayAdapterTest {
 
         assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.TERMINAL, "TERMINAL-01")))
                 .isInstanceOf(MercadoPagoAdapterException.class)
-                .hasMessageContaining("400");
+                .hasMessageContaining("400")
+                .hasMessageNotContaining("order: Fail to create");
         server.verify();
     }
 
@@ -237,7 +238,8 @@ class MercadoPagoPaymentGatewayAdapterTest {
 
         assertThatThrownBy(() -> adapter.getPayment(ORDER_ID))
                 .isInstanceOf(MercadoPagoAdapterException.class)
-                .hasMessageContaining("404");
+                .hasMessageContaining("404")
+                .hasMessageNotContaining("order: Fail to get");
         server.verify();
     }
 
@@ -291,7 +293,8 @@ class MercadoPagoPaymentGatewayAdapterTest {
 
         assertThatThrownBy(() -> adapter.refundPayment("PAY-9001"))
                 .isInstanceOf(MercadoPagoAdapterException.class)
-                .hasMessageContaining("409");
+                .hasMessageContaining("409")
+                .hasMessageNotContaining("payment: Fail to refund");
         server.verify();
     }
 }

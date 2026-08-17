@@ -77,6 +77,8 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
             }
 
             return toOrderResult(objectMapper.readValue(response.getBody(), OrderResponse.class));
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to get Point order: " + e.getMessage(), e);
         }
@@ -96,6 +98,8 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                 throw new MercadoPagoAdapterException("Fail to cancel Point Order. HTTP Status: "
                         + response.getStatusCode().value() + " - " + response.getBody());
             }
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to cancel Point order: " + e.getMessage(), e);
         }
@@ -129,6 +133,8 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                 throw new MercadoPagoAdapterException("Fail to refund Point payment. HTTP Status: "
                         + response.getStatusCode().value() + " - " + response.getBody());
             }
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to refund Point payment: " + e.getMessage(), e);
         }
@@ -185,6 +191,8 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                     PaymentStatus.CREATED,
                     metadata
             );
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to generate dynamic QR: " + e.getMessage(), e);
         }
@@ -216,6 +224,8 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
             }
 
             return toOrderResult(objectMapper.readValue(response.getBody(), OrderResponse.class));
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to create Point order: " + e.getMessage(), e);
         }

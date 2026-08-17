@@ -96,6 +96,8 @@ public class MercadoPagoPaymentPointAdapter implements PaymentPointPort {
             }
 
             return point.withProviderPointId(createdPoint.id());
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
             throw new MercadoPagoAdapterException("Fail to create MP POS: " + e.getMessage(), e);
         }

@@ -154,7 +154,8 @@ class MercadoPagoPaymentStoreAdapterTest {
 
         assertThatThrownBy(() -> adapter.createStore(newStore(), MERCHANT_PROFILE))
                 .isInstanceOf(MercadoPagoAdapterException.class)
-                .hasMessageContaining("500");
+                .hasMessageContaining("500")
+                .hasMessageNotContaining("Store: Fail to create");
         server.verify();
     }
 

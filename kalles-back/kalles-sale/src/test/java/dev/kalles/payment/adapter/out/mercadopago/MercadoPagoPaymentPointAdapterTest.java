@@ -138,7 +138,8 @@ class MercadoPagoPaymentPointAdapterTest {
 
         assertThatThrownBy(() -> adapter.createPoint(newPoint(), storeWithProviderId(), DESCRIPTOR))
                 .isInstanceOf(MercadoPagoAdapterException.class)
-                .hasMessageContaining("500");
+                .hasMessageContaining("500")
+                .hasMessageNotContaining("POS: Fail to create");
         server.verify();
     }
 
