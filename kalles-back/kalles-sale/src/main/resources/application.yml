@@ -17,6 +17,11 @@ spring:
     detect-encoding: true
     locations: classpath:db/migration,classpath:db/seed
 
+  http:
+    clients:
+      connect-timeout: ${HTTP_CLIENT_CONNECT_TIMEOUT:5s}
+      read-timeout: ${HTTP_CLIENT_READ_TIMEOUT:20s}
+
   mail:
     host: smtp.gmail.com
     port: 587
