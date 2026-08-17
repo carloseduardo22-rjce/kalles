@@ -1,7 +1,5 @@
 package dev.kalles.inventory.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.kalles.inventory.entity.Location;
 import dev.kalles.inventory.entity.Stock;
 import dev.kalles.inventory.entity.Warehouse;
@@ -13,29 +11,19 @@ import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.security.support.AbstractCompanyContextApiSupport;
+import dev.kalles.testsupport.CsrfTestClient;
+import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.Optional;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 
 public abstract class AbstractInventoryApiSupport extends AbstractCompanyContextApiSupport {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
 
     @Autowired
     protected ProductRepository productRepository;
@@ -61,7 +49,7 @@ public abstract class AbstractInventoryApiSupport extends AbstractCompanyContext
 
     protected AuthContext authenticateTenantAdminWithCsrf() {
         String authCookie = loginAndExtractAuthCookie(TENANT_ADMIN_EMAIL);
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
         return new AuthContext(authCookie, csrf.csrfCookie(), csrf.csrfToken());
     }
 
@@ -115,48 +103,4 @@ public abstract class AbstractInventoryApiSupport extends AbstractCompanyContext
     protected record AuthContext(String authCookie, String csrfCookie, String csrfToken) {
     }
 
-    protected record CsrfContext(String csrfCookie, String csrfToken) {
-    }
-
-    private CsrfContext fetchCsrfToken() {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/api/auth/csrf"))
-                .GET()
-                .timeout(Duration.ofSeconds(10))
-                .build();
-
-        try {
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new IllegalStateException("Falha ao obter token CSRF para os testes de inventory.");
-            }
-
-            JsonNode body = OBJECT_MAPPER.readTree(response.body());
-            String csrfToken = body.path("token").asText();
-            String csrfCookie = response.headers()
-                    .allValues("set-cookie")
-                    .stream()
-                    .map(AbstractInventoryApiSupport::extractCookieValue)
-                    .flatMap(Optional::stream)
-                    .findFirst()
-                    .orElse(null);
-
-            return new CsrfContext(csrfCookie, csrfToken);
-        } catch (IOException e) {
-            throw new IllegalStateException("Falha ao ler a resposta CSRF de inventory.", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Requisicao CSRF interrompida durante os testes de inventory.", e);
-        }
-    }
-
-    private static Optional<String> extractCookieValue(String headerValue) {
-        if (headerValue == null || !headerValue.startsWith("XSRF-TOKEN=")) {
-            return Optional.empty();
-        }
-
-        int separator = headerValue.indexOf(';');
-        String cookie = separator >= 0 ? headerValue.substring(0, separator) : headerValue;
-        return Optional.of(cookie.substring("XSRF-TOKEN=".length()));
-    }
 }

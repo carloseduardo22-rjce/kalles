@@ -138,7 +138,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldGeneratePairingTokenForAuthenticatedAdmin() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -229,7 +229,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldRequireCompanyIdAndPosIdWhenGeneratingPairingToken() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -247,7 +247,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     void shouldRejectPairingTokenGenerationForOperator() {
         String pairingToken = seedPairingToken("pairing-token-operador", companyId, cashRegisterId, true);
         String authCookie = loginOperatorAndExtractAuthCookie(pairingToken);
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -283,7 +283,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         )).getId();
 
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -332,10 +332,6 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         account.setCompanyId(companyId);
         account.setVerified(true);
         return account;
-    }
-
-    private CsrfContext fetchCsrfToken() {
-        return CsrfTestClient.fetch(port);
     }
 
     private String loginAndExtractAuthCookie(String email, String password) {
