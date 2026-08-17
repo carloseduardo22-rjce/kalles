@@ -7,16 +7,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Map;
 
 public final class LocalHttpTestClient {
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(
-            Long.getLong("kalles.test.http.timeout-seconds", 60L));
-
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
+            .connectTimeout(TestHttpTimeout.CONNECT)
             .build();
 
     private LocalHttpTestClient() {
@@ -34,7 +30,7 @@ public final class LocalHttpTestClient {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .timeout(REQUEST_TIMEOUT);
+                    .timeout(TestHttpTimeout.REQUEST);
 
             if ("DELETE".equalsIgnoreCase(method)) {
                 requestBuilder.DELETE();

@@ -20,6 +20,7 @@ import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.PaymentRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.CompletedState;
+import dev.kalles.testsupport.TestHttpTimeout;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.http.ContentType;
@@ -34,7 +35,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
-import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,7 +50,7 @@ class FiscalOperationsApiIntegrationTest extends AbstractCashRegisterApiSupport 
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
+            .connectTimeout(TestHttpTimeout.CONNECT)
             .build();
 
     @Autowired
@@ -525,7 +525,7 @@ class FiscalOperationsApiIntegrationTest extends AbstractCashRegisterApiSupport 
     private HttpRequest.Builder authenticatedGet(String path) {
         return HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + path))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(TestHttpTimeout.REQUEST)
                 .GET()
                 .header("Cookie", "kalles_auth_token=" + auth.authCookie())
                 .header("X-Company-ID", companyId.toString());
