@@ -23,7 +23,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	}
 
 	@EntityGraph(attributePaths = {"client", "items", "items.product", "payments"})
-	@Query("SELECT DISTINCT s FROM Sale s WHERE s.id IN :ids")
+	@Query("SELECT s FROM Sale s WHERE s.id IN :ids")
 	List<Sale> findAllWithDetailsByIdIn(@Param("ids") List<UUID> ids);
 
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
@@ -31,7 +31,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	Optional<Sale> findBySessionTokenAndStateIn(@Param("sessionToken") String sessionToken, @Param("states") List<SaleState> states);
 
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
-	@Query("SELECT DISTINCT s FROM Sale s WHERE s.sessionToken = :sessionToken AND s.state IN :states")
+	@Query("SELECT s FROM Sale s WHERE s.sessionToken = :sessionToken AND s.state IN :states")
 	List<Sale> findAllBySessionTokenAndStateIn(@Param("sessionToken") String sessionToken, @Param("states") List<SaleState> states);
 
 	default List<Sale> findCompletedBySessionToken(String sessionToken) {
