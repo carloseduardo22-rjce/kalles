@@ -38,14 +38,14 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     }
 
     @Test
-    @DisplayName("findAllWithDetailsByIdIn nao multiplica a venda pelo produto das colecoes")
+    @DisplayName("findAllByIdIn nao multiplica a venda pelo produto das colecoes")
     void shouldReturnOneSaleWhenFetchingItemsAndPaymentsTogether() {
         Sale sale = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
         detach();
 
         assertThat(rowsProducedByJoiningBothCollections(sale.getId())).isEqualTo(4);
 
-        List<Sale> sales = saleRepository.findAllWithDetailsByIdIn(List.of(sale.getId()));
+        List<Sale> sales = saleRepository.findAllByIdIn(List.of(sale.getId()));
 
         assertThat(sales).hasSize(1);
         assertThat(sales.getFirst().getItems()).hasSize(2);
@@ -96,13 +96,13 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     }
 
     @Test
-    @DisplayName("findAllWithDetailsByIdIn devolve uma linha por venda quando o lote tem varias")
+    @DisplayName("findAllByIdIn devolve uma linha por venda quando o lote tem varias")
     void shouldReturnOneRowPerSaleWhenTheBatchHasSeveral() {
         Sale first = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
         Sale second = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
         detach();
 
-        List<Sale> sales = saleRepository.findAllWithDetailsByIdIn(List.of(first.getId(), second.getId()));
+        List<Sale> sales = saleRepository.findAllByIdIn(List.of(first.getId(), second.getId()));
 
         assertThat(sales).hasSize(2);
         assertThat(sales).extracting(Sale::getId).containsExactlyInAnyOrder(first.getId(), second.getId());
