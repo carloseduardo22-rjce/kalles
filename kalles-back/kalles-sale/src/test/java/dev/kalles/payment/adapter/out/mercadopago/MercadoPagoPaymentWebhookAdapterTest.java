@@ -1,5 +1,6 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
+import dev.kalles.payment.config.MercadoPagoProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve aceitar assinatura valida")
     void shouldAcceptValidSignature() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertTrue(adapter.validateSignature(signatureHeader(expectedHash()), REQUEST_ID, DATA_ID));
     }
@@ -31,7 +32,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve aceitar assinatura valida em caixa alta")
     void shouldAcceptValidSignatureInUpperCase() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertTrue(adapter.validateSignature(
                 signatureHeader(expectedHash().toUpperCase(Locale.ROOT)), REQUEST_ID, DATA_ID));
@@ -40,7 +41,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar assinatura de outro segredo")
     void shouldRejectSignatureFromAnotherSecret() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter("outro-segredo");
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret("outro-segredo");
 
         assertFalse(adapter.validateSignature(signatureHeader(expectedHash()), REQUEST_ID, DATA_ID));
     }
@@ -48,7 +49,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar assinatura que difere apenas no ultimo caractere")
     void shouldRejectSignatureDifferingOnlyInTheLastCharacter() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
         String hash = expectedHash();
         String tampered = hash.substring(0, hash.length() - 1) + (hash.endsWith("0") ? "1" : "0");
 
@@ -58,7 +59,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar quando o request id nao e o assinado")
     void shouldRejectWhenRequestIdWasNotSigned() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertFalse(adapter.validateSignature(signatureHeader(expectedHash()), "outro-request-id", DATA_ID));
     }
@@ -66,7 +67,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar quando o segredo nao esta configurado")
     void shouldRejectWhenSecretIsNotConfigured() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter("");
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret("");
 
         assertFalse(adapter.validateSignature(signatureHeader(expectedHash()), REQUEST_ID, DATA_ID));
     }
@@ -74,7 +75,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar header sem o campo v1")
     void shouldRejectHeaderWithoutV1Field() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertFalse(adapter.validateSignature("ts=" + TIMESTAMP, REQUEST_ID, DATA_ID));
     }
@@ -82,7 +83,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar header sem o campo ts")
     void shouldRejectHeaderWithoutTimestampField() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertFalse(adapter.validateSignature("v1=" + expectedHash(), REQUEST_ID, DATA_ID));
     }
@@ -90,7 +91,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar hash que nao e hexadecimal")
     void shouldRejectHashThatIsNotHexadecimal() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertFalse(adapter.validateSignature(signatureHeader("nao-e-hexadecimal"), REQUEST_ID, DATA_ID));
     }
@@ -98,7 +99,7 @@ class MercadoPagoPaymentWebhookAdapterTest {
     @Test
     @DisplayName("deve rejeitar header nulo")
     void shouldRejectNullHeader() {
-        MercadoPagoPaymentWebhookAdapter adapter = new MercadoPagoPaymentWebhookAdapter(SECRET);
+        MercadoPagoPaymentWebhookAdapter adapter = adapterWithSecret(SECRET);
 
         assertFalse(adapter.validateSignature(null, REQUEST_ID, DATA_ID));
     }
@@ -117,5 +118,10 @@ class MercadoPagoPaymentWebhookAdapterTest {
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static MercadoPagoPaymentWebhookAdapter adapterWithSecret(String webhookSecret) {
+        return new MercadoPagoPaymentWebhookAdapter(
+                new MercadoPagoProperties(null, null, null, null, null, null, webhookSecret));
     }
 }

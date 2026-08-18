@@ -3,9 +3,9 @@ package dev.kalles.payment.adapter.out.mercadopago;
 import dev.kalles.payment.adapter.out.mercadopago.dto.OAuthTokenRequest;
 import dev.kalles.payment.adapter.out.mercadopago.dto.OAuthTokenResponse;
 import dev.kalles.payment.application.port.out.PaymentProviderAccountPort;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentProviderAuthorization;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -23,15 +23,13 @@ public class MercadoPagoPaymentProviderAccountAdapter implements PaymentProvider
     private final ObjectMapper objectMapper;
 
     public MercadoPagoPaymentProviderAccountAdapter(
-            @Value("${mercadopago.client-id}") String clientId,
-            @Value("${mercadopago.client-secret}") String clientSecret,
-            @Value("${mercadopago.redirect-uri}") String redirectUri,
+            MercadoPagoProperties mercadoPagoProperties,
             MercadoPagoWebClient mercadoPagoWebClient,
             ObjectMapper objectMapper
     ) {
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.redirectUri = redirectUri;
+        this.clientId = mercadoPagoProperties.clientId();
+        this.clientSecret = mercadoPagoProperties.clientSecret();
+        this.redirectUri = mercadoPagoProperties.redirectUri();
         this.mercadoPagoWebClient = mercadoPagoWebClient;
         this.objectMapper = objectMapper;
     }

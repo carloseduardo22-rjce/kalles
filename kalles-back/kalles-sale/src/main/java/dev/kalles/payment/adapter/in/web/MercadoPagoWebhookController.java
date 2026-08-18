@@ -1,9 +1,9 @@
 package dev.kalles.payment.adapter.in.web;
 
 import dev.kalles.payment.application.port.in.ProcessPaymentWebhookUseCase;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,10 +24,10 @@ public class MercadoPagoWebhookController {
 
     public MercadoPagoWebhookController(
             ProcessPaymentWebhookUseCase processPaymentWebhookUseCase,
-            @Value("${mercadopago.webhook-secret:}") String webhookSecret
+            MercadoPagoProperties mercadoPagoProperties
     ) {
         this.processPaymentWebhookUseCase = processPaymentWebhookUseCase;
-        this.webhookSecret = webhookSecret;
+        this.webhookSecret = mercadoPagoProperties.webhookSecret();
     }
 
     @PostMapping

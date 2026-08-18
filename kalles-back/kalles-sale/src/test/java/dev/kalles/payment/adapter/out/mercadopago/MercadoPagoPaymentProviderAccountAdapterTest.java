@@ -1,5 +1,6 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentProviderAuthorization;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,9 +33,15 @@ class MercadoPagoPaymentProviderAccountAdapterTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         adapter = new MercadoPagoPaymentProviderAccountAdapter(
-                "client-id-do-kalles",
-                "client-secret-do-kalles",
-                "https://kalles.dev/oauth/callback",
+                new MercadoPagoProperties(
+                        null,
+                        null,
+                        null,
+                        "client-id-do-kalles",
+                        "client-secret-do-kalles",
+                        "https://kalles.dev/oauth/callback",
+                        null
+                ),
                 new MercadoPagoWebClient(builder),
                 JsonMapper.builder().build()
         );

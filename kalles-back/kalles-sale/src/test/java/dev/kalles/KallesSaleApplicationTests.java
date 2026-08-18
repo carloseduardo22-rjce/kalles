@@ -1,6 +1,7 @@
 package dev.kalles;
 
 import dev.kalles.payment.adapter.in.web.MercadoPagoWebhookController;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.adapter.in.web.PaymentController;
 import dev.kalles.payment.adapter.in.web.PaymentPointController;
 import dev.kalles.payment.adapter.in.web.PaymentProviderAccountController;
@@ -52,6 +53,9 @@ class KallesSaleApplicationTests {
 
     @Configuration
     static class TestConfiguration {
+
+        private static final MercadoPagoProperties TEST_MERCADO_PAGO_PROPERTIES =
+                new MercadoPagoProperties(null, null, null, null, null, null, "");
 
         @Bean
         ProcessPaymentUseCase processPaymentUseCase() {
@@ -173,7 +177,8 @@ class KallesSaleApplicationTests {
                     linkPaymentProviderAccountUseCase,
                     getPaymentProviderAccountStatusUseCase,
                     paymentProviderOAuthStateService,
-                    accountRepository
+                    accountRepository,
+                    TEST_MERCADO_PAGO_PROPERTIES
             );
         }
 
@@ -216,7 +221,7 @@ class KallesSaleApplicationTests {
         MercadoPagoWebhookController mercadoPagoWebhookController(
                 ProcessPaymentWebhookUseCase processPaymentWebhookUseCase
         ) {
-            return new MercadoPagoWebhookController(processPaymentWebhookUseCase, "");
+            return new MercadoPagoWebhookController(processPaymentWebhookUseCase, TEST_MERCADO_PAGO_PROPERTIES);
         }
 
     }

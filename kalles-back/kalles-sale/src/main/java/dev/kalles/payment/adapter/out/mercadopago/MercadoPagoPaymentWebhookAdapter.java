@@ -1,10 +1,10 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
 import dev.kalles.payment.application.port.out.PaymentWebhookPort;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentMethodType;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentWebhookEvent;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -25,8 +25,8 @@ public class MercadoPagoPaymentWebhookAdapter implements PaymentWebhookPort {
 
     private final String webhookSecret;
 
-    public MercadoPagoPaymentWebhookAdapter(@Value("${mercadopago.webhook-secret:}") String webhookSecret) {
-        this.webhookSecret = webhookSecret;
+    public MercadoPagoPaymentWebhookAdapter(MercadoPagoProperties mercadoPagoProperties) {
+        this.webhookSecret = mercadoPagoProperties.webhookSecret();
     }
 
     @Override

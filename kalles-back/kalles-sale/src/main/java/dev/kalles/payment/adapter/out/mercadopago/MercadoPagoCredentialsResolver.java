@@ -1,9 +1,9 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
 import dev.kalles.payment.application.port.out.PaymentAccountRepository;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.security.context.TenantContextHolder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -17,12 +17,11 @@ public class MercadoPagoCredentialsResolver {
 
     public MercadoPagoCredentialsResolver(
             PaymentAccountRepository paymentAccountRepository,
-            @Value("${mercadopago.access-token}") String fallbackAccessToken,
-            @Value("${mercadopago.user-id:me}") String fallbackUserId
+            MercadoPagoProperties mercadoPagoProperties
     ) {
         this.paymentAccountRepository = paymentAccountRepository;
-        this.fallbackAccessToken = fallbackAccessToken;
-        this.fallbackUserId = fallbackUserId;
+        this.fallbackAccessToken = mercadoPagoProperties.accessToken();
+        this.fallbackUserId = mercadoPagoProperties.userId();
     }
 
     public String fallbackAccessToken() {
