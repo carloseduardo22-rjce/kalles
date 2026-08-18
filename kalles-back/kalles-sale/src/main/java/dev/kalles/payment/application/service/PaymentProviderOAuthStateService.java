@@ -14,8 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -39,7 +37,7 @@ public class PaymentProviderOAuthStateService {
                 .withClaim("tenantId", account.getTenantId().toString())
                 .withClaim("accountId", account.getId().toString())
                 .withClaim("nonce", UUID.randomUUID().toString())
-                .withExpiresAt(genExpirationDate())
+                .withExpiresAt(expiresAt())
                 .sign(algorithm);
     }
 
@@ -105,10 +103,7 @@ public class PaymentProviderOAuthStateService {
         return "kalles_oauth_state_" + provider.name().toLowerCase();
     }
 
-    private Date genExpirationDate() {
-        return Date.from(Instant.now()
-                .plusSeconds(expirationMinutes * 60L)
-                .atZone(ZoneId.systemDefault())
-                .toInstant());
+    private Instant expiresAt() {
+        return Instant.now().plus(Duration.ofMinutes(expirationMinutes));
     }
 }

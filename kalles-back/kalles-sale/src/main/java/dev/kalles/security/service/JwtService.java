@@ -8,9 +8,8 @@ import dev.kalles.security.entity.Account;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -45,7 +44,7 @@ public class JwtService {
             }
 
             return jwtBuilder
-                    .withExpiresAt(genExpirationDate())
+                    .withExpiresAt(expiresAt())
                     .sign(algorithm);
         } catch (Exception exception) {
             throw new RuntimeException("Error while generating token", exception);
@@ -64,7 +63,7 @@ public class JwtService {
         }
     }
 
-    private Date genExpirationDate() {
-        return Date.from(Instant.now().plusSeconds(accessTokenExpirationMinutes * 60L).atZone(ZoneId.systemDefault()).toInstant());
+    private Instant expiresAt() {
+        return Instant.now().plus(Duration.ofMinutes(accessTokenExpirationMinutes));
     }
 }
