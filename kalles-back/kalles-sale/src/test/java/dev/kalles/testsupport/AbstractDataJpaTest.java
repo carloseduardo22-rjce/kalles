@@ -37,6 +37,19 @@ public abstract class AbstractDataJpaTest {
                 .executeUpdate();
     }
 
+    protected void seedCashRegister(UUID cashRegisterId, UUID companyId, String code) {
+        entityManager.getEntityManager()
+                .createNativeQuery("""
+                        INSERT INTO cash_registers (id, code, description, active, company_id)
+                        VALUES (:id, :code, 'Caixa do teste de repositorio', TRUE, :companyId)
+                        ON CONFLICT (id) DO NOTHING
+                        """)
+                .setParameter("id", cashRegisterId)
+                .setParameter("code", code)
+                .setParameter("companyId", companyId)
+                .executeUpdate();
+    }
+
     protected void detach() {
         entityManager.flush();
         entityManager.clear();
