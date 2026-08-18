@@ -66,6 +66,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/webhooks/mercadopago").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/error").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
 
                 // ── PDV operations: OPERATOR + ADMIN ──
                 .requestMatchers("/api/sales/**").hasAnyRole("ADMIN", "OPERATOR")
