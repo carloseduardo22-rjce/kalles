@@ -41,6 +41,8 @@ api:
   security:
     token:
       secret: ${API_TOKEN_SECRET}
+    access-token:
+      expiration-minutes: ${ACCESS_TOKEN_EXPIRATION_MINUTES:15}
 
 security:
   encryption:

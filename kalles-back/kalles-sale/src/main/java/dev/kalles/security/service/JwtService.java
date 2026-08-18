@@ -18,8 +18,12 @@ public class JwtService {
     @Value("${api.security.token.secret}")
     private String secret;
 
-    @Value("${api.security.access-token.expiration-minutes:720}")
+    @Value("${api.security.access-token.expiration-minutes:15}")
     private Integer accessTokenExpirationMinutes;
+
+    public Duration accessTokenTtl() {
+        return Duration.ofMinutes(accessTokenExpirationMinutes);
+    }
 
     public String generateToken(Account account) {
         return generateToken(account, null);
@@ -56,6 +60,7 @@ public class JwtService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.require(algorithm)
                     .withIssuer("kalles-api")
+                    .withClaim("tokenType", "access")
                     .build()
                     .verify(token);
         } catch (JWTVerificationException exception) {
@@ -64,6 +69,6 @@ public class JwtService {
     }
 
     private Instant expiresAt() {
-        return Instant.now().plus(Duration.ofMinutes(accessTokenExpirationMinutes));
+        return Instant.now().plus(accessTokenTtl());
     }
 }

@@ -9,6 +9,7 @@ import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.filter.JwtAuthenticationFilter;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.service.AuthService;
+import dev.kalles.security.service.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final AccountRepository accountRepository;
+    private final JwtService jwtService;
 
     @Value("${app.security.cookies.secure:false}")
     private boolean secureCookies;
@@ -132,7 +134,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(secureCookies)
                 .path("/")
-                .maxAge(Duration.ofHours(12))
+                .maxAge(jwtService.accessTokenTtl())
                 .sameSite("Lax")
                 .build();
     }
