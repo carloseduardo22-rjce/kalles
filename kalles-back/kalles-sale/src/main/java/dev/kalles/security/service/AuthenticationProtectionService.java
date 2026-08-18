@@ -1,5 +1,8 @@
 package dev.kalles.security.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Ticker;
 import dev.kalles.security.exception.RateLimitExceededException;
 import org.springframework.stereotype.Service;
 
@@ -7,7 +10,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthenticationProtectionService {
@@ -15,41 +17,60 @@ public class AuthenticationProtectionService {
     private static final AttemptPolicy LOGIN_POLICY = new AttemptPolicy(5, Duration.ofMinutes(15), Duration.ofMinutes(15));
     private static final AttemptPolicy VERIFY_POLICY = new AttemptPolicy(5, Duration.ofMinutes(15), Duration.ofMinutes(15));
     private static final RatePolicy RESEND_POLICY = new RatePolicy(3, Duration.ofMinutes(15));
+    private static final long MAX_TRACKED_KEYS = 100_000;
 
-    private final Map<String, FailureState> loginFailures = new ConcurrentHashMap<>();
-    private final Map<String, FailureState> verificationFailures = new ConcurrentHashMap<>();
-    private final Map<String, RateState> resendAttempts = new ConcurrentHashMap<>();
+    private final Cache<String, FailureState> loginFailures;
+    private final Cache<String, FailureState> verificationFailures;
+    private final Cache<String, RateState> resendAttempts;
+
+    public AuthenticationProtectionService() {
+        this(Ticker.systemTicker());
+    }
+
+    AuthenticationProtectionService(Ticker ticker) {
+        this.loginFailures = buildCache(ticker, LOGIN_POLICY.window().plus(LOGIN_POLICY.lockDuration()));
+        this.verificationFailures = buildCache(ticker, VERIFY_POLICY.window().plus(VERIFY_POLICY.lockDuration()));
+        this.resendAttempts = buildCache(ticker, RESEND_POLICY.window());
+    }
+
+    private static <T> Cache<String, T> buildCache(Ticker ticker, Duration retention) {
+        return Caffeine.newBuilder()
+                .ticker(ticker)
+                .expireAfterWrite(retention)
+                .maximumSize(MAX_TRACKED_KEYS)
+                .build();
+    }
 
     public void assertLoginAllowed(String email, String tenantId) {
-        assertFailurePolicyAllowed(loginFailures, buildScopedKey(email, tenantId), LOGIN_POLICY,
+        assertFailurePolicyAllowed(loginFailures.asMap(), buildScopedKey(email, tenantId), LOGIN_POLICY,
                 "Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.");
     }
 
     public void registerLoginFailure(String email, String tenantId) {
-        registerFailure(loginFailures, buildScopedKey(email, tenantId), LOGIN_POLICY);
+        registerFailure(loginFailures.asMap(), buildScopedKey(email, tenantId), LOGIN_POLICY);
     }
 
     public void registerLoginSuccess(String email, String tenantId) {
-        loginFailures.remove(buildScopedKey(email, tenantId));
+        loginFailures.invalidate(buildScopedKey(email, tenantId));
     }
 
     public void assertVerificationAllowed(String email, String tenantId) {
-        assertFailurePolicyAllowed(verificationFailures, buildScopedKey(email, tenantId), VERIFY_POLICY,
+        assertFailurePolicyAllowed(verificationFailures.asMap(), buildScopedKey(email, tenantId), VERIFY_POLICY,
                 "Muitas tentativas de verificacao. Aguarde alguns minutos antes de tentar novamente.");
     }
 
     public void registerVerificationFailure(String email, String tenantId) {
-        registerFailure(verificationFailures, buildScopedKey(email, tenantId), VERIFY_POLICY);
+        registerFailure(verificationFailures.asMap(), buildScopedKey(email, tenantId), VERIFY_POLICY);
     }
 
     public void registerVerificationSuccess(String email, String tenantId) {
-        verificationFailures.remove(buildScopedKey(email, tenantId));
+        verificationFailures.invalidate(buildScopedKey(email, tenantId));
     }
 
     public void assertResendAllowed(String email, String tenantId) {
         Instant now = Instant.now();
         String key = buildScopedKey(email, tenantId);
-        resendAttempts.compute(key, (ignored, existing) -> {
+        resendAttempts.asMap().compute(key, (ignored, existing) -> {
             RateState state = existing;
             if (state == null || now.isAfter(state.windowStartedAt.plus(RESEND_POLICY.window()))) {
                 state = new RateState(now, 0);
@@ -102,6 +123,13 @@ public class AuthenticationProtectionService {
             }
             return state;
         });
+    }
+
+    long trackedKeys() {
+        loginFailures.cleanUp();
+        verificationFailures.cleanUp();
+        resendAttempts.cleanUp();
+        return loginFailures.estimatedSize() + verificationFailures.estimatedSize() + resendAttempts.estimatedSize();
     }
 
     private String buildScopedKey(String email, String tenantId) {
