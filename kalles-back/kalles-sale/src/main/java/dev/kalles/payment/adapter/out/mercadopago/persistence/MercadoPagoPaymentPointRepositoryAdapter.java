@@ -38,10 +38,7 @@ public class MercadoPagoPaymentPointRepositoryAdapter implements PaymentPointRep
             return Optional.empty();
         }
 
-        return repository.findAll().stream()
-                .filter(entity -> cashRegisterId.equals(entity.getCashRegisterId()))
-                .findFirst()
-                .map(this::toDomain);
+        return repository.findFirstByCashRegisterId(cashRegisterId).map(this::toDomain);
     }
 
     @Override

@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface MercadoPagoPointJpaRepository extends JpaRepository<MercadoPagoPointEntity, UUID> {
 
     Optional<MercadoPagoPointEntity> findByExternalReference(String externalReference);
+
+    Optional<MercadoPagoPointEntity> findFirstByCashRegisterId(UUID cashRegisterId);
 }
