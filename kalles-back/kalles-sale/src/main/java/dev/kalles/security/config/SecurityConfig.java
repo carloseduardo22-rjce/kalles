@@ -1,11 +1,13 @@
 package dev.kalles.security.config;
 
+import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,7 +25,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,7 +39,7 @@ public class SecurityConfig {
     private String allowedOrigin;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
@@ -56,7 +57,7 @@ public class SecurityConfig {
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(accessDeniedHandler()))
+            .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(authorize -> authorize
                 // ── Public endpoints ──
                 .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
@@ -134,7 +135,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
+    public AccessDeniedHandler accessDeniedHandler(ProblemResponseWriter problemResponseWriter) {
         return (request, response, accessDeniedException) -> {
             String code = "ACCESS_DENIED";
             String title = "Acesso negado";
@@ -150,12 +151,14 @@ public class SecurityConfig {
                 detail = "O token CSRF enviado nao confere com o token esperado para esta sessao.";
             }
 
-            response.setStatus(403);
-            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            response.setContentType("application/problem+json");
-            response.getWriter().write("""
-                    {"type":"about:blank","title":"%s","status":403,"detail":"%s","code":"%s","path":"%s"}"""
-                    .formatted(escapeJson(title), escapeJson(detail), escapeJson(code), escapeJson(request.getRequestURI())));
+            problemResponseWriter.write(
+                    response,
+                    HttpStatus.FORBIDDEN,
+                    code,
+                    title,
+                    detail,
+                    request.getRequestURI()
+            );
         };
     }
 
@@ -171,13 +174,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    private static String escapeJson(String value) {
-        return value == null ? "" : value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
     }
 }

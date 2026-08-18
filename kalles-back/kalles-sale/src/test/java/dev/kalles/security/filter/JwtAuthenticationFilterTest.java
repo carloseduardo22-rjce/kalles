@@ -6,6 +6,7 @@ import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.PosContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,6 +22,8 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -47,7 +50,11 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtService, companyRepository);
+        filter = new JwtAuthenticationFilter(
+                jwtService,
+                companyRepository,
+                new ProblemResponseWriter(JsonMapper.builder().build())
+        );
     }
 
     @AfterEach
