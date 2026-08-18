@@ -9,9 +9,13 @@ import dev.kalles.fiscal.application.port.out.FiscalIssuerAddressRepository;
 import dev.kalles.fiscal.application.port.out.FiscalIssuerProfileRepository;
 import dev.kalles.fiscal.application.port.out.FiscalSaleReader;
 import dev.kalles.fiscal.application.port.out.SefazAuthorizationPort;
+import dev.kalles.fiscal.domain.FiscalCertificate;
+import dev.kalles.fiscal.domain.FiscalConfiguration;
 import dev.kalles.fiscal.domain.FiscalDocument;
 import dev.kalles.fiscal.domain.FiscalDocumentStatus;
 import dev.kalles.fiscal.domain.FiscalEnvironment;
+import dev.kalles.fiscal.domain.FiscalSale;
+import dev.kalles.fiscal.domain.SefazAuthorizationResult;
 import dev.kalles.fiscal.exception.FiscalConflictException;
 import dev.kalles.fiscal.exception.FiscalRejectionException;
 import dev.kalles.fiscal.exception.FiscalValidationException;
@@ -86,29 +90,43 @@ public class IssueNfceService implements IssueNfceUseCase {
             throw new FiscalValidationException("Todos os itens da NFC-e devem possuir classificacao fiscal minima");
         }
 
+        FiscalDocument claim = claimIssuance(FiscalDocument.pending(command.tenantId(), command.companyId(),
+                command.saleId(), command.model(), command.environment(), now));
+
         long documentNumber = configurationRepository.reserveNextNumber(
                 command.tenantId(), command.companyId(), command.model(), command.environment());
 
-        var authorization = sefazAuthorizationPort.authorize(
-                sale, configuration.withDocumentNumber(documentNumber), certificate);
-        FiscalDocument document = authorization.authorized()
-                ? FiscalDocument.authorized(command.tenantId(), command.companyId(), command.saleId(), command.model(),
-                        command.environment(), authorization, now)
-                : FiscalDocument.rejected(command.tenantId(), command.companyId(), command.saleId(), command.model(),
-                        command.environment(), authorization, now);
+        var authorization = authorizeReleasingClaimOnFailure(claim, sale,
+                configuration.withDocumentNumber(documentNumber), certificate);
 
-        FiscalDocument savedDocument = saveEnforcingSingleAuthorization(document);
+        FiscalDocument savedDocument = documentRepository.save(authorization.authorized()
+                ? claim.authorizedWith(authorization)
+                : claim.rejectedWith(authorization));
         if (!authorization.authorized()) {
             throw new FiscalRejectionException(savedDocument);
         }
         return savedDocument;
     }
 
-    private FiscalDocument saveEnforcingSingleAuthorization(FiscalDocument document) {
+    private FiscalDocument claimIssuance(FiscalDocument claim) {
         try {
-            return documentRepository.save(document);
+            return documentRepository.save(claim);
         } catch (DataIntegrityViolationException ex) {
-            throw new FiscalConflictException("A venda ja possui documento fiscal autorizado");
+            throw new FiscalConflictException("A venda ja possui emissao em andamento ou documento fiscal autorizado");
+        }
+    }
+
+    private SefazAuthorizationResult authorizeReleasingClaimOnFailure(
+            FiscalDocument claim,
+            FiscalSale sale,
+            FiscalConfiguration configuration,
+            FiscalCertificate certificate
+    ) {
+        try {
+            return sefazAuthorizationPort.authorize(sale, configuration, certificate);
+        } catch (RuntimeException ex) {
+            documentRepository.delete(claim);
+            throw ex;
         }
     }
 
