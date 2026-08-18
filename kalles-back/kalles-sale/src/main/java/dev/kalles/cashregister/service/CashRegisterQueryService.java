@@ -32,7 +32,7 @@ public class CashRegisterQueryService {
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         List<CashRegister> registers = cashRegisterRepository.findAllByCompanyIdAndActiveTrueOrderByCodeAsc(companyId);
         List<UUID> registersWithPaymentIntegration = paymentIntegrationService.listCashRegistersWithPaymentIntegration();
 
@@ -43,7 +43,7 @@ public class CashRegisterQueryService {
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listOperators() {
-        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(getCompanyId())
+        return operatorRepository.findAllByCompanyIdAndActiveTrueOrderByNameAsc(CompanyContextHolder.requireCompanyId())
             .stream()
             .map(OperatorResponse::fromEntity)
             .toList();
@@ -66,13 +66,5 @@ public class CashRegisterQueryService {
             paymentConfigured,
             activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null)
         );
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

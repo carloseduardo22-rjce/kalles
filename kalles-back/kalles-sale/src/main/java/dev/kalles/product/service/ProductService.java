@@ -37,21 +37,21 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductCatalogResponse> listAllActive() {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, false);
         return enrichWithStock(companyId, catalog);
     }
 
     @Transactional(readOnly = true)
     public List<ProductCatalogResponse> listAll() {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         List<CompanyProductListItem> catalog = companyProductReadRepository.listCatalog(companyId, true);
         return enrichWithStock(companyId, catalog);
     }
 
     @Transactional(readOnly = true)
     public Page<ProductCatalogResponse> listPage(boolean includeInactive, int page, int size) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Page<CompanyProductListItem> catalogPage = companyProductReadRepository.listCatalogPage(
                 companyId,
                 includeInactive,
@@ -64,7 +64,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductCatalogResponse findById(UUID id) {
         findTenantProduct(id);
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         CompanyProductListItem item = companyProductReadRepository.findCatalogItem(companyId, id)
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + id));
         Map<UUID, Long> stockMap = buildStockMap(companyId, List.of(id));
@@ -73,14 +73,14 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductCatalogResponse> searchActive(String q) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         List<CompanyProductListItem> catalog = companyProductReadRepository.searchActiveCatalog(companyId, q);
         return enrichWithStock(companyId, catalog);
     }
 
     @Transactional
     public ProductCatalogResponse create(ProductRequest request) {
-        UUID tenantId = getTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
@@ -100,7 +100,7 @@ public class ProductService {
         product = productRepository.save(product);
 
         CompanyProduct cp = new CompanyProduct();
-        cp.setCompanyId(getCompanyId());
+        cp.setCompanyId(CompanyContextHolder.requireCompanyId());
         cp.setProduct(product);
         cp.setPrice(request.price());
         cp.setCostPrice(request.costPrice());
@@ -112,7 +112,7 @@ public class ProductService {
 
     @Transactional
     public ProductCatalogResponse update(UUID id, ProductRequest request) {
-        UUID tenantId = getTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         Product product = findTenantProduct(id);
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
@@ -134,14 +134,8 @@ public class ProductService {
         product.setDescription(request.description());
         productRepository.save(product);
 
-        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), product.getId())
-                .orElseGet(() -> {
-                    CompanyProduct newCp = new CompanyProduct();
-                    newCp.setCompanyId(getCompanyId());
-                    newCp.setProduct(product);
-                    newCp.setActive(true);
-                    return newCp;
-                });
+        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(CompanyContextHolder.requireCompanyId(), product.getId())
+                .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial."));
         cp.setPrice(request.price());
         cp.setCostPrice(request.costPrice());
         companyProductRepository.save(cp);
@@ -151,30 +145,15 @@ public class ProductService {
 
     @Transactional
     public void deactivate(UUID id) {
-        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(getCompanyId(), id)
+        CompanyProduct cp = companyProductRepository.findByCompanyIdAndProductId(CompanyContextHolder.requireCompanyId(), id)
                 .orElseThrow(() -> new NotFoundException("Produto nao configurado nesta filial."));
         cp.setActive(false);
         companyProductRepository.save(cp);
     }
 
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
-    }
-
-    private UUID getTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Nenhum tenant selecionado no contexto da operacao.");
-        }
-        return tenantId;
-    }
 
     private Product findTenantProduct(UUID productId) {
-        return productRepository.findByIdAndTenantId(productId, getTenantId())
+        return productRepository.findByIdAndTenantId(productId, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto nao encontrado: " + productId));
     }
 

@@ -23,8 +23,7 @@ import lombok.Setter;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_payment_sale_id", columnList = "sale_id"),
-    @Index(name = "idx_payment_transaction_id", columnList = "transaction_id")
+    @Index(name = "idx_payment_sale_id", columnList = "sale_id")
 }, comment = "Pagamentos realizados em uma venda: método, valor, troco, identificação da transação e status de confirmação"
 )
 @Getter

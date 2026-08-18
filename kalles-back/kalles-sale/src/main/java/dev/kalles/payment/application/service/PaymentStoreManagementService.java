@@ -11,7 +11,6 @@ import dev.kalles.payment.domain.MerchantProfile;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentStoreView;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +40,7 @@ public class PaymentStoreManagementService implements
 
     @Override
     public PaymentStore execute(CreatePaymentStoreCommand command) {
-        UUID tenantId = getCurrentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         Company company = companyRepository.findByIdAndTenantId(command.companyId(), tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Company not found: " + command.companyId()));
 
@@ -64,7 +63,7 @@ public class PaymentStoreManagementService implements
 
     @Override
     public Optional<PaymentStore> findByExternalReference(PaymentProvider provider, String externalReference) {
-        UUID tenantId = getCurrentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return companyRepository.findByTenantId(tenantId).stream()
                 .map(company -> paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), provider))
                 .flatMap(Optional::stream)
@@ -74,7 +73,7 @@ public class PaymentStoreManagementService implements
 
     @Override
     public Optional<PaymentStore> findCurrentTenant(PaymentProvider provider) {
-        UUID tenantId = getCurrentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return companyRepository.findByTenantId(tenantId).stream()
                 .map(company -> paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), provider))
                 .flatMap(Optional::stream)
@@ -116,13 +115,5 @@ public class PaymentStoreManagementService implements
                 company.getLatitude(),
                 company.getLongitude()
         );
-    }
-
-    private UUID getCurrentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for this operation");
-        }
-        return tenantId;
     }
 }

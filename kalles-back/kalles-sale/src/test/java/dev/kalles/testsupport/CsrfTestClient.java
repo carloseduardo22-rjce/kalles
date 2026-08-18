@@ -8,16 +8,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Optional;
 
-/**
- * Busca o par cookie/token CSRF que os endpoints protegidos exigem. As classes de suporte
- * mantem cada uma a sua copia dessa logica; novos testes devem usar este helper.
- */
 public final class CsrfTestClient {
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(TestHttpTimeout.CONNECT)
+            .build();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String COOKIE_PREFIX = "XSRF-TOKEN=";
 
@@ -31,7 +28,7 @@ public final class CsrfTestClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + "/api/auth/csrf"))
                 .GET()
-                .timeout(Duration.ofSeconds(10))
+                .timeout(TestHttpTimeout.REQUEST)
                 .build();
 
         try {

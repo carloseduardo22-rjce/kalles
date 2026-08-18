@@ -35,7 +35,7 @@ public class PaymentLifecycleService implements ProcessPaymentUseCase {
         validateSessionAllowsElectronicPayments(normalizedCommand);
         PaymentResult result = portFactory.gateway(normalizedCommand.provider()).processPayment(normalizedCommand);
 
-        if (normalizedCommand.flow() == PaymentFlow.TERMINAL) {
+        if (result.providerOrderId() != null) {
             paymentOrderRepository.save(new PaymentOrder(
                     normalizedCommand.provider(),
                     result.providerOrderId(),

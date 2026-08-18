@@ -1,7 +1,7 @@
 package dev.kalles.report.integration;
 
 import dev.kalles.report.support.AbstractFinancialReportApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

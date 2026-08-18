@@ -1,5 +1,6 @@
 package dev.kalles.inventory.controller;
 
+import dev.kalles.inventory.dto.StockAdjustmentRequest;
 import dev.kalles.inventory.dto.StockRequest;
 import dev.kalles.inventory.dto.StockResponse;
 import dev.kalles.inventory.service.StockService;
@@ -32,16 +33,31 @@ public class StockController {
 
     @PostMapping
     @Operation(
-        summary = "Definir estoque",
-        description = "Define (ou atualiza) a quantidade de um produto em uma localização específica. " +
-                      "Se já existir um registro para esse produto e localização, ele é atualizado; caso contrário, um novo é criado."
+        summary = "Registrar entrada de mercadoria",
+        description = "Define a quantidade de um produto em uma localização. Quando a quantidade aumenta, " +
+                      "registra a entrada no histórico financeiro e atualiza o preço de custo do produto na filial. " +
+                      "Para corrigir uma contagem sem alterar o custo, use o ajuste de inventário."
     )
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Estoque definido com sucesso"),
+        @ApiResponse(responseCode = "200", description = "Entrada registrada com sucesso"),
         @ApiResponse(responseCode = "404", description = "Produto ou localização não encontrada")
     })
     public ResponseEntity<StockResponse> setStock(@Valid @RequestBody StockRequest request) {
         return ResponseEntity.ok(stockService.setStock(request));
+    }
+
+    @PostMapping("/adjustments")
+    @Operation(
+        summary = "Ajustar inventário",
+        description = "Corrige a quantidade contada de um produto em uma localização sem alterar o preço de custo " +
+                      "e sem registrar entrada de mercadoria. O ajuste fica na trilha de auditoria com o motivo informado."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Ajuste registrado com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Produto ou localização não encontrada")
+    })
+    public ResponseEntity<StockResponse> adjustStock(@Valid @RequestBody StockAdjustmentRequest request) {
+        return ResponseEntity.ok(stockService.adjustStock(request));
     }
 
     @GetMapping("/product/{productId}")

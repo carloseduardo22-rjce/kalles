@@ -44,7 +44,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	
 	default Optional<Sale> findActiveSaleBySessionToken(String sessionToken) {
 		return findBySessionTokenAndStateIn(sessionToken,
-			List.of(new OpenState(), new OnHoldState()));
+			List.of(new OpenState()));
 	}
 
 	/**
@@ -54,7 +54,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	 */
 	default Optional<Sale> findCancellableSaleBySessionToken(String sessionToken) {
 		return findBySessionTokenAndStateIn(sessionToken,
-			List.of(new OpenState(), new OnHoldState(), new PaymentInProgressState(), new PaidState()));
+			List.of(new OpenState(), new PaymentInProgressState(), new PaidState()));
 	}
 
 	default Optional<Sale> findSaleForPaymentBySessionToken(String sessionToken) {
@@ -74,7 +74,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	 */
 	default List<Sale> findPendingBySessionToken(String sessionToken) {
 		return findAllBySessionTokenAndStateIn(sessionToken,
-			List.of(new OpenState(), new OnHoldState(), new PaymentInProgressState(), new PaidState()));
+			List.of(new OpenState(), new PaymentInProgressState(), new PaidState()));
 	}
 
 	// Data da venda: usa o timestamp da própria venda (conclusão, com fallback

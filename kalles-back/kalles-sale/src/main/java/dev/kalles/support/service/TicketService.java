@@ -40,7 +40,7 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<Ticket> listAccessible(Optional<TicketStatus> status, String actorEmail, boolean isAdmin) {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         List<TicketEntity> entities;
         if (isAdmin) {
             entities = status
@@ -62,7 +62,7 @@ public class TicketService {
             int page,
             int size
     ) {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<TicketEntity> entities;
         if (isAdmin) {
@@ -88,13 +88,13 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<Ticket> findByAgent(UUID agentId) {
-        return ticketRepository.findAllByTenantIdAndAgentIdOrderByCreatedAtDesc(currentTenantId(), agentId)
+        return ticketRepository.findAllByTenantIdAndAgentIdOrderByCreatedAtDesc(TenantContextHolder.requireTenantId(), agentId)
                 .stream().map(mapper::toDomain).toList();
     }
 
     @Transactional(readOnly = true)
     public List<Ticket> findByUser(UUID userId) {
-        return ticketRepository.findAllByTenantIdAndUserIdOrderByCreatedAtDesc(currentTenantId(), userId)
+        return ticketRepository.findAllByTenantIdAndUserIdOrderByCreatedAtDesc(TenantContextHolder.requireTenantId(), userId)
                 .stream().map(mapper::toDomain).toList();
     }
 
@@ -173,12 +173,12 @@ public class TicketService {
     }
 
     private TicketEntity findTicketEntity(UUID ticketId) {
-        return ticketRepository.findWithDetailsByIdAndTenantId(ticketId, currentTenantId())
+        return ticketRepository.findWithDetailsByIdAndTenantId(ticketId, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
     }
 
     private Account findAccount(String actorEmail) {
-        return accountRepository.findByTenantIdAndEmailIgnoreCase(currentTenantId(), actorEmail)
+        return accountRepository.findByTenantIdAndEmailIgnoreCase(TenantContextHolder.requireTenantId(), actorEmail)
                 .orElseThrow(() -> new NotFoundException("Account not found: " + actorEmail));
     }
 
@@ -202,13 +202,5 @@ public class TicketService {
 
         ticketRepository.save(ticketEntity);
         return mapper.toDomain(ticketEntity);
-    }
-
-    private UUID currentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context is required for support tickets");
-        }
-        return tenantId;
     }
 }

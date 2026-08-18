@@ -8,9 +8,8 @@ import dev.kalles.security.entity.Account;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -19,8 +18,12 @@ public class JwtService {
     @Value("${api.security.token.secret}")
     private String secret;
 
-    @Value("${api.security.access-token.expiration-minutes:720}")
+    @Value("${api.security.access-token.expiration-minutes:15}")
     private Integer accessTokenExpirationMinutes;
+
+    public Duration accessTokenTtl() {
+        return Duration.ofMinutes(accessTokenExpirationMinutes);
+    }
 
     public String generateToken(Account account) {
         return generateToken(account, null);
@@ -45,7 +48,7 @@ public class JwtService {
             }
 
             return jwtBuilder
-                    .withExpiresAt(genExpirationDate())
+                    .withExpiresAt(expiresAt())
                     .sign(algorithm);
         } catch (Exception exception) {
             throw new RuntimeException("Error while generating token", exception);
@@ -57,6 +60,7 @@ public class JwtService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.require(algorithm)
                     .withIssuer("kalles-api")
+                    .withClaim("tokenType", "access")
                     .build()
                     .verify(token);
         } catch (JWTVerificationException exception) {
@@ -64,7 +68,7 @@ public class JwtService {
         }
     }
 
-    private Date genExpirationDate() {
-        return Date.from(Instant.now().plusSeconds(accessTokenExpirationMinutes * 60L).atZone(ZoneId.systemDefault()).toInstant());
+    private Instant expiresAt() {
+        return Instant.now().plus(accessTokenTtl());
     }
 }

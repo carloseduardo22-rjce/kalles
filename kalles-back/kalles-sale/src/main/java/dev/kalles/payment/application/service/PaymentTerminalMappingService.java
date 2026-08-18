@@ -12,7 +12,6 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
@@ -44,8 +43,8 @@ public class PaymentTerminalMappingService implements
     @Override
     @Transactional
     public PaymentTerminalMapping execute(MapPaymentTerminalCommand command) {
-        UUID tenantId = getTenantId();
-        UUID companyId = getCompanyId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         ensureAccessibleCompany(companyId, tenantId);
         CashRegister cashRegister = findAccessibleCashRegister(command.cashRegisterId(), companyId);
 
@@ -81,8 +80,8 @@ public class PaymentTerminalMappingService implements
     @Override
     @Transactional(readOnly = true)
     public PaymentTerminalMapping execute(GetPaymentTerminalMappingQuery query) {
-        UUID tenantId = getTenantId();
-        UUID companyId = getCompanyId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         ensureAccessibleCompany(companyId, tenantId);
         CashRegister cashRegister = findAccessibleCashRegister(query.cashRegisterId(), companyId);
 
@@ -93,8 +92,8 @@ public class PaymentTerminalMappingService implements
     @Override
     @Transactional(readOnly = true)
     public List<PaymentTerminalMapping> execute(PaymentProvider provider) {
-        UUID tenantId = getTenantId();
-        UUID companyId = getCompanyId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         ensureAccessibleCompany(companyId, tenantId);
         return mappingRepository.findActiveByCompanyIdAndProvider(companyId, provider);
     }
@@ -111,21 +110,5 @@ public class PaymentTerminalMappingService implements
         if (!company.getId().equals(companyId)) {
             throw new IllegalArgumentException("Filial invalida para o tenant atual.");
         }
-    }
-
-    private UUID getTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for this operation");
-        }
-        return tenantId;
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

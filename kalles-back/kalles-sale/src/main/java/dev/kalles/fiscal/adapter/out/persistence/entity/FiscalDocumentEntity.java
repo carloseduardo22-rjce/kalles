@@ -75,19 +75,23 @@ public class FiscalDocumentEntity {
 
     public static FiscalDocumentEntity fromDomain(FiscalDocument document) {
         FiscalDocumentEntity entity = new FiscalDocumentEntity();
-        entity.setId(document.id());
-        entity.setTenantId(document.tenantId());
-        entity.setCompanyId(document.companyId());
-        entity.setSaleId(document.saleId());
-        entity.setModel(document.model());
-        entity.setEnvironment(document.environment());
-        entity.setStatus(document.status());
-        entity.setAccessKey(document.accessKey());
-        entity.setAuthorizationProtocol(document.authorizationProtocol());
-        entity.setRejectionReason(document.rejectionReason());
-        entity.setAuthorizedXml(document.authorizedXml());
-        entity.setIssuedAt(document.issuedAt());
+        entity.applyFrom(document);
         return entity;
+    }
+
+    public void applyFrom(FiscalDocument document) {
+        setId(document.id());
+        setTenantId(document.tenantId());
+        setCompanyId(document.companyId());
+        setSaleId(document.saleId());
+        setModel(document.model());
+        setEnvironment(document.environment());
+        setStatus(document.status());
+        setAccessKey(document.accessKey());
+        setAuthorizationProtocol(document.authorizationProtocol());
+        setRejectionReason(document.rejectionReason());
+        setAuthorizedXml(document.authorizedXml());
+        setIssuedAt(document.issuedAt());
     }
 
     public FiscalDocument toDomain() {

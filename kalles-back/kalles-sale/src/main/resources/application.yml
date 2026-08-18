@@ -17,6 +17,11 @@ spring:
     detect-encoding: true
     locations: classpath:db/migration,classpath:db/seed
 
+  http:
+    clients:
+      connect-timeout: ${HTTP_CLIENT_CONNECT_TIMEOUT:5s}
+      read-timeout: ${HTTP_CLIENT_READ_TIMEOUT:20s}
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -28,11 +33,30 @@ spring:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: ${MAIL_CONNECT_TIMEOUT_MS:5000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
 
 api:
   security:
     token:
       secret: ${API_TOKEN_SECRET}
+    access-token:
+      expiration-minutes: ${ACCESS_TOKEN_EXPIRATION_MINUTES:15}
 
 security:
   encryption:
@@ -59,6 +83,7 @@ billing:
 mercadopago:
   app-id: ${MERCADOPAGO_APP_ID:448684586415948}
   access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
+  user-id: ${MERCADOPAGO_USER_ID:me}
   client-id: ${MERCADOPAGO_CLIENT_ID:}
   client-secret: ${MERCADOPAGO_CLIENT_SECRET:}
   redirect-uri: ${MERCADOPAGO_REDIRECT_URI:https://localhost:3000/admin/pagamentos/mp-callback}

@@ -5,6 +5,7 @@ import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -237,7 +238,6 @@ class ClientServiceTest {
     void shouldThrowWhenCompanyContextIsMissing() {
         CompanyContextHolder.clear();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> clientService.listAll());
-        assertTrue(ex.getMessage().contains("Nenhuma filial selecionada"));
+        assertThrows(CompanyContextRequiredException.class, () -> clientService.listAll());
     }
 }

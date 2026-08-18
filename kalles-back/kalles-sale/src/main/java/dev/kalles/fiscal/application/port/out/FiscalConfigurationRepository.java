@@ -10,5 +10,7 @@ import java.util.UUID;
 public interface FiscalConfigurationRepository {
     Optional<FiscalConfiguration> findByCompany(UUID tenantId, UUID companyId, FiscalDocumentModel model, FiscalEnvironment environment);
 
+    long reserveNextNumber(UUID tenantId, UUID companyId, FiscalDocumentModel model, FiscalEnvironment environment);
+
     FiscalConfiguration save(FiscalConfiguration configuration);
 }

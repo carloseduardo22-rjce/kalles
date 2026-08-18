@@ -6,6 +6,7 @@ import dev.kalles.report.dto.ProfitSupplierExpenseReportResponse;
 import dev.kalles.report.service.FinancialReportService;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -96,12 +97,10 @@ class FinancialReportServiceTest {
     void shouldRequireCompanyContext() {
         CompanyContextHolder.clear();
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+        assertThrows(CompanyContextRequiredException.class, () ->
                 financialReportService.getProfitVsSupplierExpenses(
                         LocalDate.of(2026, 4, 1),
                         LocalDate.of(2026, 4, 30)
                 ));
-
-        assertEquals("Nenhuma filial selecionada no contexto da operacao.", exception.getMessage());
     }
 }

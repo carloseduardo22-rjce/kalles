@@ -20,18 +20,18 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryEntity> listAllActive() {
-        return categoryRepository.findAllByTenantIdAndActiveTrueOrderByNameAscSubcategoryAsc(currentTenantId());
+        return categoryRepository.findAllByTenantIdAndActiveTrueOrderByNameAscSubcategoryAsc(TenantContextHolder.requireTenantId());
     }
 
     @Transactional(readOnly = true)
     public CategoryEntity findById(UUID id) {
-        return categoryRepository.findByIdAndTenantId(id, currentTenantId())
+        return categoryRepository.findByIdAndTenantId(id, TenantContextHolder.requireTenantId())
                 .orElseThrow(() -> new NotFoundException("Category not found: " + id));
     }
 
     @Transactional
     public CategoryEntity create(String name, String subcategory, Priority defaultPriority) {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
             throw new IllegalArgumentException(
                     "A category with name '" + name + "' and subcategory '" + subcategory + "' already exists.");
@@ -48,7 +48,7 @@ public class CategoryService {
     @Transactional
     public CategoryEntity update(UUID id, String name, String subcategory, Priority defaultPriority) {
         CategoryEntity category = findById(id);
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new IllegalArgumentException(
@@ -66,13 +66,5 @@ public class CategoryService {
         CategoryEntity category = findById(id);
         category.setActive(false);
         categoryRepository.save(category);
-    }
-
-    private UUID currentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context is required for support categories");
-        }
-        return tenantId;
     }
 }

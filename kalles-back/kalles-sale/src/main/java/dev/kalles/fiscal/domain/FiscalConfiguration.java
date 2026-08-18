@@ -17,4 +17,9 @@ public record FiscalConfiguration(
     public boolean supports(FiscalDocumentModel requestedModel, FiscalEnvironment requestedEnvironment) {
         return model == requestedModel && environment == requestedEnvironment;
     }
+
+    public FiscalConfiguration withDocumentNumber(long documentNumber) {
+        return new FiscalConfiguration(id, tenantId, companyId, model, environment,
+                stateCode, cscId, cscToken, series, documentNumber);
+    }
 }

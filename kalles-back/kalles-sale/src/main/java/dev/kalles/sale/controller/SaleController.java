@@ -92,7 +92,7 @@ public class SaleController {
 
     @GetMapping("/{sessionToken}")
     @Operation(summary = "Obter venda atual",
-            description = "Retorna a venda ativa para a sessão (pode estar OPEN, ON_HOLD, PAYMENT_IN_PROGRESS ou PAID).")
+            description = "Retorna a venda ativa para a sessão (pode estar OPEN, PAYMENT_IN_PROGRESS ou PAID).")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Venda encontrada com sucesso"),
         @ApiResponse(responseCode = "404", description = "Nenhum venda ativa encontrada para esta sessão", content = @Content(schema = @Schema(hidden = true)))
@@ -106,7 +106,7 @@ public class SaleController {
 
     @PostMapping("/{sessionToken}")
     @Operation(summary = "Criar venda",
-            description = "Cria uma nova venda para a sessão do caixa. Se já existir uma venda em andamento (OPEN ou ON_HOLD), ela é retornada sem criar uma nova. Deve ser chamado após a abertura da sessão e após cada venda concluída ou cancelada para iniciar o próximo atendimento.")
+            description = "Cria uma nova venda para a sessão do caixa. Se já existir uma venda em andamento (OPEN), ela é retornada sem criar uma nova. Deve ser chamado após a abertura da sessão e após cada venda concluída ou cancelada para iniciar o próximo atendimento.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Venda criada ou venda em andamento retornada"),
         @ApiResponse(responseCode = "404", description = "Sessão de caixa não encontrada", content = @Content(schema = @Schema(hidden = true))),

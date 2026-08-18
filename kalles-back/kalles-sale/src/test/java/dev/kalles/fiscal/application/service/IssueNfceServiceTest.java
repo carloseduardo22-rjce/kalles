@@ -22,6 +22,7 @@ import dev.kalles.fiscal.domain.FiscalSaleStatus;
 import dev.kalles.fiscal.domain.FiscalTaxRegime;
 import dev.kalles.fiscal.domain.SefazAuthorizationResult;
 import dev.kalles.fiscal.exception.FiscalConflictException;
+import dev.kalles.fiscal.exception.FiscalIntegrationException;
 import dev.kalles.fiscal.exception.FiscalRejectionException;
 import dev.kalles.fiscal.exception.FiscalValidationException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -29,8 +30,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -43,8 +46,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @Tag("unit")
@@ -106,7 +112,9 @@ class IssueNfceServiceTest {
         when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
                 FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.authorized("35260412345678000123650010000000011000000018", "135260000000001"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -224,7 +232,9 @@ class IssueNfceServiceTest {
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
         when(issuerProfileRepository.findByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(issuerProfile()));
         when(issuerAddressRepository.findByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(issuerAddress()));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.PRODUCAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.authorized("35260412345678000123650010000000011000000018", "135260000000001"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -244,13 +254,83 @@ class IssueNfceServiceTest {
         when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
                 FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
         when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
-        when(sefazAuthorizationPort.authorize(sale, configuration, certificate))
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
                 .thenReturn(SefazAuthorizationResult.rejected("Rejeicao: total da NFC-e difere do somatorio dos itens"));
         when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         assertThatThrownBy(() -> service.issue(command()))
                 .isInstanceOf(FiscalRejectionException.class)
                 .hasMessage("Rejeicao: total da NFC-e difere do somatorio dos itens");
+    }
+
+    @Test
+    void shouldClaimTheIssuanceBeforeReachingSefaz() {
+        FiscalSale sale = paidSale("61091000");
+        FiscalConfiguration configuration = configuration();
+        FiscalCertificate certificate = certificate();
+
+        when(saleReader.findByIdForTenantAndCompany(SALE_ID, TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(sale));
+        when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
+        when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
+                .thenReturn(SefazAuthorizationResult.authorized("35260412345678000123650010000000011000000018", "135260000000001"));
+        when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.issue(command());
+
+        InOrder inOrder = inOrder(documentRepository, configurationRepository, sefazAuthorizationPort);
+        inOrder.verify(documentRepository).save(argThat(document -> document.status() == FiscalDocumentStatus.PENDENTE));
+        inOrder.verify(configurationRepository).reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO);
+        inOrder.verify(sefazAuthorizationPort).authorize(sale, configuration.withDocumentNumber(101L), certificate);
+        inOrder.verify(documentRepository).save(argThat(document -> document.status() == FiscalDocumentStatus.AUTORIZADO));
+    }
+
+    @Test
+    void shouldNotConsumeNumberOrCallSefazWhenAnotherIssuanceForTheSaleIsInFlight() {
+        FiscalSale sale = paidSale("61091000");
+
+        when(saleReader.findByIdForTenantAndCompany(SALE_ID, TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(sale));
+        when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration()));
+        when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate()));
+        when(documentRepository.save(any(FiscalDocument.class)))
+                .thenThrow(new DataIntegrityViolationException("uk_fiscal_document_issuance_per_sale"));
+
+        assertThatThrownBy(() -> service.issue(command()))
+                .isInstanceOf(FiscalConflictException.class)
+                .hasMessage("A venda ja possui emissao em andamento ou documento fiscal autorizado");
+
+        verify(configurationRepository, never()).reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO);
+        verifyNoInteractions(sefazAuthorizationPort);
+    }
+
+    @Test
+    void shouldReleaseTheClaimWhenTheSefazCallFails() {
+        FiscalSale sale = paidSale("61091000");
+        FiscalConfiguration configuration = configuration();
+        FiscalCertificate certificate = certificate();
+
+        when(saleReader.findByIdForTenantAndCompany(SALE_ID, TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(sale));
+        when(configurationRepository.findByCompany(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(Optional.of(configuration));
+        when(certificateRepository.findActiveByCompany(TENANT_ID, COMPANY_ID)).thenReturn(Optional.of(certificate));
+        when(configurationRepository.reserveNextNumber(TENANT_ID, COMPANY_ID,
+                FiscalDocumentModel.NFCE, FiscalEnvironment.HOMOLOGACAO)).thenReturn(101L);
+        when(documentRepository.save(any(FiscalDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sefazAuthorizationPort.authorize(sale, configuration.withDocumentNumber(101L), certificate))
+                .thenThrow(new FiscalIntegrationException("Falha de comunicacao com a SEFAZ", new IllegalStateException()));
+
+        assertThatThrownBy(() -> service.issue(command()))
+                .isInstanceOf(FiscalIntegrationException.class);
+
+        verify(documentRepository).delete(argThat(document -> document.status() == FiscalDocumentStatus.PENDENTE));
     }
 
     private IssueNfceCommand command() {

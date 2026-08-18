@@ -5,6 +5,5 @@ public enum FiscalSaleStatus {
     PAID,
     COMPLETED,
     CANCELED,
-    ON_HOLD,
     PAYMENT_IN_PROGRESS
 }

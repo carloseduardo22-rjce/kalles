@@ -1,8 +1,9 @@
 package dev.kalles.payment.adapter.in.web;
 
 import dev.kalles.payment.application.port.in.ProcessPaymentWebhookUseCase;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/webhooks/mercadopago")
 public class MercadoPagoWebhookController {
@@ -22,10 +24,10 @@ public class MercadoPagoWebhookController {
 
     public MercadoPagoWebhookController(
             ProcessPaymentWebhookUseCase processPaymentWebhookUseCase,
-            @Value("${mercadopago.webhook-secret:}") String webhookSecret
+            MercadoPagoProperties mercadoPagoProperties
     ) {
         this.processPaymentWebhookUseCase = processPaymentWebhookUseCase;
-        this.webhookSecret = webhookSecret;
+        this.webhookSecret = mercadoPagoProperties.webhookSecret();
     }
 
     @PostMapping
@@ -35,7 +37,14 @@ public class MercadoPagoWebhookController {
             @RequestParam(value = "data.id", required = false) String dataId,
             @RequestBody Map<String, Object> payload
     ) {
-        if (webhookSecret.isBlank() || xSignature == null || xRequestId == null || dataId == null) {
+        if (webhookSecret.isBlank()) {
+            log.warn("Webhook do Mercado Pago rejeitado: mercadopago.webhook-secret nao esta configurado");
+            return ResponseEntity.status(403).build();
+        }
+
+        if (xSignature == null || xRequestId == null || dataId == null) {
+            log.warn("Webhook do Mercado Pago rejeitado por dados ausentes: x-signature={}, x-request-id={}, data.id={}",
+                    xSignature != null, xRequestId != null, dataId != null);
             return ResponseEntity.status(403).build();
         }
 
@@ -46,10 +55,13 @@ public class MercadoPagoWebhookController {
                 dataId
         );
         if (!isValid) {
+            log.warn("Webhook do Mercado Pago rejeitado por assinatura invalida: x-request-id={}, data.id={}",
+                    xRequestId, dataId);
             return ResponseEntity.status(403).build();
         }
 
         processPaymentWebhookUseCase.execute(PaymentProvider.MERCADO_PAGO, payload);
+        log.info("Webhook do Mercado Pago processado: x-request-id={}, data.id={}", xRequestId, dataId);
         return ResponseEntity.ok().build();
     }
 }

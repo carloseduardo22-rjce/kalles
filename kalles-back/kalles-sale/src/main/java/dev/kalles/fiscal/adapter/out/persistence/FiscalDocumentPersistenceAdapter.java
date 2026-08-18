@@ -25,7 +25,16 @@ public class FiscalDocumentPersistenceAdapter implements FiscalDocumentRepositor
 
     @Override
     public FiscalDocument save(FiscalDocument document) {
-        return repository.save(FiscalDocumentEntity.fromDomain(document)).toDomain();
+        FiscalDocumentEntity entity = Optional.ofNullable(document.id())
+                .flatMap(repository::findById)
+                .orElseGet(FiscalDocumentEntity::new);
+        entity.applyFrom(document);
+        return repository.save(entity).toDomain();
+    }
+
+    @Override
+    public void delete(FiscalDocument document) {
+        repository.deleteById(document.id());
     }
 
     @Override

@@ -1,10 +1,9 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
 import dev.kalles.payment.application.port.out.PaymentAccountRepository;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
-import dev.kalles.payment.exception.PaymentTenantContextException;
 import dev.kalles.security.context.TenantContextHolder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -18,12 +17,11 @@ public class MercadoPagoCredentialsResolver {
 
     public MercadoPagoCredentialsResolver(
             PaymentAccountRepository paymentAccountRepository,
-            @Value("${mercadopago.access-token}") String fallbackAccessToken,
-            @Value("${mercadopago.user-id:me}") String fallbackUserId
+            MercadoPagoProperties mercadoPagoProperties
     ) {
         this.paymentAccountRepository = paymentAccountRepository;
-        this.fallbackAccessToken = fallbackAccessToken;
-        this.fallbackUserId = fallbackUserId;
+        this.fallbackAccessToken = mercadoPagoProperties.accessToken();
+        this.fallbackUserId = mercadoPagoProperties.userId();
     }
 
     public String fallbackAccessToken() {
@@ -35,14 +33,14 @@ public class MercadoPagoCredentialsResolver {
     }
 
     public String linkedAccessToken() {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return paymentAccountRepository.findByTenantIdAndProvider(tenantId, PaymentProvider.MERCADO_PAGO)
                 .map(account -> account.accessToken())
                 .orElse(null);
     }
 
     public String linkedUserId() {
-        UUID tenantId = currentTenantId();
+        UUID tenantId = TenantContextHolder.requireTenantId();
         return paymentAccountRepository.findByTenantIdAndProvider(tenantId, PaymentProvider.MERCADO_PAGO)
                 .map(account -> account.providerAccountId())
                 .orElse(null);
@@ -62,13 +60,5 @@ public class MercadoPagoCredentialsResolver {
             throw new MercadoPagoAdapterException("Mercado Pago account is not linked");
         }
         return userId;
-    }
-
-    private UUID currentTenantId() {
-        UUID tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            throw new PaymentTenantContextException("Tenant context is required for Mercado Pago linked-account operations");
-        }
-        return tenantId;
     }
 }

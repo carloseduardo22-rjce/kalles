@@ -6,6 +6,7 @@ import dev.kalles.payment.adapter.in.web.dto.PaymentProviderLinkStatusResponse;
 import dev.kalles.payment.application.port.in.GetPaymentProviderAccountStatusUseCase;
 import dev.kalles.payment.application.port.in.LinkPaymentProviderAccountUseCase;
 import dev.kalles.payment.application.service.PaymentProviderOAuthStateService;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.entity.Account;
@@ -13,7 +14,6 @@ import dev.kalles.security.repository.AccountRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -36,23 +36,20 @@ public class PaymentProviderAccountController {
     private final GetPaymentProviderAccountStatusUseCase getPaymentProviderAccountStatusUseCase;
     private final PaymentProviderOAuthStateService paymentProviderOAuthStateService;
     private final AccountRepository accountRepository;
-
-    @Value("${mercadopago.app-id:448684586415948}")
-    private String mercadoPagoAppId;
-
-    @Value("${mercadopago.redirect-uri:https://localhost:3000/admin/pagamentos/mp-callback}")
-    private String mercadoPagoRedirectUri;
+    private final MercadoPagoProperties mercadoPagoProperties;
 
     public PaymentProviderAccountController(
             LinkPaymentProviderAccountUseCase linkPaymentProviderAccountUseCase,
             GetPaymentProviderAccountStatusUseCase getPaymentProviderAccountStatusUseCase,
             PaymentProviderOAuthStateService paymentProviderOAuthStateService,
-            AccountRepository accountRepository
+            AccountRepository accountRepository,
+            MercadoPagoProperties mercadoPagoProperties
     ) {
         this.linkPaymentProviderAccountUseCase = linkPaymentProviderAccountUseCase;
         this.getPaymentProviderAccountStatusUseCase = getPaymentProviderAccountStatusUseCase;
         this.paymentProviderOAuthStateService = paymentProviderOAuthStateService;
         this.accountRepository = accountRepository;
+        this.mercadoPagoProperties = mercadoPagoProperties;
     }
 
     @GetMapping("/{provider}/oauth-authorization-url")
@@ -120,11 +117,11 @@ public class PaymentProviderAccountController {
         }
 
         return "https://auth.mercadopago.com/authorization?client_id="
-                + URLEncoder.encode(mercadoPagoAppId, StandardCharsets.UTF_8)
+                + URLEncoder.encode(mercadoPagoProperties.appId(), StandardCharsets.UTF_8)
                 + "&response_type=code&platform_id=mp&state="
                 + URLEncoder.encode(state, StandardCharsets.UTF_8)
                 + "&redirect_uri="
-                + URLEncoder.encode(mercadoPagoRedirectUri, StandardCharsets.UTF_8);
+                + URLEncoder.encode(mercadoPagoProperties.redirectUri(), StandardCharsets.UTF_8);
     }
 
     private String extractCookieValue(HttpServletRequest request, String cookieName) {

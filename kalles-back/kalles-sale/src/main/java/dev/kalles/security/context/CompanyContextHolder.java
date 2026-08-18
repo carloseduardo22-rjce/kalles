@@ -1,5 +1,7 @@
 package dev.kalles.security.context;
 
+import dev.kalles.security.exception.CompanyContextRequiredException;
+
 import java.util.UUID;
 
 public class CompanyContextHolder {
@@ -12,6 +14,14 @@ public class CompanyContextHolder {
 
     public static UUID getCompanyId() {
         return CONTEXT.get();
+    }
+
+    public static UUID requireCompanyId() {
+        UUID companyId = CONTEXT.get();
+        if (companyId == null) {
+            throw new CompanyContextRequiredException();
+        }
+        return companyId;
     }
 
     public static void clear() {

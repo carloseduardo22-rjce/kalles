@@ -1,36 +1,55 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
-import org.springframework.http.HttpHeaders;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.util.Map;
-import java.util.Objects;
 
+@Slf4j
 @Component
 public class MercadoPagoWebClient {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
 
-    public MercadoPagoWebClient() {
-        this.webClient = WebClient.builder().build();
+    public MercadoPagoWebClient(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
     }
 
     public ResponseEntity<String> exchange(HttpMethod method, String url, String body, Map<String, String> headers) {
-        WebClient.RequestBodySpec request = webClient.method(method).uri(url);
-        request.headers(httpHeaders -> applyHeaders(httpHeaders, headers));
+        RestClient.RequestBodySpec request = restClient.method(method).uri(URI.create(url));
+        applyHeaders(request, headers);
 
-        WebClient.RequestHeadersSpec<?> requestSpec = body != null ? request.bodyValue(body) : request;
-        ResponseEntity<String> response = requestSpec.exchangeToMono(clientResponse -> clientResponse.toEntity(String.class)).block();
-        return Objects.requireNonNull(response, "Mercado Pago response must not be null");
+        RestClient.RequestHeadersSpec<?> requestSpec = body != null ? request.body(body) : request;
+
+        ResponseEntity<String> response;
+        try {
+            response = requestSpec.retrieve()
+                    .onStatus(HttpStatusCode::isError, (failedRequest, failedResponse) -> {
+                    })
+                    .toEntity(String.class);
+        } catch (RuntimeException e) {
+            log.error("Falha de comunicacao com o Mercado Pago: {} {}", method, url, e);
+            throw e;
+        }
+
+        if (response.getStatusCode().isError()) {
+            log.warn("Mercado Pago respondeu {} para {} {}", response.getStatusCode().value(), method, url);
+        } else {
+            log.debug("Mercado Pago respondeu {} para {} {}", response.getStatusCode().value(), method, url);
+        }
+
+        return response;
     }
 
-    private void applyHeaders(HttpHeaders target, Map<String, String> headers) {
+    private void applyHeaders(RestClient.RequestBodySpec request, Map<String, String> headers) {
         if (headers == null || headers.isEmpty()) {
             return;
         }
-        headers.forEach(target::add);
+        headers.forEach(request::header);
     }
 }

@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.blankOrNullString;
 class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupport {
 
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final String RATE_LIMITED_EMAIL = "alvo.rate.limit@sistema.local";
 
     @LocalServerPort
     private int port;
@@ -137,7 +138,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldGeneratePairingTokenForAuthenticatedAdmin() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -228,7 +229,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     @Test
     void shouldRequireCompanyIdAndPosIdWhenGeneratingPairingToken() {
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = fetchCsrfToken();
+        CsrfContext csrf = CsrfTestClient.fetch(port);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -242,6 +243,90 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .statusCode(400);
     }
 
+    @Test
+    void shouldRejectPairingTokenGenerationForOperator() {
+        String pairingToken = seedPairingToken("pairing-token-operador", companyId, cashRegisterId, true);
+        String authCookie = loginOperatorAndExtractAuthCookie(pairingToken);
+        CsrfContext csrf = CsrfTestClient.fetch(port);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
+                .body(Map.of(
+                        "companyId", companyId,
+                        "posId", cashRegisterId
+                ))
+                .when()
+                .post("/api/pos/admin/generate-token")
+                .then()
+                .statusCode(403);
+
+        assertThat(posDeviceSessionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectPairingTokenGenerationForCompanyOfAnotherTenant() {
+        UUID otherTenantId = UUID.fromString("99999999-e89b-12d3-a456-426614174000");
+        tenantRepository.save(new Tenant(otherTenantId, "Conta de Outro Cliente"));
+        UUID otherCompanyId = companyRepository.save(new Company(
+                null,
+                "Loja de Outro Cliente",
+                otherTenantId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        )).getId();
+
+        String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
+        CsrfContext csrf = CsrfTestClient.fetch(port);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", authCookie)
+                .cookie("XSRF-TOKEN", csrf.csrfCookie())
+                .header("X-XSRF-TOKEN", csrf.csrfToken())
+                .body(Map.of(
+                        "companyId", otherCompanyId,
+                        "posId", cashRegisterId
+                ))
+                .when()
+                .post("/api/pos/admin/generate-token")
+                .then()
+                .statusCode(403);
+
+        assertThat(posDeviceSessionRepository.count()).isZero();
+    }
+
+    @Test
+    void shouldReturnTooManyRequestsAfterRepeatedLoginFailures() {
+        accountRepository.save(newAccount("Alvo do rate limit", RATE_LIMITED_EMAIL, AccountRole.ADMIN, companyId));
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            RestAssured.given()
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("email", RATE_LIMITED_EMAIL, "password", "senha-errada"))
+                    .when()
+                    .post("/api/auth/login")
+                    .then()
+                    .statusCode(400);
+        }
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", RATE_LIMITED_EMAIL, "password", "senha-errada"))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(429)
+                .body("title", equalTo("Muitas tentativas"))
+                .body("detail", equalTo("Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente."));
+    }
+
     private Account newAccount(String name, String email, AccountRole role, UUID companyId) {
         Account account = new Account(TENANT_ID, name, email, passwordEncoder.encode("123456"), role);
         account.setCompanyId(companyId);
@@ -249,14 +334,22 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
         return account;
     }
 
-    private CsrfContext fetchCsrfToken() {
-        return CsrfTestClient.fetch(port);
-    }
-
     private String loginAndExtractAuthCookie(String email, String password) {
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(Map.of("email", email, "password", password))
+                .when()
+                .post("/api/auth/login");
+
+        response.then().statusCode(200);
+        return response.getCookie("kalles_auth_token");
+    }
+
+    private String loginOperatorAndExtractAuthCookie(String pairingToken) {
+        Response response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_pos_token", pairingToken)
+                .body(Map.of("email", "operador.caixa01@sistema.local", "password", "123456"))
                 .when()
                 .post("/api/auth/login");
 

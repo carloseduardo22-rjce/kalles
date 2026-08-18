@@ -13,12 +13,14 @@ import com.stripe.param.SubscriptionRetrieveParams;
 import dev.kalles.billing.domain.BillingInterval;
 import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.exception.BillingIntegrationException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 public class DefaultStripeSdkClient implements StripeSdkClient {
 
     public DefaultStripeSdkClient(String secretKey) {
@@ -37,6 +39,7 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
             var customer = com.stripe.model.Customer.create(builder.build());
             return new StripeCustomer(customer.getId(), customer.getEmail(), customer.getName());
         } catch (StripeException e) {
+            log.error("Falha ao criar cliente na Stripe", e);
             throw new BillingIntegrationException("Falha ao criar cliente na Stripe.", e);
         }
     }
@@ -76,6 +79,7 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
                     BillingStatus.CHECKOUT_CREATED
             );
         } catch (StripeException e) {
+            log.error("Falha ao criar checkout de assinatura na Stripe para o tenant {}", request.tenantId(), e);
             throw new BillingIntegrationException("Falha ao criar checkout de assinatura na Stripe.", e);
         }
     }
@@ -94,6 +98,7 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
             Session session = Session.create(builder.build());
             return new StripePortalSession(session.getUrl());
         } catch (StripeException e) {
+            log.error("Falha ao criar sessao do portal do cliente na Stripe para o cliente {}", customerId, e);
             throw new BillingIntegrationException("Falha ao criar sessao do portal do cliente na Stripe.", e);
         }
     }
@@ -124,6 +129,7 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
                 );
             };
         } catch (Exception e) {
+            log.warn("Webhook Stripe rejeitado na validacao: assinatura={}", signature != null && !signature.isBlank(), e);
             throw new BillingIntegrationException("Falha ao validar webhook Stripe.", e);
         }
     }
@@ -138,6 +144,7 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
             );
             return mapSubscription(subscription);
         } catch (StripeException e) {
+            log.error("Falha ao consultar a assinatura {} na Stripe", subscriptionId, e);
             throw new BillingIntegrationException("Falha ao consultar assinatura na Stripe.", e);
         }
     }

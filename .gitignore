@@ -81,3 +81,5 @@ kalles-back/**/build/
 
 # documento de trabalho da refatoração — não publicar
 /REFACTOR-PLAN.md
+/SPRING-GAPS-PLAN.md
+/.gaps/

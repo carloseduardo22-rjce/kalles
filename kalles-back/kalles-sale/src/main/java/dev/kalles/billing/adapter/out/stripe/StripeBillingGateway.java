@@ -4,10 +4,12 @@ import dev.kalles.billing.application.port.out.BillingGateway;
 import dev.kalles.billing.application.service.StripeBillingProperties;
 import dev.kalles.billing.domain.BillingProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StripeBillingGateway implements BillingGateway {
@@ -26,6 +28,7 @@ public class StripeBillingGateway implements BillingGateway {
                     Map.of("tenantId", command.tenantId().toString())
             );
             customerId = customer.id();
+            log.info("Cliente criado na Stripe para o tenant {}: {}", command.tenantId(), customerId);
         }
 
         StripeSdkClient.StripeCheckoutSession checkoutSession = stripeSdkClient.createSubscriptionCheckout(
@@ -38,6 +41,9 @@ public class StripeBillingGateway implements BillingGateway {
                         command.returnUrl()
                 )
         );
+
+        log.info("Checkout de assinatura criado na Stripe para o tenant {}: sessao={}, cliente={}",
+                command.tenantId(), checkoutSession.id(), customerId);
 
         return new CheckoutSession(
                 checkoutSession.id(),

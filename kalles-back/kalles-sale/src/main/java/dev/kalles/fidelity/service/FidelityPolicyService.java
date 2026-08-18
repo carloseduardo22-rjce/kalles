@@ -22,7 +22,7 @@ public class FidelityPolicyService {
 
     @Transactional
     public FidelityPolicyResponse create(FidelityPolicyRequest request) {
-        UUID companyId = getCompanyId();
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         fidelityPolicyRepository.deactivateAllByCompanyId(companyId);
         FidelityPolicy policy = new FidelityPolicy();
         policy.setCompanyId(companyId);
@@ -37,23 +37,15 @@ public class FidelityPolicyService {
 
     @Transactional(readOnly = true)
     public FidelityPolicyResponse getActive() {
-        return fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(getCompanyId())
+        return fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(CompanyContextHolder.requireCompanyId())
                 .map(FidelityPolicyResponse::from)
                 .orElseThrow(() -> new NotFoundException("Nenhuma política de fidelidade ativa encontrada."));
     }
 
     @Transactional(readOnly = true)
     public List<FidelityPolicyResponse> listAll() {
-        return fidelityPolicyRepository.findAllByCompanyIdOrderByCreatedAtDesc(getCompanyId()).stream()
+        return fidelityPolicyRepository.findAllByCompanyIdOrderByCreatedAtDesc(CompanyContextHolder.requireCompanyId()).stream()
                 .map(FidelityPolicyResponse::from)
                 .toList();
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
-        }
-        return companyId;
     }
 }

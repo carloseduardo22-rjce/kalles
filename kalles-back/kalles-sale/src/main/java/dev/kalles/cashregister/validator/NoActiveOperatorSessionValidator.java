@@ -9,22 +9,22 @@ import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Scope;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-@Scope("prototype")
+@Order(2)
 @Component
 @RequiredArgsConstructor
-public class NoActiveOperatorSessionValidator extends SessionValidator {
+public class NoActiveOperatorSessionValidator implements SessionValidator {
 
     private final OperatorRepository operatorRepository;
     private final CashRegisterSessionRepository sessionRepository;
 
     @Override
-    protected void doValidate(OpenSessionRequest request) {
-        UUID companyId = getCompanyId();
+    public void validate(OpenSessionRequest request) {
+        UUID companyId = CompanyContextHolder.requireCompanyId();
         Operator operator = operatorRepository
             .findByCodeAndCompanyId(request.operatorCode(), companyId)
             .orElseThrow(() -> new OperatorNotFoundException(request.operatorCode()));
@@ -32,13 +32,5 @@ public class NoActiveOperatorSessionValidator extends SessionValidator {
         if (sessionRepository.existsByOperatorAndStatus(operator, SessionStatus.OPEN)) {
             throw new OperatorAlreadyInSessionException(request.operatorCode());
         }
-    }
-
-    private UUID getCompanyId() {
-        UUID companyId = CompanyContextHolder.getCompanyId();
-        if (companyId == null) {
-            throw new IllegalStateException("Nenhuma filial selecionada no contexto da operacao.");
-        }
-        return companyId;
     }
 }

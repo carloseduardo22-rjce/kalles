@@ -5,6 +5,7 @@ import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.PosContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,7 +24,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -33,15 +34,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CompanyRepository companyRepository;
+    private final ProblemResponseWriter problemResponseWriter;
     public static final String AUTH_COOKIE_NAME = "kalles_auth_token";
     public static final String COMPANY_HEADER_NAME = "x-company-id";
     public static final String COMPANY_CONTEXT_ERROR_HEADER = "X-Kalles-Company-Context-Error";
 
+    private static final List<String> COMPANY_AGNOSTIC_PREFIXES = List.of(
+            "/api/auth",
+            "/api/pos",
+            "/api/companies",
+            "/api/billing",
+            "/api/webhooks",
+            "/api/users",
+            "/api/agents",
+            "/api/categories",
+            "/api/notes",
+            "/api/payment-providers",
+            "/api/payment-points",
+            "/api/payment-stores",
+            "/api/payment-terminals"
+    );
+
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, 
-                                    @NonNull HttpServletResponse response, 
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        
+        try {
+            if (establishRequestContext(request, response)) {
+                filterChain.doFilter(request, response);
+            }
+        } finally {
+            TenantContextHolder.clear();
+            CompanyContextHolder.clear();
+            PosContextHolder.clear();
+        }
+    }
+
+    private boolean establishRequestContext(HttpServletRequest request, HttpServletResponse response) throws IOException {
         var token = this.recoverToken(request);
         if (token != null) {
             DecodedJWT decodedJWT = jwtService.validateToken(token);
@@ -69,23 +98,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (headerCompanyId != null && !headerCompanyId.isBlank()) {
                         UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                         if (requestedCompanyId == null) {
-                            return;
+                            return false;
                         }
                         if (!tokenCompanyId.equals(requestedCompanyId)) {
                             sendCompanyContextForbidden(response, "Company header conflicts with authenticated company");
-                            return;
+                            return false;
                         }
                     }
                     CompanyContextHolder.setCompanyId(tokenCompanyId);
                 } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
                     UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                     if (requestedCompanyId == null) {
-                        return;
+                        return false;
                     }
 
                     if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
                         sendCompanyContextForbidden(response, "Requested company is not accessible for authenticated tenant");
-                        return;
+                        return false;
                     }
                     CompanyContextHolder.setCompanyId(requestedCompanyId);
                 }
@@ -99,20 +128,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (isAuthenticated()
                 && requiresCompanyContext(request)
                 && CompanyContextHolder.getCompanyId() == null) {
-            writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
+            writeProblem(response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
                     "Contexto de filial obrigatorio",
                     "Esta rota exige uma filial ativa. Envie X-Company-ID com uma filial acessivel para o tenant autenticado.");
-            return;
+            return false;
         }
-        
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            // Guarantee cleanup to prevent data leaking into another thread
-            TenantContextHolder.clear();
-            CompanyContextHolder.clear();
-            PosContextHolder.clear();
-        }
+
+        return true;
     }
 
     private String recoverToken(HttpServletRequest request) {
@@ -130,7 +152,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             return UUID.fromString(headerCompanyId);
         } catch (IllegalArgumentException ex) {
-            writeProblem(response, HttpServletResponse.SC_BAD_REQUEST, "COMPANY_CONTEXT_INVALID",
+            writeProblem(response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_INVALID",
                     "Header de filial invalido", "O header X-Company-ID deve conter um UUID valido.");
             return null;
         }
@@ -138,25 +160,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void sendCompanyContextForbidden(HttpServletResponse response, String message) throws IOException {
         response.setHeader(COMPANY_CONTEXT_ERROR_HEADER, "true");
-        writeProblem(response, HttpServletResponse.SC_FORBIDDEN, "COMPANY_CONTEXT_DENIED",
+        writeProblem(response, HttpStatus.FORBIDDEN, "COMPANY_CONTEXT_DENIED",
                 "Contexto de filial negado", message);
     }
 
-    private void writeProblem(HttpServletResponse response, int status, String code, String title, String detail) throws IOException {
-        response.setStatus(status);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType("application/problem+json");
-        response.getWriter().write("""
-                {"type":"about:blank","title":"%s","status":%d,"detail":"%s","code":"%s"}"""
-                .formatted(escapeJson(title), status, escapeJson(detail), escapeJson(code)));
-    }
-
-    private String escapeJson(String value) {
-        return value == null ? "" : value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+    private void writeProblem(HttpServletResponse response, HttpStatus status, String code, String title, String detail)
+            throws IOException {
+        problemResponseWriter.write(response, status, code, title, detail);
     }
 
     private boolean isAuthenticated() {
@@ -171,20 +181,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
         String path = request.getRequestURI();
-        return path.startsWith("/api/products")
-                || path.startsWith("/api/warehouses")
-                || path.startsWith("/api/stocks")
-                || path.startsWith("/api/operators")
-                || path.startsWith("/api/cash-registers")
-                || path.startsWith("/api/cash-register-sessions")
-                || path.startsWith("/api/sales")
-                || path.startsWith("/api/payments")
-                || path.startsWith("/api/payment-terminal-mappings")
-                || path.startsWith("/api/fiscal")
-                || path.startsWith("/api/clients")
-                || path.startsWith("/api/fidelity")
-                || path.startsWith("/api/fidelity-policies")
-                || path.startsWith("/api/goals")
-                || path.startsWith("/api/reports");
+        return path.startsWith("/api/")
+                && COMPANY_AGNOSTIC_PREFIXES.stream().noneMatch(path::startsWith);
     }
 }

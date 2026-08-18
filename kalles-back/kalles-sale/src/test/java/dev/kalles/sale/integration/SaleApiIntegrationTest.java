@@ -1,6 +1,7 @@
 package dev.kalles.sale.integration;
 
 import dev.kalles.sale.support.AbstractSaleApiSupport;
+import dev.kalles.testsupport.TestHttpTimeout;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +16,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SaleApiIntegrationTest extends AbstractSaleApiSupport {
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
+            .connectTimeout(TestHttpTimeout.CONNECT)
             .build();
 
     @BeforeEach
@@ -299,6 +299,32 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 .contains("sale_id", "method", "change_amount");
     }
 
+    @Test
+    void shouldRejectAddingItemBeyondAvailableStock() {
+        AuthContext auth = authenticateOperator();
+        String sessionToken = openSession(auth, false);
+
+        givenAuthenticated(auth, sessionToken)
+                .when()
+                .post("/api/sales/{sessionToken}")
+                .then()
+                .statusCode(201);
+
+        givenAuthenticated(auth, sessionToken)
+                .contentType(ContentType.JSON)
+                .body(Map.of(
+                        "type", "INTERNAL_CODE",
+                        "code", PRODUCT_INTERNAL_CODE,
+                        "quantity", 999
+                ))
+                .when()
+                .post("/api/sales/{sessionToken}/items")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Estoque insuficiente"))
+                .body("detail", equalTo("Estoque insuficiente para o produto 'Produto PDV'. Quantidade disponível: 20"));
+    }
+
     private io.restassured.specification.RequestSpecification givenAuthenticated(AuthContext auth, String sessionToken) {
         return given()
                 .cookie("kalles_auth_token", auth.authCookie())
@@ -368,7 +394,7 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:" + port + path))
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(TestHttpTimeout.REQUEST)
                     .header("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     .header(
                             "Cookie",

@@ -16,8 +16,9 @@ import dev.kalles.inventory.repository.LocationRepository;
 import dev.kalles.inventory.repository.StockRepository;
 import dev.kalles.inventory.repository.WarehouseRepository;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
-import dev.kalles.payment.support.RestAssuredResponseAdapter;
+import dev.kalles.testsupport.LocalHttpTestClient;
+import dev.kalles.testsupport.RestAssuredResponseAdapter;
+import dev.kalles.testsupport.TestHttpTimeout;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
@@ -34,7 +35,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,7 +43,7 @@ import static io.restassured.RestAssured.given;
 public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupport {
 
     private static final HttpClient PATCH_HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
+            .connectTimeout(TestHttpTimeout.CONNECT)
             .build();
 
     protected static final String PRODUCT_INTERNAL_CODE = "SKU-001";
@@ -224,7 +224,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:" + port + path))
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(TestHttpTimeout.REQUEST)
                     .header("Content-Type", ContentType.JSON.toString())
                     .header("Accept", ContentType.JSON.toString())
                     .header(
@@ -255,7 +255,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:" + port + path))
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(TestHttpTimeout.REQUEST)
                     .header("Accept", ContentType.JSON.toString())
                     .header(
                             "Cookie",

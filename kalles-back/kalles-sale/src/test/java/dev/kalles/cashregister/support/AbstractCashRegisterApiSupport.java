@@ -21,8 +21,8 @@ import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
 import dev.kalles.security.support.AbstractSecurityApiContainerSupport;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.kalles.testsupport.CsrfTestClient;
+import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -31,25 +31,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
-import java.time.Duration;
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = KallesSaleApplication.class)
 public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApiContainerSupport {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
 
     protected static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174111");
     protected static final String CASH_REGISTER_CODE = "CAIXA-01";
@@ -157,7 +145,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
 
         String authCookie = loginResponse.getCookie("kalles_auth_token");
 
-        CsrfContext csrfContext = fetchCsrfToken();
+        CsrfContext csrfContext = CsrfTestClient.fetch(port);
 
         return new AuthContext(
                 authCookie,
@@ -217,49 +205,4 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     protected record AuthContext(String authCookie, String csrfCookie, String csrfToken) {
     }
 
-    protected record CsrfContext(String csrfCookie, String csrfToken) {
-    }
-
-    private CsrfContext fetchCsrfToken() {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/api/auth/csrf"))
-                .GET()
-                .timeout(Duration.ofSeconds(10))
-                .build();
-
-        try {
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                throw new IllegalStateException("Falha ao obter token CSRF para os testes.");
-            }
-
-            JsonNode body = OBJECT_MAPPER.readTree(response.body());
-            String csrfToken = body.path("token").asText();
-            String csrfCookie = response.headers()
-                    .allValues("set-cookie")
-                    .stream()
-                    .map(AbstractCashRegisterApiSupport::extractCookieValue)
-                    .flatMap(Optional::stream)
-                    .findFirst()
-                    .orElse(null);
-
-            return new CsrfContext(csrfCookie, csrfToken);
-        } catch (IOException e) {
-            throw new IllegalStateException("Falha ao ler a resposta CSRF de teste.", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Requisicao CSRF interrompida durante os testes.", e);
-        }
-    }
-
-    private static Optional<String> extractCookieValue(String headerValue) {
-        if (headerValue == null || !headerValue.startsWith("XSRF-TOKEN=")) {
-            return Optional.empty();
-        }
-
-        int separator = headerValue.indexOf(';');
-        String cookie = separator >= 0 ? headerValue.substring(0, separator) : headerValue;
-        return Optional.of(cookie.substring("XSRF-TOKEN=".length()));
-    }
 }

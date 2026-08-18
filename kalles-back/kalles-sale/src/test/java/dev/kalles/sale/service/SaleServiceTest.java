@@ -532,8 +532,7 @@ class SaleServiceTest {
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findPaidSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
-                when(stockRepository.sumQuantityByProductId(product.getId(), COMPANY_ID)).thenReturn(10);
-                when(stockRepository.findAllByProductIdOrderByQuantityDesc(product.getId(), COMPANY_ID))
+            when(stockRepository.lockAllByProductId(product.getId(), COMPANY_ID))
                     .thenReturn(java.util.List.of(new Stock(UUID.randomUUID(), null, product, null, 10)));
 
             saleService.completeSale(SESSION_TOKEN);

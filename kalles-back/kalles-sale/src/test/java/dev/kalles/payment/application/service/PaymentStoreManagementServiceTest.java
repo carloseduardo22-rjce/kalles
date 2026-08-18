@@ -6,7 +6,7 @@ import dev.kalles.payment.application.port.in.command.CreatePaymentStoreCommand;
 import dev.kalles.payment.application.port.out.PaymentStoreRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
-import dev.kalles.payment.exception.PaymentTenantContextException;
+import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +82,7 @@ class PaymentStoreManagementServiceTest {
 
     @Test
     void shouldRequireTenantContextForStatusLookup() {
-        assertThrows(PaymentTenantContextException.class, () ->
+        assertThrows(TenantContextRequiredException.class, () ->
                 service.findByExternalReference(PaymentProvider.MERCADO_PAGO, "external-ref"));
     }
 }

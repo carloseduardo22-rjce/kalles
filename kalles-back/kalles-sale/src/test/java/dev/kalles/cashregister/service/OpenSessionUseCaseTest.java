@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -72,7 +73,7 @@ class OpenSessionUseCaseTest {
             cashRegisterRepository,
             operatorRepository,
             sessionRepository,
-            validatorChain,
+            List.of(validatorChain),
             pairedDeviceSessionGuard,
             paymentIntegrationService
         );
@@ -106,7 +107,7 @@ class OpenSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
             .thenReturn(Optional.of(operator));
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
-        when(sessionRepository.save(any(CashRegisterSession.class))).thenReturn(session);
+        when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenReturn(session);
 
         SessionResponse response = useCase.execute(request);
 
@@ -124,7 +125,7 @@ class OpenSessionUseCaseTest {
         verify(paymentIntegrationService).isPaymentIntegrationConfigured(cashRegister);
 
         ArgumentCaptor<CashRegisterSession> captor = ArgumentCaptor.forClass(CashRegisterSession.class);
-        verify(sessionRepository).save(captor.capture());
+        verify(sessionRepository).saveAndFlush(captor.capture());
 
         CashRegisterSession savedSession = captor.getValue();
         assertTrue(savedSession.isOpen());
@@ -149,7 +150,7 @@ class OpenSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
             .thenReturn(Optional.of(operator));
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
-        when(sessionRepository.save(any(CashRegisterSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         SessionResponse response = useCase.execute(request);
 
@@ -261,7 +262,7 @@ class OpenSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(operator));
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
-        when(sessionRepository.save(any(CashRegisterSession.class))).thenReturn(session);
+        when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenReturn(session);
 
         useCase.execute(request);
 

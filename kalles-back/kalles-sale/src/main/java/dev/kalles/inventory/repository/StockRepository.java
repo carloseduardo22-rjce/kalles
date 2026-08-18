@@ -1,7 +1,9 @@
 package dev.kalles.inventory.repository;
 
 import dev.kalles.inventory.entity.Stock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,6 +25,13 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
            "WHERE s.product.id = :productId AND w.companyId = :companyId " +
            "ORDER BY s.quantity DESC")
     List<Stock> findAllByProductIdOrderByQuantityDesc(@Param("productId") UUID productId, @Param("companyId") UUID companyId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Stock s " +
+           "JOIN s.location l JOIN l.warehouse w " +
+           "WHERE s.product.id = :productId AND w.companyId = :companyId " +
+           "ORDER BY s.id")
+    List<Stock> lockAllByProductId(@Param("productId") UUID productId, @Param("companyId") UUID companyId);
 
     List<Stock> findAllByLocationId(UUID locationId);
 

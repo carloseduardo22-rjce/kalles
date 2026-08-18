@@ -6,6 +6,7 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -135,9 +136,7 @@ class OperatorServiceTest {
     void shouldRequireCompanyContext() {
         CompanyContextHolder.clear();
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> operatorService.listAll());
-
-        assertEquals("Nenhuma filial selecionada no contexto da operação.", exception.getMessage());
+        assertThrows(CompanyContextRequiredException.class, () -> operatorService.listAll());
         verifyNoInteractions(operatorRepository);
     }
 

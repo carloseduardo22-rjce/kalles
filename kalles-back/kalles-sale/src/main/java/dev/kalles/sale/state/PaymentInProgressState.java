@@ -25,9 +25,4 @@ public class PaymentInProgressState extends AbstractSaleState {
     public void cancel(Sale sale) {
         sale.setState(new CanceledState());
     }
-
-    @Override
-    public void resume(Sale sale) {
-        sale.setState(new OpenState());
-    }
 }

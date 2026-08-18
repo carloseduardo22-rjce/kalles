@@ -1,17 +1,20 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
 import dev.kalles.payment.application.port.out.PaymentWebhookPort;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentMethodType;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentWebhookEvent;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static dev.kalles.payment.adapter.out.mercadopago.MercadoPagoMappingUtils.toPaymentMethodType;
@@ -22,8 +25,8 @@ public class MercadoPagoPaymentWebhookAdapter implements PaymentWebhookPort {
 
     private final String webhookSecret;
 
-    public MercadoPagoPaymentWebhookAdapter(@Value("${mercadopago.webhook-secret:}") String webhookSecret) {
-        this.webhookSecret = webhookSecret;
+    public MercadoPagoPaymentWebhookAdapter(MercadoPagoProperties mercadoPagoProperties) {
+        this.webhookSecret = mercadoPagoProperties.webhookSecret();
     }
 
     @Override
@@ -57,13 +60,15 @@ public class MercadoPagoPaymentWebhookAdapter implements PaymentWebhookPort {
                 return false;
             }
 
-            String manifest = String.format("id:%s;request-id:%s;ts:%s;", dataId.toLowerCase(), xRequestId, ts);
+            String manifest = String.format("id:%s;request-id:%s;ts:%s;", dataId.toLowerCase(Locale.ROOT), xRequestId, ts);
             Mac hmac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKey = new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             hmac.init(secretKey);
             byte[] hmacBytes = hmac.doFinal(manifest.getBytes(StandardCharsets.UTF_8));
 
-            return bytesToHex(hmacBytes).equalsIgnoreCase(hash);
+            return MessageDigest.isEqual(
+                    HexFormat.of().formatHex(hmacBytes).getBytes(StandardCharsets.UTF_8),
+                    hash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             return false;
         }
@@ -153,13 +158,5 @@ public class MercadoPagoPaymentWebhookAdapter implements PaymentWebhookPort {
             return BigDecimal.ZERO;
         }
         return new BigDecimal(value.toString());
-    }
-
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
     }
 }

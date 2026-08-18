@@ -1,5 +1,7 @@
 package dev.kalles.security.context;
 
+import dev.kalles.security.exception.TenantContextRequiredException;
+
 import java.util.UUID;
 
 public class TenantContextHolder {
@@ -12,6 +14,14 @@ public class TenantContextHolder {
 
     public static UUID getTenantId() {
         return CONTEXT.get();
+    }
+
+    public static UUID requireTenantId() {
+        UUID tenantId = CONTEXT.get();
+        if (tenantId == null) {
+            throw new TenantContextRequiredException();
+        }
+        return tenantId;
     }
 
     public static void clear() {

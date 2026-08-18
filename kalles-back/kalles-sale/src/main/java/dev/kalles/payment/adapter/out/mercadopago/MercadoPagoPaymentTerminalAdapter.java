@@ -1,9 +1,7 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import dev.kalles.payment.adapter.out.mercadopago.dto.TerminalListResponse;
+import dev.kalles.payment.adapter.out.mercadopago.dto.TerminalSetupRequest;
 import dev.kalles.payment.application.port.out.PaymentTerminalPort;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminal;
@@ -11,10 +9,10 @@ import dev.kalles.payment.domain.TerminalOperationMode;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,13 +24,16 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
 
     private final MercadoPagoCredentialsResolver credentialsResolver;
     private final MercadoPagoWebClient mercadoPagoWebClient;
+    private final ObjectMapper objectMapper;
 
     public MercadoPagoPaymentTerminalAdapter(
             MercadoPagoCredentialsResolver credentialsResolver,
-            MercadoPagoWebClient mercadoPagoWebClient
+            MercadoPagoWebClient mercadoPagoWebClient,
+            ObjectMapper objectMapper
     ) {
         this.credentialsResolver = credentialsResolver;
         this.mercadoPagoWebClient = mercadoPagoWebClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -59,24 +60,20 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
                 return List.of();
             }
 
-            JsonObject searchJson = JsonParser.parseString(response.getBody()).getAsJsonObject();
-            if (!searchJson.has("terminals") || searchJson.get("terminals").getAsJsonArray().isEmpty()) {
+            TerminalListResponse listResponse = objectMapper.readValue(response.getBody(), TerminalListResponse.class);
+            if (listResponse.terminals() == null || listResponse.terminals().isEmpty()) {
                 return List.of();
             }
 
-            JsonArray terminalsJson = searchJson.get("terminals").getAsJsonArray();
-            List<PaymentTerminal> terminals = new ArrayList<>();
-            for (JsonElement element : terminalsJson) {
-                JsonObject terminalJson = element.getAsJsonObject();
-                terminals.add(new PaymentTerminal(
-                        getAsString(terminalJson, "id"),
-                        valueOrFallback(terminalJson, "pos_id", "posId"),
-                        valueOrFallback(terminalJson, "store_id", "storeId"),
-                        valueOrFallback(terminalJson, "external_pos_id", "externalPosId"),
-                        toTerminalOperationMode(valueOrFallback(terminalJson, "operating_mode", "operationMode"))
-                ));
-            }
-            return terminals;
+            return listResponse.terminals().stream()
+                    .map(terminal -> new PaymentTerminal(
+                            terminal.id(),
+                            terminal.posId(),
+                            terminal.storeId(),
+                            terminal.externalPosId(),
+                            toTerminalOperationMode(terminal.operatingMode())
+                    ))
+                    .toList();
         } catch (Exception e) {
             return List.of();
         }
@@ -87,20 +84,14 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
         String token = credentialsResolver.linkedAccessTokenOrThrow();
 
         try {
-            JsonObject terminalObj = new JsonObject();
-            terminalObj.addProperty("id", terminalId);
-            terminalObj.addProperty("operating_mode", toProviderOperationMode(operationMode));
-
-            JsonArray terminalsArray = new JsonArray();
-            terminalsArray.add(terminalObj);
-
-            JsonObject payload = new JsonObject();
-            payload.add("terminals", terminalsArray);
+            TerminalSetupRequest payload = new TerminalSetupRequest(List.of(
+                    new TerminalSetupRequest.Terminal(terminalId, toProviderOperationMode(operationMode))
+            ));
 
             ResponseEntity<String> response = mercadoPagoWebClient.exchange(
                     HttpMethod.PATCH,
                     "https://api.mercadopago.com/terminals/v1/setup",
-                    payload.toString(),
+                    objectMapper.writeValueAsString(payload),
                     Map.of(
                             "Authorization", "Bearer " + token,
                             "Content-Type", "application/json"
@@ -111,16 +102,5 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    private String valueOrFallback(JsonObject jsonObject, String firstOption, String fallbackOption) {
-        String first = getAsString(jsonObject, firstOption);
-        return first != null ? first : getAsString(jsonObject, fallbackOption);
-    }
-
-    private String getAsString(JsonObject jsonObject, String memberName) {
-        return jsonObject.has(memberName) && !jsonObject.get(memberName).isJsonNull()
-                ? jsonObject.get(memberName).getAsString()
-                : null;
     }
 }

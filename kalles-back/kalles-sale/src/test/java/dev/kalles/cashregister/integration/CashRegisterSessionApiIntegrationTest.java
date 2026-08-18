@@ -2,7 +2,7 @@ package dev.kalles.cashregister.integration;
 
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -163,5 +163,108 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .statusCode(200)
                 .body("$", hasSize(1))
                 .body("[0].codigoCaixa", equalTo(CASH_REGISTER_CODE));
+    }
+
+    @Test
+    void shouldRejectOpeningSecondSessionOnCashRegisterThatAlreadyHasOne() {
+        configurePaymentIntegration(true);
+        AuthContext auth = authenticateOperator();
+        seedOperator(companyId, "Operador Caixa 02", "OP002", PermissionLevel.BASIC);
+        seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of(
+                        "cashRegisterCode", CASH_REGISTER_CODE,
+                        "operatorCode", "OP002",
+                        "initialAmount", 100.00,
+                        "allowCashOnlyOperation", false
+                ))
+                .when()
+                .post("/api/cash-register-sessions/open")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Sessão ativa já existe"))
+                .body("detail", equalTo("O caixa " + CASH_REGISTER_CODE + " já possui uma sessão ativa"));
+    }
+
+    @Test
+    void shouldRejectOpeningSessionForOperatorAlreadyBoundToAnotherCashRegister() {
+        configurePaymentIntegration(true);
+        AuthContext auth = authenticateOperator();
+        seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
+        seedCashRegister(companyId, "CAIXA-02", "Caixa secundario");
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of(
+                        "cashRegisterCode", "CAIXA-02",
+                        "operatorCode", OPERATOR_CODE,
+                        "initialAmount", 100.00,
+                        "allowCashOnlyOperation", true
+                ))
+                .when()
+                .post("/api/cash-register-sessions/open")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Operador já está em sessão ativa"))
+                .body("detail", equalTo("O operador " + OPERATOR_CODE + " já está vinculado a uma sessão ativa em outro caixa"));
+    }
+
+    @Test
+    void shouldReportCashRegisterConflictFirstWhenBothCashRegisterAndOperatorAreBusy() {
+        configurePaymentIntegration(true);
+        AuthContext auth = authenticateOperator();
+        seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of(
+                        "cashRegisterCode", CASH_REGISTER_CODE,
+                        "operatorCode", OPERATOR_CODE,
+                        "initialAmount", 100.00,
+                        "allowCashOnlyOperation", false
+                ))
+                .when()
+                .post("/api/cash-register-sessions/open")
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Sessão ativa já existe"))
+                .body("detail", equalTo("O caixa " + CASH_REGISTER_CODE + " já possui uma sessão ativa"));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenOpeningSessionForUnknownCashRegister() {
+        AuthContext auth = authenticateOperator();
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of(
+                        "cashRegisterCode", "CAIXA-INEXISTENTE",
+                        "operatorCode", OPERATOR_CODE,
+                        "initialAmount", 100.00,
+                        "allowCashOnlyOperation", true
+                ))
+                .when()
+                .post("/api/cash-register-sessions/open")
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Caixa não encontrado: CAIXA-INEXISTENTE"));
     }
 }

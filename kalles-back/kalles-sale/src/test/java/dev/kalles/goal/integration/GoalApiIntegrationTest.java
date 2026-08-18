@@ -3,7 +3,7 @@ package dev.kalles.goal.integration;
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
 import dev.kalles.goal.support.AbstractGoalApiSupport;
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

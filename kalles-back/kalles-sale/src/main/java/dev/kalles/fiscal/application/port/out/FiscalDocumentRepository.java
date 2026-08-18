@@ -12,6 +12,8 @@ public interface FiscalDocumentRepository {
 
     FiscalDocument save(FiscalDocument document);
 
+    void delete(FiscalDocument document);
+
     Optional<FiscalDocument> findBySale(UUID tenantId, UUID companyId, UUID saleId, FiscalDocumentModel model);
 
     Optional<FiscalDocument> findById(UUID tenantId, UUID companyId, UUID documentId);

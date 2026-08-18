@@ -10,7 +10,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,8 +29,9 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.company.entity.Company;
 import dev.kalles.company.entity.Tenant;
-import dev.kalles.payment.support.LocalHttpTestClient;
-import dev.kalles.payment.support.RestAssuredResponseAdapter;
+import dev.kalles.testsupport.LocalHttpTestClient;
+import dev.kalles.testsupport.RestAssuredResponseAdapter;
+import dev.kalles.testsupport.TestHttpTimeout;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
@@ -51,7 +51,7 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
 
     private static final UUID BETA_TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174222");
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
+            .connectTimeout(TestHttpTimeout.CONNECT)
             .build();
 
     @Autowired
@@ -304,7 +304,7 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:" + port + path))
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(TestHttpTimeout.REQUEST)
                     .headers(flattenHeaders(requestHeaders(
                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             true
@@ -356,6 +356,7 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
 
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, BigDecimal.ZERO);
         ReflectionTestUtils.setField(session.getSessionPeriod(), "openedAt", openedAt);
+        session.close();
         session = cashRegisterSessionRepository.save(session);
 
         Product product = new Product();

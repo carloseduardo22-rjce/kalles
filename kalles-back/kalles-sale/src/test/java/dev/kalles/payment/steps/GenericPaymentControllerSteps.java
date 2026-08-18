@@ -1,6 +1,7 @@
 package dev.kalles.payment.steps;
 
 import dev.kalles.payment.adapter.in.web.PaymentController;
+import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.adapter.in.web.PaymentProviderAccountController;
 import dev.kalles.payment.adapter.in.web.PaymentStoreController;
 import dev.kalles.payment.adapter.in.web.dto.ClosePaymentOrderRequest;
@@ -93,7 +94,8 @@ public class GenericPaymentControllerSteps {
                     linkPaymentProviderAccountUseCase,
                     getPaymentProviderAccountStatusUseCase,
                     paymentProviderOAuthStateService,
-                    accountRepository
+                    accountRepository,
+                    new MercadoPagoProperties(null, null, null, null, null, null, null)
             );
     private final PaymentStoreController paymentStoreController =
             new PaymentStoreController(

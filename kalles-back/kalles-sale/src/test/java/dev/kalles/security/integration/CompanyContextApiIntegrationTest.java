@@ -1,6 +1,6 @@
 package dev.kalles.security.integration;
 
-import dev.kalles.payment.support.LocalHttpTestClient;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import dev.kalles.security.support.AbstractCompanyContextApiSupport;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,6 +81,33 @@ class CompanyContextApiIntegrationTest extends AbstractCompanyContextApiSupport 
         response.then()
                 .statusCode(403)
                 .body("code", equalTo("COMPANY_CONTEXT_DENIED"));
+    }
+
+    @Test
+    void shouldRequireCompanyHeaderForTicketsRoute() {
+        String authCookie = loginAndExtractAuthCookie(TENANT_ADMIN_EMAIL);
+
+        Response response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/tickets",
+                java.util.Map.of("Cookie", "kalles_auth_token=" + authCookie)
+        );
+
+        response.then()
+                .statusCode(400)
+                .body("code", equalTo("COMPANY_CONTEXT_REQUIRED"));
+    }
+
+    @Test
+    void shouldAllowTenantScopedRouteWithoutCompanyHeader() {
+        String authCookie = loginAndExtractAuthCookie(TENANT_ADMIN_EMAIL);
+
+        Response response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/users",
+                java.util.Map.of("Cookie", "kalles_auth_token=" + authCookie)
+        );
+
+        response.then()
+                .statusCode(200);
     }
 
     @Test
