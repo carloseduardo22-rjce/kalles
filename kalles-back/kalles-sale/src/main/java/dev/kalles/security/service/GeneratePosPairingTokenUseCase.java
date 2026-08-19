@@ -34,7 +34,6 @@ public class GeneratePosPairingTokenUseCase {
         session.setPosId(posId);
         session.setExpiresAt(LocalDateTime.now().plusDays(7)); // 7 days expiration for pairing
         session.setActive(true);
-        session.setCreatedAt(LocalDateTime.now());
         
         repository.save(session);
         return token;
