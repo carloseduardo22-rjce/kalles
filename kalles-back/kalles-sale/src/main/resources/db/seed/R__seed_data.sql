@@ -272,7 +272,7 @@ SELECT
   gen_random_uuid(),
   v.pts,
   v.disc::numeric(10,2),
-  v.enrolled::date,
+  v.enrolled::timestamp,
   false,
   'a1b2c3d4-0002-0002-0002-000000000002'::uuid,
   c.id

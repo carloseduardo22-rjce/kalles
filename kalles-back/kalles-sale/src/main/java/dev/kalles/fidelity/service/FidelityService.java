@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,7 +40,6 @@ public class FidelityService {
         fidelity.setPolicy(policy);
         fidelity.setPoints(0);
         fidelity.setAvailableDiscount(BigDecimal.ZERO);
-        fidelity.setCreatedAt(LocalDate.now());
         return FidelityResponse.from(fidelityRepository.save(fidelity));
     }
 

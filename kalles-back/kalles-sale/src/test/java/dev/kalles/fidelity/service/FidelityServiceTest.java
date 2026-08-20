@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -69,7 +69,7 @@ class FidelityServiceTest {
         activePolicy.setValuePoint(1);
         activePolicy.setDiscountType(FidelityDiscountType.FIXED);
         activePolicy.setActive(true);
-        activePolicy.setCreatedAt(LocalDate.now());
+        activePolicy.setCreatedAt(LocalDateTime.now());
     }
 
     @AfterEach
@@ -84,7 +84,7 @@ class FidelityServiceTest {
         f.setPolicy(activePolicy);
         f.setPoints(points);
         f.setAvailableDiscount(discount);
-        f.setCreatedAt(LocalDate.now());
+        f.setCreatedAt(LocalDateTime.now());
         f.setExpired(false);
         return f;
     }
@@ -182,7 +182,7 @@ class FidelityServiceTest {
         @DisplayName("Deve marcar como expirado quando criado há mais de 3 meses")
         void shouldMarkAsExpiredWhenCreatedAtIsMoreThanThreeMonthsAgo() {
             Fidelity fidelity = buildFidelity(0, BigDecimal.ZERO);
-            fidelity.setCreatedAt(LocalDate.now().minusMonths(4));
+            fidelity.setCreatedAt(LocalDateTime.now().minusMonths(4));
 
             when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
@@ -386,7 +386,7 @@ class FidelityServiceTest {
         @DisplayName("Deve retornar zero e marcar como expirado quando a fidelidade venceu")
         void shouldReturnZeroWhenFidelityIsExpired() {
             Fidelity fidelity = buildFidelity(0, new BigDecimal("20.00"));
-            fidelity.setCreatedAt(LocalDate.now().minusMonths(4));
+            fidelity.setCreatedAt(LocalDateTime.now().minusMonths(4));
             when(fidelityRepository.findByClientId(clientId)).thenReturn(Optional.of(fidelity));
             when(fidelityRepository.save(any(Fidelity.class))).thenReturn(fidelity);
 
