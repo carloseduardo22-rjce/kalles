@@ -1,6 +1,7 @@
 package dev.kalles.sale.repository;
 
 import dev.kalles.product.entity.Product;
+import dev.kalles.sale.dto.SessionPaymentMethodTotal;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.entity.Sale;
@@ -17,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -121,6 +124,87 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
             assertThat(sale.getItems()).hasSize(2);
             assertThat(sale.getPayments()).hasSize(2);
         });
+    }
+
+    @Test
+    @DisplayName("A projecao devolve os mesmos totais que a soma em memoria das vendas concluidas")
+    void shouldProjectTheSameTotalsTheInMemorySumProduces() {
+        persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        persistSaleWithMixedPayments(new CompletedState());
+        persistSaleWithMixedPayments(new CanceledState());
+        detach();
+
+        List<Sale> completedSales = saleRepository.findCompletedBySessionToken(SESSION_TOKEN);
+        BigDecimal totalInMemory = completedSales.stream()
+                .map(Sale::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Map<PaymentMethod, BigDecimal> byMethodInMemory = completedSales.stream()
+                .flatMap(sale -> sale.getPayments().stream())
+                .filter(Payment::isConfirmed)
+                .collect(Collectors.groupingBy(
+                        Payment::getMethod,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                payment -> payment.getAmount().subtract(payment.getChangeAmount()),
+                                BigDecimal::add)));
+
+        BigDecimal projectedTotal = saleRepository.sumCompletedTotalBySessionToken(SESSION_TOKEN);
+        Map<PaymentMethod, BigDecimal> projectedByMethod = saleRepository
+                .sumCompletedPaymentsByMethod(SESSION_TOKEN)
+                .stream()
+                .collect(Collectors.toMap(SessionPaymentMethodTotal::method, SessionPaymentMethodTotal::total));
+
+        assertThat(projectedTotal).isEqualByComparingTo(totalInMemory);
+        assertThat(projectedByMethod.keySet()).isEqualTo(byMethodInMemory.keySet());
+        assertThat(projectedByMethod).allSatisfy((method, total) ->
+                assertThat(total).isEqualByComparingTo(byMethodInMemory.get(method)));
+    }
+
+    @Test
+    @DisplayName("A projecao desconta o troco, ignora pagamento nao confirmado e nao soma venda cancelada")
+    void shouldProjectOnlyConfirmedPaymentsOfCompletedSalesNetOfChange() {
+        persistSaleWithMixedPayments(new CompletedState());
+        persistSaleWithMixedPayments(new CanceledState());
+        detach();
+
+        Map<PaymentMethod, BigDecimal> byMethod = saleRepository
+                .sumCompletedPaymentsByMethod(SESSION_TOKEN)
+                .stream()
+                .collect(Collectors.toMap(SessionPaymentMethodTotal::method, SessionPaymentMethodTotal::total));
+
+        assertThat(byMethod).containsOnlyKeys(PaymentMethod.CASH, PaymentMethod.PIX);
+        assertThat(byMethod.get(PaymentMethod.CASH)).isEqualByComparingTo(new BigDecimal("45.00"));
+        assertThat(byMethod.get(PaymentMethod.PIX)).isEqualByComparingTo(new BigDecimal("10.00"));
+    }
+
+    @Test
+    @DisplayName("A projecao do total devolve zero, e nao nulo, em sessao sem venda concluida")
+    void shouldProjectZeroWhenTheSessionHasNoCompletedSale() {
+        persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
+        detach();
+
+        assertThat(saleRepository.sumCompletedTotalBySessionToken(SESSION_TOKEN))
+                .isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(saleRepository.sumCompletedPaymentsByMethod(SESSION_TOKEN)).isEmpty();
+    }
+
+    private Sale persistSaleWithMixedPayments(SaleState state) {
+        Product product = persistProduct("Produto C");
+
+        Sale sale = new Sale();
+        sale.setSessionToken(SESSION_TOKEN);
+        sale.setCompanyId(COMPANY_ID);
+        sale.setState(state);
+        sale.setSubtotal(new BigDecimal("55.00"));
+        sale.setTotal(new BigDecimal("55.00"));
+        sale.setAmountDue(BigDecimal.ZERO);
+
+        sale.getItems().add(new SaleItem(sale, product, 5, new BigDecimal("11.00")));
+        sale.getPayments().add(new Payment(sale, PaymentMethod.CASH, new BigDecimal("50.00"), new BigDecimal("5.00"), null, true));
+        sale.getPayments().add(new Payment(sale, PaymentMethod.PIX, new BigDecimal("10.00"), BigDecimal.ZERO, null, true));
+        sale.getPayments().add(new Payment(sale, PaymentMethod.CREDIT_CARD, new BigDecimal("30.00"), BigDecimal.ZERO, null, false));
+
+        return entityManager().persist(sale);
     }
 
     private Sale persistSaleWithTwoItemsAndTwoPayments(SaleState state) {

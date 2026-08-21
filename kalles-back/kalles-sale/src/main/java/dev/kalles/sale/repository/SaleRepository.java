@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import dev.kalles.sale.dto.SessionPaymentMethodTotal;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.state.*;
 
@@ -40,7 +41,39 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	default long countCanceledBySessionToken(String sessionToken) {
 		return countBySessionTokenAndStateIn(sessionToken, List.of(new CanceledState()));
 	}
-	
+
+	@Query("""
+			SELECT COALESCE(SUM(s.total), 0)
+			FROM Sale s
+			WHERE s.sessionToken = :sessionToken
+			  AND s.state = :state
+			""")
+	BigDecimal sumTotalBySessionTokenAndState(
+			@Param("sessionToken") String sessionToken,
+			@Param("state") SaleState state);
+
+	default BigDecimal sumCompletedTotalBySessionToken(String sessionToken) {
+		return sumTotalBySessionTokenAndState(sessionToken, new CompletedState());
+	}
+
+	@Query("""
+			SELECT new dev.kalles.sale.dto.SessionPaymentMethodTotal(
+			       p.method,
+			       SUM(p.amount - p.changeAmount))
+			FROM Payment p
+			WHERE p.sale.sessionToken = :sessionToken
+			  AND p.sale.state = :state
+			  AND p.confirmed = TRUE
+			GROUP BY p.method
+			""")
+	List<SessionPaymentMethodTotal> sumConfirmedPaymentsByMethod(
+			@Param("sessionToken") String sessionToken,
+			@Param("state") SaleState state);
+
+	default List<SessionPaymentMethodTotal> sumCompletedPaymentsByMethod(String sessionToken) {
+		return sumConfirmedPaymentsByMethod(sessionToken, new CompletedState());
+	}
+
 	default Optional<Sale> findActiveSaleBySessionToken(String sessionToken) {
 		return findBySessionTokenAndStateIn(sessionToken,
 			List.of(new OpenState()));
