@@ -88,7 +88,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
         detach();
 
-        List<Sale> completedSales = saleRepository.findCompletedBySessionToken(SESSION_TOKEN);
+        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(SESSION_TOKEN, List.of(new CompletedState()));
 
         assertThat(completedSales).hasSize(1);
         assertThat(completedSales.getFirst().getId()).isEqualTo(completed.getId());
@@ -134,7 +134,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         persistSaleWithMixedPayments(new CanceledState());
         detach();
 
-        List<Sale> completedSales = saleRepository.findCompletedBySessionToken(SESSION_TOKEN);
+        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(SESSION_TOKEN, List.of(new CompletedState()));
         BigDecimal totalInMemory = completedSales.stream()
                 .map(Sale::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

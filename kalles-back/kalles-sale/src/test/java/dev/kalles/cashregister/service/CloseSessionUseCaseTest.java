@@ -12,11 +12,11 @@ import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.product.entity.Product;
+import dev.kalles.sale.dto.SessionPaymentMethodTotal;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.sale.state.CompletedState;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
@@ -85,13 +85,10 @@ class CloseSessionUseCaseTest {
         CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
         org.mockito.Mockito.doReturn(sessionId).when(session).getId();
         Operator authorizer = buildAuthorizer();
-        Sale completedSale = buildCompletedSale(sessionId.toString());
 
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
-        when(saleRepository.findCompletedBySessionToken(sessionId.toString()))
-                .thenReturn(List.of(completedSale));
-        when(saleRepository.countCanceledBySessionToken(sessionId.toString())).thenReturn(2L);
+        stubSummaryOf(sessionId, 1L, 2L, new BigDecimal("80.00"));
 
         CloseSessionResponse response = useCase.execute(
                 sessionId,
@@ -105,10 +102,13 @@ class CloseSessionUseCaseTest {
         assertEquals(new BigDecimal("80.00"), savedClosing.getCashSalesAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getExpectedCashAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getCountedCashAmount());
+        assertEquals(1, savedClosing.getCompletedSalesCount());
         assertEquals(2, savedClosing.getCanceledSalesCount());
+        assertEquals(new BigDecimal("80.00"), savedClosing.getTotalSoldAmount());
         assertEquals(0, savedClosing.getCashDifferenceAmount().compareTo(BigDecimal.ZERO));
         assertNotNull(response.nomeOperadorAutorizador());
         assertTrue(!response.nomeOperadorAutorizador().isBlank());
+        assertEquals(1, response.resumo().vendasConcluidas());
         assertEquals(2, response.resumo().vendasCanceladas());
         assertEquals(new BigDecimal("180.00"), response.resumo().saldoEsperadoEmCaixa());
         assertEquals(0, response.resumo().diferencaEmCaixa().compareTo(BigDecimal.ZERO));
@@ -203,13 +203,11 @@ class CloseSessionUseCaseTest {
         org.mockito.Mockito.doReturn(sessionId).when(session).getId();
         Operator authorizer = buildAuthorizer();
         Sale emptyOpenSale = Sale.createForSession(sessionId.toString());
-        Sale completedSale = buildCompletedSale(sessionId.toString());
 
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
         when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(emptyOpenSale));
-        when(saleRepository.findCompletedBySessionToken(sessionId.toString()))
-                .thenReturn(List.of(completedSale));
+        stubSummaryOf(sessionId, 1L, 0L, new BigDecimal("80.00"));
 
         CloseSessionResponse response = useCase.execute(
                 sessionId,
@@ -220,6 +218,15 @@ class CloseSessionUseCaseTest {
         verify(saleRepository).save(emptyOpenSale);
         assertNotNull(response);
         verify(closingRepository).save(any(CashRegisterClosing.class));
+    }
+
+    private void stubSummaryOf(UUID sessionId, long completed, long canceled, BigDecimal totalPaidInCash) {
+        String sessionToken = sessionId.toString();
+        when(saleRepository.countCompletedBySessionToken(sessionToken)).thenReturn(completed);
+        when(saleRepository.countCanceledBySessionToken(sessionToken)).thenReturn(canceled);
+        when(saleRepository.sumCompletedTotalBySessionToken(sessionToken)).thenReturn(totalPaidInCash);
+        when(saleRepository.sumCompletedPaymentsByMethod(sessionToken))
+                .thenReturn(List.of(new SessionPaymentMethodTotal(PaymentMethod.CASH, totalPaidInCash)));
     }
 
     private Sale buildPaidSale(String sessionToken) {
@@ -247,15 +254,5 @@ class CloseSessionUseCaseTest {
         operator.setCompanyId(COMPANY_ID);
         operator.setPermissionLevel(PermissionLevel.SUPERVISOR);
         return operator;
-    }
-
-    private Sale buildCompletedSale(String sessionToken) {
-        Sale sale = Sale.createForSession(sessionToken);
-        sale.setTotal(new BigDecimal("80.00"));
-        sale.setPayments(new LinkedHashSet<>(List.of(
-                new Payment(sale, PaymentMethod.CASH, new BigDecimal("80.00"), BigDecimal.ZERO, null, true)
-        )));
-        sale.setState(new CompletedState());
-        return sale;
     }
 }

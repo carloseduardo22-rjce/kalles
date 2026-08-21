@@ -32,11 +32,11 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
 	List<Sale> findAllBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
 
-	default List<Sale> findCompletedBySessionToken(String sessionToken) {
-		return findAllBySessionTokenAndStateIn(sessionToken, List.of(new CompletedState()));
-	}
-
 	long countBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
+
+	default long countCompletedBySessionToken(String sessionToken) {
+		return countBySessionTokenAndStateIn(sessionToken, List.of(new CompletedState()));
+	}
 
 	default long countCanceledBySessionToken(String sessionToken) {
 		return countBySessionTokenAndStateIn(sessionToken, List.of(new CanceledState()));
