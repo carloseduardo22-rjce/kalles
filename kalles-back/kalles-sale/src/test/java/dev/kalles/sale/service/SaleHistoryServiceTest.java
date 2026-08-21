@@ -55,7 +55,7 @@ class SaleHistoryServiceTest {
                 eq(LocalDateTime.of(2026, 4, 1, 0, 0)),
                 eq(LocalDateTime.of(2026, 5, 1, 0, 0))
         )).thenReturn(List.of(new TestSaleHistoryRow(saleId.toString(), openedAt)));
-        when(saleRepository.findAllWithDetailsByIdIn(List.of(saleId))).thenReturn(List.of(sale));
+        when(saleRepository.findAllByIdIn(List.of(saleId))).thenReturn(List.of(sale));
 
         SaleHistoryService service = new SaleHistoryService(saleRepository, excelExporter);
 
@@ -101,7 +101,7 @@ class SaleHistoryServiceTest {
         Sale sale = completedSale(saleId, "session-token");
         when(saleRepository.findHistoryRows(any(), any(), any()))
                 .thenReturn(List.of(new TestSaleHistoryRow(saleId.toString(), LocalDateTime.of(2026, 4, 20, 10, 0))));
-        when(saleRepository.findAllWithDetailsByIdIn(List.of(saleId))).thenReturn(List.of(sale));
+        when(saleRepository.findAllByIdIn(List.of(saleId))).thenReturn(List.of(sale));
         when(excelExporter.export(any())).thenReturn(new byte[] {1, 2, 3});
 
         SaleHistoryService service = new SaleHistoryService(saleRepository, excelExporter);

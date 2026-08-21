@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +28,7 @@ class FidelityPolicyApiIntegrationTest extends AbstractFidelityPolicyApiSupport 
     void shouldCreatePolicyInsideActiveCompanyAndDeactivatePreviousOne() {
         AuthContext auth = authenticateTenantAdminWithCsrf();
         var previousPolicy = seedPolicy(
-                companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, true, LocalDate.now().minusDays(1)
+                companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, true, LocalDateTime.now().minusDays(1)
         );
 
         givenAuthenticated(auth, companyAId)
@@ -56,8 +56,8 @@ class FidelityPolicyApiIntegrationTest extends AbstractFidelityPolicyApiSupport 
     @Test
     void shouldReturnOnlyActivePolicyFromActiveCompany() {
         AuthContext auth = authenticateTenantAdminWithCsrf();
-        seedPolicy(companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, true, LocalDate.now());
-        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.PERCENTAGE, true, LocalDate.now());
+        seedPolicy(companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, true, LocalDateTime.now());
+        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.PERCENTAGE, true, LocalDateTime.now());
 
         Response response = LocalHttpTestClient.get(
                 "http://localhost:" + port + "/api/fidelity-policies/active",
@@ -76,9 +76,9 @@ class FidelityPolicyApiIntegrationTest extends AbstractFidelityPolicyApiSupport 
     @Test
     void shouldListHistoryOnlyFromActiveCompany() {
         AuthContext auth = authenticateTenantAdminWithCsrf();
-        seedPolicy(companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, false, LocalDate.now().minusDays(2));
-        seedPolicy(companyAId, 200, "15.00", 2, FidelityDiscountType.PERCENTAGE, true, LocalDate.now().minusDays(1));
-        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.FIXED, true, LocalDate.now());
+        seedPolicy(companyAId, 100, "20.00", 1, FidelityDiscountType.FIXED, false, LocalDateTime.now().minusDays(2));
+        seedPolicy(companyAId, 200, "15.00", 2, FidelityDiscountType.PERCENTAGE, true, LocalDateTime.now().minusDays(1));
+        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.FIXED, true, LocalDateTime.now());
 
         Response response = LocalHttpTestClient.get(
                 "http://localhost:" + port + "/api/fidelity-policies",

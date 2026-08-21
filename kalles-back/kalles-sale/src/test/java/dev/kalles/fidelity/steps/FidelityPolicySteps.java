@@ -8,7 +8,7 @@ import io.cucumber.java.pt.Entao;
 import io.cucumber.java.pt.Quando;
 import io.restassured.response.Response;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +32,7 @@ public class FidelityPolicySteps extends FidelityPolicyCucumberSpringConfigurati
 
     @Dado("uma politica ativa cadastrada em outra filial")
     public void givenPolicyInAnotherCompany() {
-        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.FIXED, true, LocalDate.now());
+        seedPolicy(companyBId, 300, "30.00", 3, FidelityDiscountType.FIXED, true, LocalDateTime.now());
     }
 
     @Quando("ele cadastrar uma politica de fidelidade na filial ativa")

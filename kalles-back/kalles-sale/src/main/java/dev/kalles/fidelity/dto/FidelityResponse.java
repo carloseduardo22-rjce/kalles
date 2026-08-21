@@ -4,7 +4,7 @@ import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.enums.FidelityDiscountType;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record FidelityResponse(
@@ -13,7 +13,7 @@ public record FidelityResponse(
         Integer points,
         BigDecimal availableDiscount,
         FidelityDiscountType discountType,
-        LocalDate createdAt,
+        LocalDateTime createdAt,
         boolean expired
 ) {
     public static FidelityResponse from(Fidelity fidelity) {

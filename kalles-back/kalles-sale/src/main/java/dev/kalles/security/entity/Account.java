@@ -1,6 +1,7 @@
 package dev.kalles.security.entity;
 
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.shared.entity.BaseAuditableEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +23,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Account implements UserDetails {
+public class Account extends BaseAuditableEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -50,12 +50,6 @@ public class Account implements UserDetails {
 
     @Column(nullable = false)
     private boolean verified = false;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     public Account(UUID tenantId, String name, String email, String passwordHash, AccountRole role) {
         this.tenantId = tenantId;

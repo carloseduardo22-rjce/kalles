@@ -4,6 +4,7 @@ import dev.kalles.client.entity.Client;
 import dev.kalles.fidelity.enums.FidelityDiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -14,14 +15,17 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "fidelity")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -38,8 +42,9 @@ public class Fidelity {
     @Column(name = "available_discount", nullable = false, precision = 10, scale = 2)
     private BigDecimal availableDiscount = BigDecimal.ZERO;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDate createdAt = LocalDate.now();
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private boolean expired = false;
@@ -100,6 +105,6 @@ public class Fidelity {
     }
 
     public boolean isActuallyExpired() {
-        return LocalDate.now().isAfter(createdAt.plusMonths(3));
+        return LocalDateTime.now().isAfter(createdAt.plusMonths(3));
     }
 }

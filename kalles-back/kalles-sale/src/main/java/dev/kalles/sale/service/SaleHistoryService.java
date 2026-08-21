@@ -55,7 +55,7 @@ public class SaleHistoryService {
                         (first, ignored) -> first
                 ));
 
-        Map<UUID, Sale> salesById = saleRepository.findAllWithDetailsByIdIn(rows.stream()
+        Map<UUID, Sale> salesById = saleRepository.findAllByIdIn(rows.stream()
                         .map(row -> UUID.fromString(row.getId()))
                         .toList())
                 .stream()

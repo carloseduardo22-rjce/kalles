@@ -10,9 +10,10 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -21,6 +22,9 @@ public abstract class AbstractFidelityPolicyApiSupport extends AbstractCompanyCo
 
     @Autowired
     protected FidelityPolicyRepository fidelityPolicyRepository;
+
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
 
     protected void resetFidelityPolicyScenario() {
         fidelityPolicyRepository.deleteAll();
@@ -52,7 +56,7 @@ public abstract class AbstractFidelityPolicyApiSupport extends AbstractCompanyCo
             int valuePoint,
             FidelityDiscountType discountType,
             boolean active,
-            LocalDate createdAt
+            LocalDateTime createdAt
     ) {
         FidelityPolicy policy = new FidelityPolicy();
         policy.setCompanyId(companyId);
@@ -61,8 +65,10 @@ public abstract class AbstractFidelityPolicyApiSupport extends AbstractCompanyCo
         policy.setValuePoint(valuePoint);
         policy.setDiscountType(discountType);
         policy.setActive(active);
-        policy.setCreatedAt(createdAt);
-        return fidelityPolicyRepository.save(policy);
+        FidelityPolicy saved = fidelityPolicyRepository.save(policy);
+        jdbcTemplate.update("UPDATE fidelity_policy SET created_at = ? WHERE id = ?", createdAt, saved.getId());
+        saved.setCreatedAt(createdAt);
+        return saved;
     }
 
     protected record AuthContext(String authCookie, String csrfCookie, String csrfToken) {

@@ -18,7 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,7 +57,7 @@ class FidelityPolicyServiceTest {
         p.setValuePoint(1);
         p.setDiscountType(FidelityDiscountType.FIXED);
         p.setActive(active);
-        p.setCreatedAt(LocalDate.now());
+        p.setCreatedAt(LocalDateTime.now());
         return p;
     }
 

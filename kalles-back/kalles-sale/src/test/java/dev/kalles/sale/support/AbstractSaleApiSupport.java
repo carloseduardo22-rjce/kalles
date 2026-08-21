@@ -172,7 +172,6 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
         policy.setObjectivePoints(objectivePoints);
         policy.setValuePoint(valuePoint);
         policy.setActive(true);
-        policy.setCreatedAt(LocalDate.now());
         seededFidelityPolicy = fidelityPolicyRepository.save(policy);
         return seededFidelityPolicy;
     }
@@ -190,7 +189,6 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
         fidelity.setPolicy(policy);
         fidelity.setPoints(0);
         fidelity.setAvailableDiscount(availableDiscount);
-        fidelity.setCreatedAt(LocalDate.now());
         fidelity.setExpired(false);
         seededFidelity = fidelityRepository.save(fidelity);
         return seededFidelity;

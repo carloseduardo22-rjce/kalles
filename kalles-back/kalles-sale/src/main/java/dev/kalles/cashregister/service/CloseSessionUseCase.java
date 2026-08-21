@@ -10,11 +10,10 @@ import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
-import dev.kalles.sale.entity.Payment;
+import dev.kalles.sale.dto.SessionPaymentMethodTotal;
 import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.sale.state.CanceledState;
-import dev.kalles.sale.state.CompletedState;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -25,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -151,32 +151,25 @@ public class CloseSessionUseCase {
     }
 
     private SessionSummaryResponse computeSummary(String sessionToken, BigDecimal initialAmount) {
-        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(
-                sessionToken, List.of(new CompletedState()));
-        List<Sale> canceledSales = saleRepository.findAllBySessionTokenAndStateIn(
-                sessionToken, List.of(new CanceledState()));
+        long completedSales = saleRepository.countCompletedBySessionToken(sessionToken);
+        long canceledSales = saleRepository.countCanceledBySessionToken(sessionToken);
+        BigDecimal totalVendido = saleRepository.sumCompletedTotalBySessionToken(sessionToken);
 
-        BigDecimal totalVendido = completedSales.stream()
-                .map(Sale::getTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        Map<String, BigDecimal> totalPorMetodo = completedSales.stream()
-                .flatMap(s -> s.getPayments().stream())
-                .filter(Payment::isConfirmed)
-                .collect(Collectors.groupingBy(
-                        p -> p.getMethod().name(),
-                        Collectors.reducing(
-                                BigDecimal.ZERO,
-                                p -> p.getAmount().subtract(p.getChangeAmount()),
-                                BigDecimal::add)
+        Map<String, BigDecimal> totalPorMetodo = saleRepository.sumCompletedPaymentsByMethod(sessionToken)
+                .stream()
+                .collect(Collectors.toMap(
+                        total -> total.method().name(),
+                        SessionPaymentMethodTotal::total,
+                        BigDecimal::add,
+                        LinkedHashMap::new
                 ));
 
-        BigDecimal totalEmDinheiro = totalPorMetodo.getOrDefault("CASH", BigDecimal.ZERO);
+        BigDecimal totalEmDinheiro = totalPorMetodo.getOrDefault(PaymentMethod.CASH.name(), BigDecimal.ZERO);
         BigDecimal saldoEsperadoEmCaixa = initialAmount.add(totalEmDinheiro);
 
         return new SessionSummaryResponse(
-                completedSales.size(),
-                canceledSales.size(),
+                Math.toIntExact(completedSales),
+                Math.toIntExact(canceledSales),
                 totalVendido,
                 totalPorMetodo,
                 totalEmDinheiro,
