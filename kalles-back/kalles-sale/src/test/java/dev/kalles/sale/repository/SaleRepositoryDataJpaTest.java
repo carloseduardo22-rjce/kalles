@@ -86,13 +86,24 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         detach();
 
         List<Sale> completedSales = saleRepository.findCompletedBySessionToken(SESSION_TOKEN);
-        List<Sale> canceledSales = saleRepository.findCanceledBySessionToken(SESSION_TOKEN);
 
         assertThat(completedSales).hasSize(1);
         assertThat(completedSales.getFirst().getId()).isEqualTo(completed.getId());
         assertThat(completedSales.getFirst().getItems()).hasSize(2);
         assertThat(completedSales.getFirst().getPayments()).hasSize(2);
-        assertThat(canceledSales).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("countCanceledBySessionToken conta vendas, nao linhas de item e pagamento")
+    void shouldCountCanceledSalesWithoutMultiplyingByTheCollections() {
+        Sale canceled = persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
+        persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
+        persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        detach();
+
+        assertThat(rowsProducedByJoiningBothCollections(canceled.getId())).isEqualTo(4);
+
+        assertThat(saleRepository.countCanceledBySessionToken(SESSION_TOKEN)).isEqualTo(2);
     }
 
     @Test

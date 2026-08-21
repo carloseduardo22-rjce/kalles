@@ -35,8 +35,10 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 		return findAllBySessionTokenAndStateIn(sessionToken, List.of(new CompletedState()));
 	}
 
-	default List<Sale> findCanceledBySessionToken(String sessionToken) {
-		return findAllBySessionTokenAndStateIn(sessionToken, List.of(new CanceledState()));
+	long countBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
+
+	default long countCanceledBySessionToken(String sessionToken) {
+		return countBySessionTokenAndStateIn(sessionToken, List.of(new CanceledState()));
 	}
 	
 	default Optional<Sale> findActiveSaleBySessionToken(String sessionToken) {

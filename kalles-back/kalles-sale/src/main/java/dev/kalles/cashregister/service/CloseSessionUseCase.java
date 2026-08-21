@@ -13,8 +13,6 @@ import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.sale.state.CanceledState;
-import dev.kalles.sale.state.CompletedState;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -151,10 +149,8 @@ public class CloseSessionUseCase {
     }
 
     private SessionSummaryResponse computeSummary(String sessionToken, BigDecimal initialAmount) {
-        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(
-                sessionToken, List.of(new CompletedState()));
-        List<Sale> canceledSales = saleRepository.findAllBySessionTokenAndStateIn(
-                sessionToken, List.of(new CanceledState()));
+        List<Sale> completedSales = saleRepository.findCompletedBySessionToken(sessionToken);
+        long canceledSales = saleRepository.countCanceledBySessionToken(sessionToken);
 
         BigDecimal totalVendido = completedSales.stream()
                 .map(Sale::getTotal)
@@ -176,7 +172,7 @@ public class CloseSessionUseCase {
 
         return new SessionSummaryResponse(
                 completedSales.size(),
-                canceledSales.size(),
+                Math.toIntExact(canceledSales),
                 totalVendido,
                 totalPorMetodo,
                 totalEmDinheiro,

@@ -89,8 +89,9 @@ class CloseSessionUseCaseTest {
 
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
-        when(saleRepository.findAllBySessionTokenAndStateIn(any(), any()))
-                .thenReturn(List.of(completedSale), List.of());
+        when(saleRepository.findCompletedBySessionToken(sessionId.toString()))
+                .thenReturn(List.of(completedSale));
+        when(saleRepository.countCanceledBySessionToken(sessionId.toString())).thenReturn(2L);
 
         CloseSessionResponse response = useCase.execute(
                 sessionId,
@@ -104,9 +105,11 @@ class CloseSessionUseCaseTest {
         assertEquals(new BigDecimal("80.00"), savedClosing.getCashSalesAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getExpectedCashAmount());
         assertEquals(new BigDecimal("180.00"), savedClosing.getCountedCashAmount());
+        assertEquals(2, savedClosing.getCanceledSalesCount());
         assertEquals(0, savedClosing.getCashDifferenceAmount().compareTo(BigDecimal.ZERO));
         assertNotNull(response.nomeOperadorAutorizador());
         assertTrue(!response.nomeOperadorAutorizador().isBlank());
+        assertEquals(2, response.resumo().vendasCanceladas());
         assertEquals(new BigDecimal("180.00"), response.resumo().saldoEsperadoEmCaixa());
         assertEquals(0, response.resumo().diferencaEmCaixa().compareTo(BigDecimal.ZERO));
     }
@@ -205,8 +208,8 @@ class CloseSessionUseCaseTest {
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
         when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(emptyOpenSale));
-        when(saleRepository.findAllBySessionTokenAndStateIn(any(), any()))
-                .thenReturn(List.of(completedSale), List.of());
+        when(saleRepository.findCompletedBySessionToken(sessionId.toString()))
+                .thenReturn(List.of(completedSale));
 
         CloseSessionResponse response = useCase.execute(
                 sessionId,
