@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,8 +30,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
 
     private static final String SESSION_TOKEN = "8f14e45f-ceea-467a-9d1e-1c1d3f0a1b2c";
+    private static final UUID SESSION_ID = UUID.fromString(SESSION_TOKEN);
     private static final UUID TENANT_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000001");
     private static final UUID COMPANY_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000002");
+    private static final UUID CASH_REGISTER_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000003");
+    private static final UUID OPERATOR_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000004");
+    private static final LocalDateTime SESSION_OPENED_AT = LocalDateTime.of(2026, 3, 10, 8, 0);
 
     @Autowired
     private SaleRepository saleRepository;
@@ -38,6 +43,9 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     @BeforeEach
     void seedCompany() {
         seedTenantAndCompany(TENANT_ID, COMPANY_ID);
+        seedCashRegister(CASH_REGISTER_ID, COMPANY_ID, "CX-REPO");
+        seedOperator(OPERATOR_ID, COMPANY_ID, "OP-REPO");
+        seedClosedSession(SESSION_ID, CASH_REGISTER_ID, OPERATOR_ID, SESSION_OPENED_AT);
     }
 
     @Test
@@ -186,6 +194,70 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         assertThat(saleRepository.sumCompletedTotalBySessionToken(SESSION_TOKEN))
                 .isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(saleRepository.sumCompletedPaymentsByMethod(SESSION_TOKEN)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("sumCompletedTotalsBetween alcanca a venda pela data de abertura da sessao quando ela nao tem timestamp proprio")
+    void shouldSumCompletedTotalsFallingBackToTheSessionOpeningDate() {
+        Sale sale = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        detach();
+        clearOwnTimestamps(sale.getId());
+
+        BigDecimal total = saleRepository.sumCompletedTotalsBetween(
+                COMPANY_ID, SESSION_OPENED_AT.minusDays(1), SESSION_OPENED_AT.plusDays(1));
+
+        assertThat(total).isEqualByComparingTo(sale.getTotal());
+    }
+
+    @Test
+    @DisplayName("sumCompletedTotalsBetween deixa de fora a venda cuja sessao abriu fora da janela")
+    void shouldIgnoreSalesWhoseSessionOpenedOutsideTheWindow() {
+        Sale sale = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        detach();
+        clearOwnTimestamps(sale.getId());
+
+        BigDecimal total = saleRepository.sumCompletedTotalsBetween(
+                COMPANY_ID, SESSION_OPENED_AT.plusDays(1), SESSION_OPENED_AT.plusDays(2));
+
+        assertThat(total).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("findHistoryRows so devolve a venda quando a sessao leva a um caixa da mesma filial")
+    void shouldListHistoryRowsJoinedToTheSessionCashRegister() {
+        Sale sale = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        detach();
+        clearOwnTimestamps(sale.getId());
+
+        List<SaleRepository.SaleHistoryRow> rows = saleRepository.findHistoryRows(
+                COMPANY_ID, SESSION_OPENED_AT.minusDays(1), SESSION_OPENED_AT.plusDays(1));
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.getFirst().getId()).isEqualTo(sale.getId().toString());
+        assertThat(rows.getFirst().getOpenedAt()).isEqualTo(SESSION_OPENED_AT);
+    }
+
+    @Test
+    @DisplayName("findHistoryRowsByState filtra pelo estado sem perder o join com a sessao")
+    void shouldFilterHistoryRowsByState() {
+        Sale completed = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
+        Sale canceled = persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
+        detach();
+        clearOwnTimestamps(completed.getId());
+        clearOwnTimestamps(canceled.getId());
+
+        List<SaleRepository.SaleHistoryRow> rows = saleRepository.findHistoryRowsByState(
+                COMPANY_ID, SESSION_OPENED_AT.minusDays(1), SESSION_OPENED_AT.plusDays(1), CompletedState.NAME);
+
+        assertThat(rows).extracting(SaleRepository.SaleHistoryRow::getId)
+                .containsExactly(completed.getId().toString());
+    }
+
+    private void clearOwnTimestamps(UUID saleId) {
+        entityManager().getEntityManager()
+                .createNativeQuery("UPDATE sale SET created_at = NULL, completed_at = NULL WHERE id = :saleId")
+                .setParameter("saleId", saleId)
+                .executeUpdate();
     }
 
     private Sale persistSaleWithMixedPayments(SaleState state) {

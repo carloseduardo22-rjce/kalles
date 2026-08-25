@@ -9,6 +9,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Tag("integration")
@@ -47,6 +48,34 @@ public abstract class AbstractDataJpaTest {
                 .setParameter("id", cashRegisterId)
                 .setParameter("code", code)
                 .setParameter("companyId", companyId)
+                .executeUpdate();
+    }
+
+    protected void seedOperator(UUID operatorId, UUID companyId, String code) {
+        entityManager.getEntityManager()
+                .createNativeQuery("""
+                        INSERT INTO operators (id, name, code, permission_level, active, company_id)
+                        VALUES (:id, 'Operador do teste de repositorio', :code, 'CASHIER', TRUE, :companyId)
+                        ON CONFLICT (id) DO NOTHING
+                        """)
+                .setParameter("id", operatorId)
+                .setParameter("code", code)
+                .setParameter("companyId", companyId)
+                .executeUpdate();
+    }
+
+    protected void seedClosedSession(UUID sessionId, UUID cashRegisterId, UUID operatorId, LocalDateTime openedAt) {
+        entityManager.getEntityManager()
+                .createNativeQuery("""
+                        INSERT INTO cash_register_sessions
+                            (id, cash_register_id, operator_id, initial_amount, opened_at, closed_at, status)
+                        VALUES (:id, :cashRegisterId, :operatorId, 0, :openedAt, :openedAt, 'CLOSED')
+                        ON CONFLICT (id) DO NOTHING
+                        """)
+                .setParameter("id", sessionId)
+                .setParameter("cashRegisterId", cashRegisterId)
+                .setParameter("operatorId", operatorId)
+                .setParameter("openedAt", openedAt)
                 .executeUpdate();
     }
 
