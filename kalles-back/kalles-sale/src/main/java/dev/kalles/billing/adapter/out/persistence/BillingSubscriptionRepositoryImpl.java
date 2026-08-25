@@ -58,22 +58,22 @@ public class BillingSubscriptionRepositoryImpl implements BillingSubscriptionRep
     }
 
     private BillingSubscription toDomain(BillingSubscriptionEntity entity) {
-        return new BillingSubscription(
-                entity.getId(),
-                entity.getTenantId(),
-                entity.getProvider(),
-                entity.getExternalCustomerId(),
-                entity.getExternalSubscriptionId(),
-                entity.getExternalCheckoutSessionId(),
-                entity.getExternalPriceId(),
-                entity.getExternalProductId(),
-                entity.getPlanCode(),
-                entity.getStatus(),
-                entity.getInterval(),
-                entity.getCurrentPeriodStart(),
-                entity.getCurrentPeriodEnd(),
-                entity.isCancelAtPeriodEnd(),
-                entity.getLastEventId()
-        );
+        return BillingSubscription.builder()
+                .id(entity.getId())
+                .tenantId(entity.getTenantId())
+                .provider(entity.getProvider())
+                .externalCustomerId(entity.getExternalCustomerId())
+                .externalSubscriptionId(entity.getExternalSubscriptionId())
+                .externalCheckoutSessionId(entity.getExternalCheckoutSessionId())
+                .externalPriceId(entity.getExternalPriceId())
+                .externalProductId(entity.getExternalProductId())
+                .planCode(entity.getPlanCode())
+                .status(entity.getStatus())
+                .interval(entity.getInterval())
+                .currentPeriodStart(entity.getCurrentPeriodStart())
+                .currentPeriodEnd(entity.getCurrentPeriodEnd())
+                .cancelAtPeriodEnd(entity.isCancelAtPeriodEnd())
+                .lastEventId(entity.getLastEventId())
+                .build();
     }
 }

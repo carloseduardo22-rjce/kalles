@@ -76,23 +76,19 @@ class CreateBillingCheckoutSessionUseCaseTest {
     @Test
     void shouldReuseExistingStripeCustomerWhenSubscriptionAlreadyExists() {
         UUID tenantId = UUID.randomUUID();
-        BillingSubscription existingSubscription = new BillingSubscription(
-                UUID.randomUUID(),
-                tenantId,
-                BillingProvider.STRIPE,
-                "cus_existing",
-                "sub_existing",
-                "cs_existing",
-                "price_monthly",
-                "prod_monthly",
-                "default-monthly",
-                BillingStatus.ACTIVE,
-                BillingInterval.MONTHLY,
-                null,
-                null,
-                false,
-                null
-        );
+        BillingSubscription existingSubscription = BillingSubscription.builder()
+                .id(UUID.randomUUID())
+                .tenantId(tenantId)
+                .provider(BillingProvider.STRIPE)
+                .externalCustomerId("cus_existing")
+                .externalSubscriptionId("sub_existing")
+                .externalCheckoutSessionId("cs_existing")
+                .externalPriceId("price_monthly")
+                .externalProductId("prod_monthly")
+                .planCode("default-monthly")
+                .status(BillingStatus.ACTIVE)
+                .interval(BillingInterval.MONTHLY)
+                .build();
 
         when(billingSubscriptionRepository.findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE))
                 .thenReturn(Optional.of(existingSubscription));

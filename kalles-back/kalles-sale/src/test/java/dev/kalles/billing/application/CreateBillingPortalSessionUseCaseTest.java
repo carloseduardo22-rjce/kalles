@@ -36,23 +36,19 @@ class CreateBillingPortalSessionUseCaseTest {
     @Test
     void shouldCreatePortalSessionWhenTenantHasStripeCustomer() {
         UUID tenantId = UUID.randomUUID();
-        BillingSubscription subscription = new BillingSubscription(
-                UUID.randomUUID(),
-                tenantId,
-                BillingProvider.STRIPE,
-                "cus_123",
-                "sub_123",
-                "cs_123",
-                "price_monthly",
-                "prod_monthly",
-                "default-monthly",
-                BillingStatus.ACTIVE,
-                BillingInterval.MONTHLY,
-                null,
-                null,
-                false,
-                null
-        );
+        BillingSubscription subscription = BillingSubscription.builder()
+                .id(UUID.randomUUID())
+                .tenantId(tenantId)
+                .provider(BillingProvider.STRIPE)
+                .externalCustomerId("cus_123")
+                .externalSubscriptionId("sub_123")
+                .externalCheckoutSessionId("cs_123")
+                .externalPriceId("price_monthly")
+                .externalProductId("prod_monthly")
+                .planCode("default-monthly")
+                .status(BillingStatus.ACTIVE)
+                .interval(BillingInterval.MONTHLY)
+                .build();
         when(billingSubscriptionRepository.findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE))
                 .thenReturn(Optional.of(subscription));
         when(billingGateway.createPortalSession(any()))
@@ -79,23 +75,18 @@ class CreateBillingPortalSessionUseCaseTest {
     @Test
     void shouldRejectPortalSessionWhenStripeCustomerIsMissing() {
         UUID tenantId = UUID.randomUUID();
-        BillingSubscription subscription = new BillingSubscription(
-                UUID.randomUUID(),
-                tenantId,
-                BillingProvider.STRIPE,
-                null,
-                "sub_123",
-                "cs_123",
-                "price_monthly",
-                "prod_monthly",
-                "default-monthly",
-                BillingStatus.ACTIVE,
-                BillingInterval.MONTHLY,
-                null,
-                null,
-                false,
-                null
-        );
+        BillingSubscription subscription = BillingSubscription.builder()
+                .id(UUID.randomUUID())
+                .tenantId(tenantId)
+                .provider(BillingProvider.STRIPE)
+                .externalSubscriptionId("sub_123")
+                .externalCheckoutSessionId("cs_123")
+                .externalPriceId("price_monthly")
+                .externalProductId("prod_monthly")
+                .planCode("default-monthly")
+                .status(BillingStatus.ACTIVE)
+                .interval(BillingInterval.MONTHLY)
+                .build();
         when(billingSubscriptionRepository.findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE))
                 .thenReturn(Optional.of(subscription));
 

@@ -22,23 +22,15 @@ public class CreateBillingCheckoutSessionUseCase {
     public BillingGateway.CheckoutSession execute(UUID tenantId, String customerEmail, String customerName, String returnUrl) {
         BillingSubscription currentSubscription = billingSubscriptionRepository
                 .findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE)
-                .orElseGet(() -> new BillingSubscription(
-                        UUID.randomUUID(),
-                        tenantId,
-                        BillingProvider.STRIPE,
-                        null,
-                        null,
-                        null,
-                        stripeBillingProperties.monthlyPriceId(),
-                        null,
-                        stripeBillingProperties.defaultPlanCode(),
-                        BillingStatus.CHECKOUT_CREATED,
-                        BillingInterval.MONTHLY,
-                        null,
-                        null,
-                        false,
-                        null
-                ));
+                .orElseGet(() -> BillingSubscription.builder()
+                        .id(UUID.randomUUID())
+                        .tenantId(tenantId)
+                        .provider(BillingProvider.STRIPE)
+                        .externalPriceId(stripeBillingProperties.monthlyPriceId())
+                        .planCode(stripeBillingProperties.defaultPlanCode())
+                        .status(BillingStatus.CHECKOUT_CREATED)
+                        .interval(BillingInterval.MONTHLY)
+                        .build());
 
         BillingGateway.CheckoutSession checkoutSession = billingGateway.createSubscriptionCheckout(
                 new BillingGateway.CheckoutCommand(

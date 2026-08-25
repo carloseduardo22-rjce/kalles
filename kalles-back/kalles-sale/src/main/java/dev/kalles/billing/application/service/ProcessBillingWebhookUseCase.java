@@ -54,23 +54,16 @@ public class ProcessBillingWebhookUseCase {
         Optional<BillingSubscription> existingSubscription = findExistingSubscription(notification);
         UUID tenantId = resolveTenantId(notification, existingSubscription);
 
-        BillingSubscription subscription = existingSubscription.orElseGet(() -> new BillingSubscription(
-                UUID.randomUUID(),
-                tenantId,
-                notification.provider(),
-                null,
-                null,
-                null,
-                notification.priceId(),
-                notification.productId(),
-                stripeBillingProperties.defaultPlanCode(),
-                BillingStatus.INCOMPLETE,
-                notification.interval(),
-                null,
-                null,
-                false,
-                null
-        ));
+        BillingSubscription subscription = existingSubscription.orElseGet(() -> BillingSubscription.builder()
+                .id(UUID.randomUUID())
+                .tenantId(tenantId)
+                .provider(notification.provider())
+                .externalPriceId(notification.priceId())
+                .externalProductId(notification.productId())
+                .planCode(stripeBillingProperties.defaultPlanCode())
+                .status(BillingStatus.INCOMPLETE)
+                .interval(notification.interval())
+                .build());
 
         subscription.setTenantId(tenantId);
         subscription.setProvider(notification.provider());
