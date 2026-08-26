@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class PaymentService {
     public Sale addPayment(String sessionToken, PaymentMethod method, BigDecimal amount) {
         Session session = checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 
-        Sale sale = findSaleForPaymentOrThrow(sessionToken);
+        Sale sale = findSaleForPaymentOrThrow(session.getId());
 
         validatePayment(sale, session, method, amount);
 
@@ -64,7 +65,7 @@ public class PaymentService {
     public Sale registerExternalPayment(String sessionToken, PaymentMethod method, BigDecimal amount, String transactionId) {
         Session session = checkoutSessionService.getOpenSessionOrThrow(sessionToken);
 
-        Sale sale = findSaleForPaymentOrThrow(sessionToken);
+        Sale sale = findSaleForPaymentOrThrow(session.getId());
 
         if (transactionId != null && !transactionId.isBlank() && sale.getPayments().stream()
                 .anyMatch(p -> transactionId.equals(p.getTransactionId()))) {
@@ -87,8 +88,8 @@ public class PaymentService {
         return saleRepository.save(sale);
     }
 
-    private Sale findSaleForPaymentOrThrow(String sessionToken) {
-        return saleRepository.findSaleForPaymentBySessionToken(sessionToken)
+    private Sale findSaleForPaymentOrThrow(UUID sessionId) {
+        return saleRepository.findSaleForPaymentBySessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda ativa encontrada para esta sessao."));
     }
 

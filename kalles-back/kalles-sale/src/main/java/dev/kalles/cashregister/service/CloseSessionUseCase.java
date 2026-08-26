@@ -100,7 +100,7 @@ public class CloseSessionUseCase {
      * automaticamente pelo PDV entre atendimentos são canceladas em silêncio.
      */
     private void resolvePendingSales(CashRegisterSession session) {
-        List<Sale> pendingSales = saleRepository.findPendingBySessionToken(session.getId().toString());
+        List<Sale> pendingSales = saleRepository.findPendingBySessionId(session.getId());
 
         long blockingSales = 0;
         for (Sale sale : pendingSales) {
@@ -147,15 +147,15 @@ public class CloseSessionUseCase {
 
 
     private SessionSummaryResponse buildLiveSummary(CashRegisterSession session) {
-        return computeSummary(session.getId().toString(), session.getInitialAmountValue());
+        return computeSummary(session.getId(), session.getInitialAmountValue());
     }
 
-    private SessionSummaryResponse computeSummary(String sessionToken, BigDecimal initialAmount) {
-        long completedSales = saleRepository.countCompletedBySessionToken(sessionToken);
-        long canceledSales = saleRepository.countCanceledBySessionToken(sessionToken);
-        BigDecimal totalVendido = saleRepository.sumCompletedTotalBySessionToken(sessionToken);
+    private SessionSummaryResponse computeSummary(UUID sessionId, BigDecimal initialAmount) {
+        long completedSales = saleRepository.countCompletedBySessionId(sessionId);
+        long canceledSales = saleRepository.countCanceledBySessionId(sessionId);
+        BigDecimal totalVendido = saleRepository.sumCompletedTotalBySessionId(sessionId);
 
-        Map<String, BigDecimal> totalPorMetodo = saleRepository.sumCompletedPaymentsByMethod(sessionToken)
+        Map<String, BigDecimal> totalPorMetodo = saleRepository.sumCompletedPaymentsByMethod(sessionId)
                 .stream()
                 .collect(Collectors.toMap(
                         total -> total.method().name(),

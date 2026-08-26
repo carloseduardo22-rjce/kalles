@@ -366,7 +366,7 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
         product = productRepository.save(product);
 
         Sale sale = new Sale();
-        sale.setSessionToken(session.getId().toString());
+        sale.setSessionId(session.getId());
         sale.setCompanyId(targetCompanyId);
         sale.setState(new OpenState());
         sale.addItem(product, amount);

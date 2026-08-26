@@ -33,7 +33,7 @@ import lombok.Setter;
 
 @Entity
 @Table(indexes = {
-        @Index(name = "idx_sale_session_token", columnList = "session_token"),
+        @Index(name = "idx_sale_session_id", columnList = "session_id"),
         @Index(name = "idx_sale_state", columnList = "state")
 }, comment = "Entidade principal representando uma venda: sessao, estado, itens, pagamentos e totais")
 @Getter
@@ -49,8 +49,8 @@ public class Sale extends BaseAuditableEntity {
     @Version
     private Long version;
 
-    @Column(name = "session_token", nullable = false)
-    private String sessionToken;
+    @Column(name = "session_id", nullable = false)
+    private UUID sessionId;
 
     @Column(name = "company_id")
     private UUID companyId;
@@ -187,9 +187,9 @@ public class Sale extends BaseAuditableEntity {
         }
     }
 
-    public static Sale createForSession(String sessionToken) {
+    public static Sale createForSession(UUID sessionId) {
         Sale sale = new Sale();
-        sale.setSessionToken(sessionToken);
+        sale.setSessionId(sessionId);
         sale.setState(new OpenState());
         // Using context as it's set in the Filter
         sale.setCompanyId(dev.kalles.security.context.CompanyContextHolder.getCompanyId());

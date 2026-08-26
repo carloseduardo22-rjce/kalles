@@ -33,7 +33,7 @@ class SaleTest {
         product.setBarcode("7891234567890");
         
 
-        sale = Sale.createForSession("session-123");
+        sale = Sale.createForSession(UUID.randomUUID());
         sale.setId(UUID.randomUUID());
 
         supervisor = new Operator();

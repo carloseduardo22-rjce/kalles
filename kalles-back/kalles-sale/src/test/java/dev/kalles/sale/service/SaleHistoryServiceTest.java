@@ -48,7 +48,7 @@ class SaleHistoryServiceTest {
         CompanyContextHolder.setCompanyId(COMPANY_ID);
         UUID saleId = UUID.randomUUID();
         LocalDateTime openedAt = LocalDateTime.of(2026, 4, 20, 10, 0);
-        Sale sale = completedSale(saleId, "session-token");
+        Sale sale = completedSale(saleId, UUID.randomUUID());
 
         when(saleRepository.findHistoryRows(
                 eq(COMPANY_ID),
@@ -98,7 +98,7 @@ class SaleHistoryServiceTest {
     void shouldExportListedSales() {
         CompanyContextHolder.setCompanyId(COMPANY_ID);
         UUID saleId = UUID.randomUUID();
-        Sale sale = completedSale(saleId, "session-token");
+        Sale sale = completedSale(saleId, UUID.randomUUID());
         when(saleRepository.findHistoryRows(any(), any(), any()))
                 .thenReturn(List.of(new TestSaleHistoryRow(saleId.toString(), LocalDateTime.of(2026, 4, 20, 10, 0))));
         when(saleRepository.findAllByIdIn(List.of(saleId))).thenReturn(List.of(sale));
@@ -112,7 +112,7 @@ class SaleHistoryServiceTest {
         verify(excelExporter).export(any());
     }
 
-    private Sale completedSale(UUID saleId, String sessionToken) {
+    private Sale completedSale(UUID saleId, UUID sessionId) {
         Product product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto PDV");
@@ -120,7 +120,7 @@ class SaleHistoryServiceTest {
 
         Sale sale = new Sale();
         sale.setId(saleId);
-        sale.setSessionToken(sessionToken);
+        sale.setSessionId(sessionId);
         sale.setCompanyId(COMPANY_ID);
         sale.setSubtotal(new BigDecimal("30.00"));
         sale.setTotal(new BigDecimal("30.00"));

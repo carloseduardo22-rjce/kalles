@@ -131,7 +131,7 @@ public abstract class AbstractFinancialReportApiSupport extends AbstractCompanyC
         jdbcTemplate.update("update cash_register_sessions set opened_at = ? where id = ?", openedAt, session.getId());
 
         Sale sale = new Sale();
-        sale.setSessionToken(session.getId().toString());
+        sale.setSessionId(session.getId());
         sale.setCompanyId(companyId);
         sale.setState(new CompletedState());
         sale.setSubtotal(new BigDecimal(total));

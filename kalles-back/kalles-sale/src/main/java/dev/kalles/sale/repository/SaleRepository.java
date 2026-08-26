@@ -27,33 +27,33 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	List<Sale> findAllByIdIn(List<UUID> ids);
 
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
-	Optional<Sale> findBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
+	Optional<Sale> findBySessionIdAndStateIn(UUID sessionId, List<SaleState> states);
 
 	@EntityGraph(attributePaths = {"items", "items.product", "payments"})
-	List<Sale> findAllBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
+	List<Sale> findAllBySessionIdAndStateIn(UUID sessionId, List<SaleState> states);
 
-	long countBySessionTokenAndStateIn(String sessionToken, List<SaleState> states);
+	long countBySessionIdAndStateIn(UUID sessionId, List<SaleState> states);
 
-	default long countCompletedBySessionToken(String sessionToken) {
-		return countBySessionTokenAndStateIn(sessionToken, List.of(new CompletedState()));
+	default long countCompletedBySessionId(UUID sessionId) {
+		return countBySessionIdAndStateIn(sessionId, List.of(new CompletedState()));
 	}
 
-	default long countCanceledBySessionToken(String sessionToken) {
-		return countBySessionTokenAndStateIn(sessionToken, List.of(new CanceledState()));
+	default long countCanceledBySessionId(UUID sessionId) {
+		return countBySessionIdAndStateIn(sessionId, List.of(new CanceledState()));
 	}
 
 	@Query("""
 			SELECT COALESCE(SUM(s.total), 0)
 			FROM Sale s
-			WHERE s.sessionToken = :sessionToken
+			WHERE s.sessionId = :sessionId
 			  AND s.state = :state
 			""")
-	BigDecimal sumTotalBySessionTokenAndState(
-			@Param("sessionToken") String sessionToken,
+	BigDecimal sumTotalBySessionIdAndState(
+			@Param("sessionId") UUID sessionId,
 			@Param("state") SaleState state);
 
-	default BigDecimal sumCompletedTotalBySessionToken(String sessionToken) {
-		return sumTotalBySessionTokenAndState(sessionToken, new CompletedState());
+	default BigDecimal sumCompletedTotalBySessionId(UUID sessionId) {
+		return sumTotalBySessionIdAndState(sessionId, new CompletedState());
 	}
 
 	@Query("""
@@ -61,21 +61,21 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			       p.method,
 			       SUM(p.amount - p.changeAmount))
 			FROM Payment p
-			WHERE p.sale.sessionToken = :sessionToken
+			WHERE p.sale.sessionId = :sessionId
 			  AND p.sale.state = :state
 			  AND p.confirmed = TRUE
 			GROUP BY p.method
 			""")
 	List<SessionPaymentMethodTotal> sumConfirmedPaymentsByMethod(
-			@Param("sessionToken") String sessionToken,
+			@Param("sessionId") UUID sessionId,
 			@Param("state") SaleState state);
 
-	default List<SessionPaymentMethodTotal> sumCompletedPaymentsByMethod(String sessionToken) {
-		return sumConfirmedPaymentsByMethod(sessionToken, new CompletedState());
+	default List<SessionPaymentMethodTotal> sumCompletedPaymentsByMethod(UUID sessionId) {
+		return sumConfirmedPaymentsByMethod(sessionId, new CompletedState());
 	}
 
-	default Optional<Sale> findActiveSaleBySessionToken(String sessionToken) {
-		return findBySessionTokenAndStateIn(sessionToken,
+	default Optional<Sale> findActiveSaleBySessionId(UUID sessionId) {
+		return findBySessionIdAndStateIn(sessionId,
 			List.of(new OpenState()));
 	}
 
@@ -84,18 +84,18 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	 * pagamento em andamento (cartão recusado, cliente desistiu) e pagas mas
 	 * não concluídas. Vendas COMPLETED exigem fluxo de devolução, não cancelamento.
 	 */
-	default Optional<Sale> findCancellableSaleBySessionToken(String sessionToken) {
-		return findBySessionTokenAndStateIn(sessionToken,
+	default Optional<Sale> findCancellableSaleBySessionId(UUID sessionId) {
+		return findBySessionIdAndStateIn(sessionId,
 			List.of(new OpenState(), new PaymentInProgressState(), new PaidState()));
 	}
 
-	default Optional<Sale> findSaleForPaymentBySessionToken(String sessionToken) {
-		return findBySessionTokenAndStateIn(sessionToken,
+	default Optional<Sale> findSaleForPaymentBySessionId(UUID sessionId) {
+		return findBySessionIdAndStateIn(sessionId,
 			List.of(new OpenState(), new PaymentInProgressState()));
 	}
 
-	default Optional<Sale> findPaidSaleBySessionToken(String sessionToken) {
-		return findBySessionTokenAndStateIn(sessionToken,
+	default Optional<Sale> findPaidSaleBySessionId(UUID sessionId) {
+		return findBySessionIdAndStateIn(sessionId,
 			List.of(new PaidState()));
 	}
 
@@ -104,8 +104,8 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	 * com pagamento em curso ou pagas mas não concluídas (dinheiro recebido
 	 * que não entraria no fechamento).
 	 */
-	default List<Sale> findPendingBySessionToken(String sessionToken) {
-		return findAllBySessionTokenAndStateIn(sessionToken,
+	default List<Sale> findPendingBySessionId(UUID sessionId) {
+		return findAllBySessionIdAndStateIn(sessionId,
 			List.of(new OpenState(), new PaymentInProgressState(), new PaidState()));
 	}
 
@@ -116,7 +116,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 	@Query(value = """
 			SELECT COALESCE(SUM(s.total), 0)
 			FROM sale s
-			LEFT JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			LEFT JOIN cash_register_sessions crs ON crs.id = s.session_id
 			WHERE s.state = 'COMPLETED'
 			  AND s.company_id = :companyId
 			  AND COALESCE(s.completed_at, s.created_at, crs.opened_at) >= :start
@@ -131,7 +131,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			SELECT CAST(s.id AS VARCHAR) AS id,
 			       COALESCE(s.completed_at, s.created_at, crs.opened_at) AS openedAt
 			FROM sale s
-			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			JOIN cash_register_sessions crs ON crs.id = s.session_id
 			JOIN cash_registers cr ON cr.id = crs.cash_register_id
 			WHERE s.company_id = :companyId
 			  AND cr.company_id = :companyId
@@ -148,7 +148,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 			SELECT CAST(s.id AS VARCHAR) AS id,
 			       COALESCE(s.completed_at, s.created_at, crs.opened_at) AS openedAt
 			FROM sale s
-			JOIN cash_register_sessions crs ON CAST(crs.id AS TEXT) = s.session_token
+			JOIN cash_register_sessions crs ON crs.id = s.session_id
 			JOIN cash_registers cr ON cr.id = crs.cash_register_id
 			WHERE s.company_id = :companyId
 			  AND cr.company_id = :companyId

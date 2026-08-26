@@ -29,8 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("SaleRepository devolve uma venda por linha mesmo buscando duas colecoes de uma vez")
 class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
 
-    private static final String SESSION_TOKEN = "8f14e45f-ceea-467a-9d1e-1c1d3f0a1b2c";
-    private static final UUID SESSION_ID = UUID.fromString(SESSION_TOKEN);
+    private static final UUID SESSION_ID = UUID.fromString("8f14e45f-ceea-467a-9d1e-1c1d3f0a1b2c");
     private static final UUID TENANT_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000001");
     private static final UUID COMPANY_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000002");
     private static final UUID CASH_REGISTER_ID = UUID.fromString("a1b2c3d4-0000-4000-8000-000000000003");
@@ -76,12 +75,12 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     }
 
     @Test
-    @DisplayName("findBySessionTokenAndStateIn devolve Optional sem estourar por resultado duplicado")
+    @DisplayName("findBySessionIdAndStateIn devolve Optional sem estourar por resultado duplicado")
     void shouldReturnSingleOptionalWhenSaleHasTwoItemsAndTwoPayments() {
         Sale sale = persistSaleWithTwoItemsAndTwoPayments(new OpenState());
         detach();
 
-        Optional<Sale> found = saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN);
+        Optional<Sale> found = saleRepository.findActiveSaleBySessionId(SESSION_ID);
 
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(sale.getId());
@@ -90,13 +89,13 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     }
 
     @Test
-    @DisplayName("findAllBySessionTokenAndStateIn filtra por estado sem duplicar as vendas que passam")
+    @DisplayName("findAllBySessionIdAndStateIn filtra por estado sem duplicar as vendas que passam")
     void shouldFilterBySessionAndStateWithoutDuplicatingRows() {
         Sale completed = persistSaleWithTwoItemsAndTwoPayments(new CompletedState());
         persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
         detach();
 
-        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(SESSION_TOKEN, List.of(new CompletedState()));
+        List<Sale> completedSales = saleRepository.findAllBySessionIdAndStateIn(SESSION_ID, List.of(new CompletedState()));
 
         assertThat(completedSales).hasSize(1);
         assertThat(completedSales.getFirst().getId()).isEqualTo(completed.getId());
@@ -105,7 +104,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
     }
 
     @Test
-    @DisplayName("countCanceledBySessionToken conta vendas, nao linhas de item e pagamento")
+    @DisplayName("countCanceledBySessionId conta vendas, nao linhas de item e pagamento")
     void shouldCountCanceledSalesWithoutMultiplyingByTheCollections() {
         Sale canceled = persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
         persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
@@ -114,7 +113,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
 
         assertThat(rowsProducedByJoiningBothCollections(canceled.getId())).isEqualTo(4);
 
-        assertThat(saleRepository.countCanceledBySessionToken(SESSION_TOKEN)).isEqualTo(2);
+        assertThat(saleRepository.countCanceledBySessionId(SESSION_ID)).isEqualTo(2);
     }
 
     @Test
@@ -142,7 +141,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         persistSaleWithMixedPayments(new CanceledState());
         detach();
 
-        List<Sale> completedSales = saleRepository.findAllBySessionTokenAndStateIn(SESSION_TOKEN, List.of(new CompletedState()));
+        List<Sale> completedSales = saleRepository.findAllBySessionIdAndStateIn(SESSION_ID, List.of(new CompletedState()));
         BigDecimal totalInMemory = completedSales.stream()
                 .map(Sale::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -156,9 +155,9 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
                                 payment -> payment.getAmount().subtract(payment.getChangeAmount()),
                                 BigDecimal::add)));
 
-        BigDecimal projectedTotal = saleRepository.sumCompletedTotalBySessionToken(SESSION_TOKEN);
+        BigDecimal projectedTotal = saleRepository.sumCompletedTotalBySessionId(SESSION_ID);
         Map<PaymentMethod, BigDecimal> projectedByMethod = saleRepository
-                .sumCompletedPaymentsByMethod(SESSION_TOKEN)
+                .sumCompletedPaymentsByMethod(SESSION_ID)
                 .stream()
                 .collect(Collectors.toMap(SessionPaymentMethodTotal::method, SessionPaymentMethodTotal::total));
 
@@ -176,7 +175,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         detach();
 
         Map<PaymentMethod, BigDecimal> byMethod = saleRepository
-                .sumCompletedPaymentsByMethod(SESSION_TOKEN)
+                .sumCompletedPaymentsByMethod(SESSION_ID)
                 .stream()
                 .collect(Collectors.toMap(SessionPaymentMethodTotal::method, SessionPaymentMethodTotal::total));
 
@@ -191,9 +190,9 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         persistSaleWithTwoItemsAndTwoPayments(new CanceledState());
         detach();
 
-        assertThat(saleRepository.sumCompletedTotalBySessionToken(SESSION_TOKEN))
+        assertThat(saleRepository.sumCompletedTotalBySessionId(SESSION_ID))
                 .isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(saleRepository.sumCompletedPaymentsByMethod(SESSION_TOKEN)).isEmpty();
+        assertThat(saleRepository.sumCompletedPaymentsByMethod(SESSION_ID)).isEmpty();
     }
 
     @Test
@@ -264,7 +263,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         Product product = persistProduct("Produto C");
 
         Sale sale = new Sale();
-        sale.setSessionToken(SESSION_TOKEN);
+        sale.setSessionId(SESSION_ID);
         sale.setCompanyId(COMPANY_ID);
         sale.setState(state);
         sale.setSubtotal(new BigDecimal("55.00"));
@@ -284,7 +283,7 @@ class SaleRepositoryDataJpaTest extends AbstractDataJpaTest {
         Product secondProduct = persistProduct("Produto B");
 
         Sale sale = new Sale();
-        sale.setSessionToken(SESSION_TOKEN);
+        sale.setSessionId(SESSION_ID);
         sale.setCompanyId(COMPANY_ID);
         sale.setState(state);
         sale.setSubtotal(new BigDecimal("30.00"));

@@ -275,7 +275,7 @@ public class FiscalNfceStepDefinitions extends AbstractCashRegisterApiSupport {
         }
 
         Sale sale = new Sale();
-        sale.setSessionToken(UUID.randomUUID().toString());
+        sale.setSessionId(seedClosedSessionId());
         sale.setCompanyId(targetCompanyId);
         sale.setState(completed ? new CompletedState() : new OpenState());
         sale.setSubtotal(new BigDecimal("10.00"));
