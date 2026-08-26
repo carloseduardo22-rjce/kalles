@@ -28,7 +28,7 @@ public record SaleResponse(
     public static SaleResponse from(Sale sale) {
         return new SaleResponse(
             sale.getId(),
-            sale.getSessionToken(),
+            sale.getSessionId().toString(),
             sale.getStateName(),
             sale.getItems().stream().map(SaleItemResponse::from).toList(),
             sale.getPayments().stream().map(PaymentResponse::from).toList(),

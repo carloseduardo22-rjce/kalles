@@ -28,7 +28,7 @@ public record SaleHistoryResponse(
         return new SaleHistoryResponse(
                 sale.getId(),
                 sale.getVersion(),
-                sale.getSessionToken(),
+                sale.getSessionId().toString(),
                 sale.getCompanyId(),
                 sale.getStateName(),
                 sale.getClient() != null ? sale.getClient().getId() : null,

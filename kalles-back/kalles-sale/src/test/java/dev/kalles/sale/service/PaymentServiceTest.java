@@ -42,7 +42,8 @@ class PaymentServiceTest {
     @InjectMocks
     private PaymentService paymentService;
 
-    private static final String SESSION_TOKEN = "session-123";
+    private static final UUID SESSION_ID = UUID.randomUUID();
+    private static final String SESSION_TOKEN = SESSION_ID.toString();
 
     private Product product;
     private Sale sale;
@@ -58,11 +59,12 @@ class PaymentServiceTest {
 
 
 
-        sale = Sale.createForSession(SESSION_TOKEN);
+        sale = Sale.createForSession(SESSION_ID);
         sale.setId(UUID.randomUUID());
         sale.addItem(product, new BigDecimal("50.00"));
 
         session = mock(Session.class);
+        lenient().when(session.getId()).thenReturn(SESSION_ID);
         lenient().when(session.isOpen()).thenReturn(true);
         lenient().when(session.allowsElectronicPayments()).thenReturn(true);
     }
@@ -75,7 +77,7 @@ class PaymentServiceTest {
         @DisplayName("Should register cash payment for the exact sale amount and settle the balance")
         void shouldRegisterCashPaymentAndSettleBalance() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CASH))
                     .thenReturn(new CashPaymentStrategy());
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -93,7 +95,7 @@ class PaymentServiceTest {
         @DisplayName("Should transition sale from OPEN to PAYMENT_IN_PROGRESS then to PAID")
         void shouldTransitionStatesToPaid() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CASH))
                     .thenReturn(new CashPaymentStrategy());
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -114,7 +116,7 @@ class PaymentServiceTest {
         @DisplayName("Should register credit card payment and update balance")
         void shouldRegisterCreditCardPayment() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CREDIT_CARD))
                     .thenReturn(new CreditCardPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -132,7 +134,7 @@ class PaymentServiceTest {
         @DisplayName("Should register debit card payment and update balance")
         void shouldRegisterDebitCardPayment() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.DEBIT_CARD))
                     .thenReturn(new DebitCardPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -147,7 +149,7 @@ class PaymentServiceTest {
         @DisplayName("Should register PIX payment and update balance")
         void shouldRegisterPixPayment() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.PIX))
                     .thenReturn(new PixPaymentStrategy(true));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -166,7 +168,7 @@ class PaymentServiceTest {
             sale.startPayment();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy(true));
@@ -189,11 +191,11 @@ class PaymentServiceTest {
         @Test
         @DisplayName("Should reject payment when sale has no items")
         void shouldRejectPaymentWhenSaleHasNoItems() {
-            Sale emptySale = Sale.createForSession(SESSION_TOKEN);
+            Sale emptySale = Sale.createForSession(SESSION_ID);
             emptySale.setId(UUID.randomUUID());
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(emptySale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(emptySale));
 
             IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, new BigDecimal("10.00"))
@@ -211,7 +213,7 @@ class PaymentServiceTest {
         @DisplayName("Should reject payment with zero amount")
         void shouldRejectZeroAmount() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, BigDecimal.ZERO)
@@ -225,7 +227,7 @@ class PaymentServiceTest {
         @DisplayName("Should reject payment with negative amount")
         void shouldRejectNegativeAmount() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("-5.00"))
@@ -239,7 +241,7 @@ class PaymentServiceTest {
         @DisplayName("Should reject payment with null amount")
         void shouldRejectNullAmount() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, null)
@@ -260,7 +262,7 @@ class PaymentServiceTest {
             sale.startPayment();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("100.00"))
@@ -276,7 +278,7 @@ class PaymentServiceTest {
             sale.startPayment();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("100.00"))
@@ -292,7 +294,7 @@ class PaymentServiceTest {
             sale.startPayment();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.DEBIT_CARD, new BigDecimal("100.00"))
@@ -306,7 +308,7 @@ class PaymentServiceTest {
         @DisplayName("Should throw NotFoundException when no active sale exists")
         void shouldThrowWhenNoActiveSale() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, new BigDecimal("10.00"))
@@ -325,7 +327,7 @@ class PaymentServiceTest {
             when(mockStrategy.process(any())).thenReturn(PaymentResult.confirmed("Mocked payment"));
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(mockStrategy);
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -344,7 +346,7 @@ class PaymentServiceTest {
         @DisplayName("Should allow cash payment exceeding remaining balance and calculate change")
         void shouldAllowCashOverpaymentWithChange() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CASH)).thenReturn(new CashPaymentStrategy());
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -361,7 +363,7 @@ class PaymentServiceTest {
         @DisplayName("Should return zero change when cash payment equals the balance")
         void shouldReturnZeroChangeWhenExactCash() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(paymentFactory.getStrategy(PaymentMethod.CASH)).thenReturn(new CashPaymentStrategy());
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -378,7 +380,7 @@ class PaymentServiceTest {
             sale.startPayment();
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             when(paymentFactory.getStrategy(PaymentMethod.PIX)).thenReturn(new PixPaymentStrategy(true));
@@ -404,7 +406,7 @@ class PaymentServiceTest {
         @DisplayName("Should register externally confirmed payment without invoking local strategy")
         void shouldRegisterExternalPaymentWithoutStrategy() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Sale result = paymentService.registerExternalPayment(
@@ -422,7 +424,7 @@ class PaymentServiceTest {
         @DisplayName("Should be idempotent when the same transactionId is registered twice")
         void shouldIgnoreDuplicateTransactionId() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
             paymentService.registerExternalPayment(
@@ -438,7 +440,7 @@ class PaymentServiceTest {
         @DisplayName("Should reject external payment exceeding the amount due")
         void shouldRejectExternalOverpayment() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findSaleForPaymentBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             assertThrows(IllegalArgumentException.class, () -> paymentService.registerExternalPayment(
                     SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("80.00"), "mp-payment-1"));

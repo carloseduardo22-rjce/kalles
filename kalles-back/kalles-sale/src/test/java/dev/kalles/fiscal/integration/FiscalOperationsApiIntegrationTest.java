@@ -429,7 +429,7 @@ class FiscalOperationsApiIntegrationTest extends AbstractCashRegisterApiSupport 
                 null
         ));
         Sale sale = new Sale();
-        sale.setSessionToken(UUID.randomUUID().toString());
+        sale.setSessionId(seedClosedSessionId());
         sale.setCompanyId(companyId);
         sale.setState(new CompletedState());
         sale.setSubtotal(new BigDecimal("10.00"));

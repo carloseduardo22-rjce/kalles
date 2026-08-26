@@ -44,8 +44,8 @@ public class CashRegisterCheckoutSessionService implements CheckoutSessionServic
         }
 
         @Override
-        public String getToken() {
-            return session.getId().toString();
+        public UUID getId() {
+            return session.getId();
         }
 
         @Override

@@ -100,7 +100,7 @@ public class SaleService {
 
     @Transactional
     public void removeItemByInternalCode(String sessionToken, String internalCode, UUID operatorId) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
 
@@ -109,7 +109,7 @@ public class SaleService {
                     "Operador não possui permissão para remover itens. Solicite autorização de um supervisor.");
         }
 
-        Sale sale = findActiveSale(sessionToken);
+        Sale sale = findActiveSale(sessionId);
         Product product = findProductByInternalCode(internalCode);
         int qty = sale.getItemQuantity(product);
         sale.removeItem(product);
@@ -120,7 +120,7 @@ public class SaleService {
 
     @Transactional
     public void removeItemByBarCode(String sessionToken, String barCode, UUID operatorId) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
 
@@ -129,7 +129,7 @@ public class SaleService {
                     "Operador não possui permissão para remover itens. Solicite autorização de um supervisor.");
         }
 
-        Sale sale = findActiveSale(sessionToken);
+        Sale sale = findActiveSale(sessionId);
         Product product = findProductByBarCode(barCode);
         int qty = sale.getItemQuantity(product);
         sale.removeItem(product);
@@ -145,14 +145,14 @@ public class SaleService {
             UUID operatorId,
             UUID authorizerId) {
 
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
         Operator authorizer = findOperator(authorizerId);
 
         validateAuthorization(operator, authorizer);
 
-        Sale sale = findActiveSale(sessionToken);
+        Sale sale = findActiveSale(sessionId);
         Product product = findProductByInternalCode(internalCode);
         int qty = sale.getItemQuantity(product);
         sale.removeItem(product);
@@ -168,14 +168,14 @@ public class SaleService {
             UUID operatorId,
             UUID authorizerId) {
 
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
         Operator authorizer = findOperator(authorizerId);
 
         validateAuthorization(operator, authorizer);
 
-        Sale sale = findActiveSale(sessionToken);
+        Sale sale = findActiveSale(sessionId);
         Product product = findProductByBarCode(barCode);
         int qty = sale.getItemQuantity(product);
         sale.removeItem(product);
@@ -196,13 +196,13 @@ public class SaleService {
                 .orElseThrow(() -> new NotFoundException("Operador não encontrado com o id: " + operatorId));
     }
 
-    private Sale findActiveSale(String sessionToken) {
-        return saleRepository.findActiveSaleBySessionToken(sessionToken)
+    private Sale findActiveSale(UUID sessionId) {
+        return saleRepository.findActiveSaleBySessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda em andamento para esta sessão"));
     }
 
-    private Sale findCancellableSale(String sessionToken) {
-        return saleRepository.findCancellableSaleBySessionToken(sessionToken)
+    private Sale findCancellableSale(UUID sessionId) {
+        return saleRepository.findCancellableSaleBySessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda cancelável para esta sessão"));
     }
 
@@ -219,16 +219,16 @@ public class SaleService {
 
     @Transactional
     public Sale getOrCreateSale(String sessionToken) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
-        return saleRepository.findActiveSaleBySessionToken(sessionToken)
-                .orElseGet(() -> createSaleForSession(sessionToken));
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
+        return saleRepository.findActiveSaleBySessionId(sessionId)
+                .orElseGet(() -> createSaleForSession(sessionId));
     }
 
-    private Sale createSaleForSession(String sessionToken) {
+    private Sale createSaleForSession(UUID sessionId) {
         try {
             // saveAndFlush força a violação do índice único parcial
             // (uk_sale_active_per_session) aqui, e não no commit.
-            return saleRepository.saveAndFlush(Sale.createForSession(sessionToken));
+            return saleRepository.saveAndFlush(Sale.createForSession(sessionId));
         } catch (DataIntegrityViolationException e) {
             // Corrida: outra requisição criou a venda ativa entre o SELECT e o INSERT.
             // A transação já foi abortada pelo banco; o cliente deve rebuscar a venda atual.
@@ -239,19 +239,19 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public Sale getCurrentSale(String sessionToken) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         // O índice único parcial uk_sale_active_per_session garante no máximo
         // uma venda não finalizada por sessão.
-        return saleRepository.findCancellableSaleBySessionToken(sessionToken)
+        return saleRepository.findCancellableSaleBySessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException(
                         "Nenhuma venda em andamento ou pendente de conclusão para esta sessão"));
     }
 
     @Transactional
     public Sale associateClientWithSale(String sessionToken, UUID clientId) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
-        Sale sale = findActiveSale(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
+        Sale sale = findActiveSale(sessionId);
         Client client = clientRepository.findByIdAndCompanyId(clientId, sale.getCompanyId())
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
         sale.setClient(client);
@@ -261,8 +261,8 @@ public class SaleService {
 
     @Transactional
     public Sale applyFidelityDiscountToSale(String sessionToken) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
-        Sale sale = findActiveSale(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
+        Sale sale = findActiveSale(sessionId);
         if (sale.getClient() == null) {
             throw new IllegalStateException("Nenhum cliente associado à venda.");
         }
@@ -286,7 +286,7 @@ public class SaleService {
             UUID operatorId,
             UUID authorizerId) {
 
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
         Operator authorizer = null;
@@ -301,7 +301,7 @@ public class SaleService {
                     "Operador não possui permissão para aplicar descontos. Solicite autorização de um supervisor.");
         }
 
-        Sale sale = findActiveSale(sessionToken);
+        Sale sale = findActiveSale(sessionId);
         sale.applyItemDiscount(itemId, discountAmount);
         saleRepository.save(sale);
 
@@ -316,7 +316,7 @@ public class SaleService {
 
     @Transactional
     public void cancelSale(String sessionToken, UUID operatorId) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
 
@@ -325,7 +325,7 @@ public class SaleService {
                     "Operador não possui permissão para cancelar vendas. Solicite autorização de um supervisor.");
         }
 
-        Sale sale = findCancellableSale(sessionToken);
+        Sale sale = findCancellableSale(sessionId);
         sale.cancel();
         // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
         // na conclusão da venda, que não é um estado cancelável.
@@ -339,14 +339,14 @@ public class SaleService {
             UUID operatorId,
             UUID authorizerId) {
 
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
         Operator operator = findOperator(operatorId);
         Operator authorizer = findOperator(authorizerId);
 
         validateCancellationAuthorization(operator, authorizer);
 
-        Sale sale = findCancellableSale(sessionToken);
+        Sale sale = findCancellableSale(sessionId);
         sale.cancel();
         // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
         // na conclusão da venda, que não é um estado cancelável.
@@ -363,8 +363,8 @@ public class SaleService {
 
     @Transactional
     public Sale decrementItemByInternalCode(String sessionToken, String internalCode) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
-        Sale sale = findActiveSale(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
+        Sale sale = findActiveSale(sessionId);
         Product product = findProductByInternalCode(internalCode);
         sale.doDecrementItem(product);
         return saleRepository.save(sale);
@@ -372,9 +372,9 @@ public class SaleService {
 
     @Transactional
     public void completeSale(String sessionToken) {
-        checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
 
-        Sale sale = saleRepository.findPaidSaleBySessionToken(sessionToken)
+        Sale sale = saleRepository.findPaidSaleBySessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda paga encontrada para esta sessão."));
 
         if (sale.getAmountDue().compareTo(java.math.BigDecimal.ZERO) > 0) {

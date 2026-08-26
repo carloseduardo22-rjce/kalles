@@ -180,11 +180,11 @@ class CloseSessionUseCaseTest {
         CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
         org.mockito.Mockito.doReturn(sessionId).when(session).getId();
         Operator authorizer = buildAuthorizer();
-        Sale paidSale = buildPaidSale(sessionId.toString());
+        Sale paidSale = buildPaidSale(sessionId);
 
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
-        when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(paidSale));
+        when(saleRepository.findPendingBySessionId(sessionId)).thenReturn(List.of(paidSale));
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
@@ -202,11 +202,11 @@ class CloseSessionUseCaseTest {
         CashRegisterSession session = org.mockito.Mockito.spy(buildOpenSession());
         org.mockito.Mockito.doReturn(sessionId).when(session).getId();
         Operator authorizer = buildAuthorizer();
-        Sale emptyOpenSale = Sale.createForSession(sessionId.toString());
+        Sale emptyOpenSale = Sale.createForSession(sessionId);
 
         when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
-        when(saleRepository.findPendingBySessionToken(sessionId.toString())).thenReturn(List.of(emptyOpenSale));
+        when(saleRepository.findPendingBySessionId(sessionId)).thenReturn(List.of(emptyOpenSale));
         stubSummaryOf(sessionId, 1L, 0L, new BigDecimal("80.00"));
 
         CloseSessionResponse response = useCase.execute(
@@ -221,16 +221,15 @@ class CloseSessionUseCaseTest {
     }
 
     private void stubSummaryOf(UUID sessionId, long completed, long canceled, BigDecimal totalPaidInCash) {
-        String sessionToken = sessionId.toString();
-        when(saleRepository.countCompletedBySessionToken(sessionToken)).thenReturn(completed);
-        when(saleRepository.countCanceledBySessionToken(sessionToken)).thenReturn(canceled);
-        when(saleRepository.sumCompletedTotalBySessionToken(sessionToken)).thenReturn(totalPaidInCash);
-        when(saleRepository.sumCompletedPaymentsByMethod(sessionToken))
+        when(saleRepository.countCompletedBySessionId(sessionId)).thenReturn(completed);
+        when(saleRepository.countCanceledBySessionId(sessionId)).thenReturn(canceled);
+        when(saleRepository.sumCompletedTotalBySessionId(sessionId)).thenReturn(totalPaidInCash);
+        when(saleRepository.sumCompletedPaymentsByMethod(sessionId))
                 .thenReturn(List.of(new SessionPaymentMethodTotal(PaymentMethod.CASH, totalPaidInCash)));
     }
 
-    private Sale buildPaidSale(String sessionToken) {
-        Sale sale = Sale.createForSession(sessionToken);
+    private Sale buildPaidSale(UUID sessionId) {
+        Sale sale = Sale.createForSession(sessionId);
         Product product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto Teste");

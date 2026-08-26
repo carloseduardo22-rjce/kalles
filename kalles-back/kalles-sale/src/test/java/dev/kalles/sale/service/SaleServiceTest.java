@@ -74,7 +74,8 @@ class SaleServiceTest {
     @InjectMocks
     private SaleService saleService;
 
-    private static final String SESSION_TOKEN = "session-123";
+    private static final UUID SESSION_ID = UUID.randomUUID();
+    private static final String SESSION_TOKEN = SESSION_ID.toString();
     private static final String INTERNAL_CODE = "PRD-001";
     private static final String BAR_CODE = "7891234567890";
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
@@ -100,7 +101,7 @@ class SaleServiceTest {
 
 
 
-        sale = Sale.createForSession(SESSION_TOKEN);
+        sale = Sale.createForSession(SESSION_ID);
         sale.setId(UUID.randomUUID());
         sale.addItem(product, new BigDecimal("25.50"));
 
@@ -117,6 +118,7 @@ class SaleServiceTest {
         basicOperator.setPermissionLevel(PermissionLevel.BASIC);
 
         session = mock(Session.class);
+        lenient().when(session.getId()).thenReturn(SESSION_ID);
         lenient().when(session.isOpen()).thenReturn(true);
     }
 
@@ -134,7 +136,7 @@ class SaleServiceTest {
         @DisplayName("Deve retornar venda ativa existente sem criar nova")
         void deveRetornarVendaExistente() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             Sale result = saleService.getOrCreateSale(SESSION_TOKEN);
 
@@ -146,7 +148,7 @@ class SaleServiceTest {
         @DisplayName("Deve traduzir violação do índice único (corrida) em erro de negócio")
         void deveTraduzirCorridaDeCriacaoEmErroDeNegocio() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
             when(saleRepository.saveAndFlush(any(Sale.class)))
                     .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uk_sale_active_per_session"));
 
@@ -167,7 +169,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
@@ -184,7 +186,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByBarcodeAndTenantId(BAR_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
@@ -201,7 +203,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
@@ -258,7 +260,7 @@ class SaleServiceTest {
             when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeRemoval(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByInternalCodeAndTenantId(INTERNAL_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
@@ -277,7 +279,7 @@ class SaleServiceTest {
             when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeRemoval(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByBarcodeAndTenantId(BAR_CODE, TENANT_ID)).thenReturn(Optional.of(product));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
@@ -323,7 +325,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
@@ -354,7 +356,7 @@ class SaleServiceTest {
             when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSaleWithAuthorization(
@@ -370,7 +372,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
@@ -385,7 +387,7 @@ class SaleServiceTest {
             when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSaleWithAuthorization(
@@ -426,7 +428,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
@@ -445,7 +447,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
@@ -478,7 +480,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> 
                 saleService.removeItemByInternalCode(SESSION_TOKEN, INTERNAL_CODE, supervisorOperator.getId())
@@ -493,7 +495,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canRemoveItens(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(productRepository.findByInternalCodeAndTenantId("INVALIDO", TENANT_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> 
@@ -531,7 +533,7 @@ class SaleServiceTest {
             assertEquals(0, BigDecimal.ZERO.compareTo(sale.getAmountDue()));
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(stockRepository.lockAllByProductId(product.getId(), COMPANY_ID))
                     .thenReturn(java.util.List.of(new Stock(UUID.randomUUID(), null, product, null, 10)));
 
@@ -545,7 +547,7 @@ class SaleServiceTest {
         @DisplayName("Cenário 2 — Deve bloquear finalização quando não há venda paga")
         void deveBloquearFinalizacaoQuandoNaoHaVendaPaga() {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
+            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> saleService.completeSale(SESSION_TOKEN));
             verify(saleRepository, never()).save(any());
@@ -564,7 +566,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), supervisorOperator.getId(), null);
@@ -600,7 +602,7 @@ class SaleServiceTest {
             when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canAuthorizeItemDiscount(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.of(sale));
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenReturn(sale);
 
             saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), basicOperator.getId(), supervisorOperator.getId());
@@ -630,7 +632,7 @@ class SaleServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
             when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionToken(SESSION_TOKEN)).thenReturn(Optional.empty());
+            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () ->
                 saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, supervisorOperator.getId(), null)

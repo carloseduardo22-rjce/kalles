@@ -1,8 +1,10 @@
 package dev.kalles.shared.service;
 
+import java.util.UUID;
+
 public interface Session {
-    
-    String getToken();
+
+    UUID getId();
 
     boolean isOpen();
 

@@ -117,6 +117,14 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         accountRepository.save(account);
     }
 
+    protected UUID seedClosedSessionId() {
+        CashRegister cashRegister = cashRegisterRepository.findById(cashRegisterId).orElseThrow();
+        Operator operator = operatorRepository.findByCodeAndCompanyId(OPERATOR_CODE, companyId).orElseThrow();
+        CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, BigDecimal.ZERO);
+        session.close();
+        return cashRegisterSessionRepository.save(session).getId();
+    }
+
     protected void configurePaymentIntegration(boolean configured) {
         mercadoPagoPointRepository.deleteAll();
         if (configured) {

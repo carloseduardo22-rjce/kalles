@@ -322,7 +322,7 @@ ON CONFLICT (id) DO NOTHING;
 --
 --   Venda D | sem cliente | CANCELED
 -- ---------------------------------------------------------------
-INSERT INTO sale (id, version, session_token, state, client_id,
+INSERT INTO sale (id, version, session_id, state, client_id,
                   subtotal, total, amount_due,
                   fidelity_discount_applied, points_earned, company_id)
 SELECT
@@ -359,7 +359,7 @@ ON CONFLICT (id) DO NOTHING;
 --
 --   Venda G | sem cliente | CANCELED
 -- ---------------------------------------------------------------
-INSERT INTO sale (id, version, session_token, state, client_id,
+INSERT INTO sale (id, version, session_id, state, client_id,
                   subtotal, total, amount_due,
                   fidelity_discount_applied, points_earned, company_id)
 SELECT
@@ -476,7 +476,7 @@ ON CONFLICT (id) DO NOTHING;
 --   Venda J | Natália     | COMPLETED | subtotal=12.90, CREDIT_CARD
 --   Venda K | Carla Mendes| COMPLETED | subtotal=8.90,  DEBIT_CARD
 -- ---------------------------------------------------------------
-INSERT INTO sale (id, version, session_token, state, client_id,
+INSERT INTO sale (id, version, session_id, state, client_id,
                   subtotal, total, amount_due,
                   fidelity_discount_applied, points_earned, company_id)
 SELECT
@@ -509,7 +509,7 @@ ON CONFLICT (id) DO NOTHING;
 --   Venda N | sem cliente    | COMPLETED | subtotal=13.40, CASH
 --   Venda O | sem cliente    | CANCELED
 -- ---------------------------------------------------------------
-INSERT INTO sale (id, version, session_token, state, client_id,
+INSERT INTO sale (id, version, session_id, state, client_id,
                   subtotal, total, amount_due,
                   fidelity_discount_applied, points_earned, company_id)
 SELECT
@@ -660,11 +660,11 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------
 -- 22. VENDAS DAS SESSÕES HISTÓRICAS
 -- ---------------------------------------------------------------
--- session_token = string do UUID da sessão correspondente.
+-- session_id = UUID da sessão correspondente.
 -- Todas anônimas (client_id = NULL) — cenário típico de varejo.
 -- subtotal = total para vendas concluídas; amount_due = 0.
 -- Para canceladas: amount_due = subtotal.
-INSERT INTO sale (id, version, session_token, state, client_id,
+INSERT INTO sale (id, version, session_id, state, client_id,
                   subtotal, total, amount_due, fidelity_discount_applied, points_earned, company_id)
 VALUES
   -- ── b004 · 03/03 · CAIXA-01 · Maria Santos ──────────────────

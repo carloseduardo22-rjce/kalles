@@ -115,23 +115,19 @@ class ProcessBillingWebhookUseCaseTest {
     @Test
     void shouldResolveTenantUsingExistingCustomerWhenWebhookHasNoMetadata() {
         UUID tenantId = UUID.randomUUID();
-        BillingSubscription existingSubscription = new BillingSubscription(
-                UUID.randomUUID(),
-                tenantId,
-                BillingProvider.STRIPE,
-                "cus_123",
-                "sub_123",
-                "cs_123",
-                "price_monthly",
-                "prod_monthly",
-                "default-monthly",
-                BillingStatus.INCOMPLETE,
-                BillingInterval.MONTHLY,
-                null,
-                null,
-                false,
-                null
-        );
+        BillingSubscription existingSubscription = BillingSubscription.builder()
+                .id(UUID.randomUUID())
+                .tenantId(tenantId)
+                .provider(BillingProvider.STRIPE)
+                .externalCustomerId("cus_123")
+                .externalSubscriptionId("sub_123")
+                .externalCheckoutSessionId("cs_123")
+                .externalPriceId("price_monthly")
+                .externalProductId("prod_monthly")
+                .planCode("default-monthly")
+                .status(BillingStatus.INCOMPLETE)
+                .interval(BillingInterval.MONTHLY)
+                .build();
 
         when(billingGateway.parseWebhook("{payload}", "signature"))
                 .thenReturn(new BillingGateway.WebhookNotification(
