@@ -29,13 +29,11 @@ import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
-import dev.kalles.sale.entity.SaleAuditEvent;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
-import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.service.CheckoutSessionService;
 import dev.kalles.shared.service.Session;
 
@@ -406,94 +404,6 @@ class SaleServiceTest {
             when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> saleService.completeSale(SESSION_TOKEN));
-            verify(saleRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("US012 - Desconto no Item via Service")
-    class DescontoNoItem {
-
-        @Test
-        @DisplayName("Supervisor deve aplicar desconto com sucesso e registrar auditoria")
-        void deveAplicarDescontoComSucesso() {
-            UUID itemId = sale.getItems().stream().findFirst().orElseThrow().getId();
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), supervisorOperator.getId(), null);
-
-            assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
-            assertEquals(new BigDecimal("20.50"), sale.getTotal());
-            verify(saleRepository).save(sale);
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Operador básico não pode aplicar desconto sem autorização")
-        void operadorBasicoNaoPodeAplicarDescontoSemAutorizacao() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(permissionService.canApplyItemDiscount(basicOperator)).thenReturn(false);
-
-            ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, basicOperator.getId(), null)
-            );
-
-            assertTrue(exception.getMessage().contains("não possui permissão para aplicar descontos"));
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Operador básico pode aplicar desconto com autorização de supervisor")
-        void operadorBasicoPodeAplicarDescontoComAutorizacao() {
-            UUID itemId = sale.getItems().stream().findFirst().orElseThrow().getId();
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canAuthorizeItemDiscount(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), basicOperator.getId(), supervisorOperator.getId());
-
-            assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Deve lançar exceção quando sessão não existe")
-        void deveLancarExcecaoQuandoSessaoNaoExiste() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN))
-                .thenThrow(new RuntimeException("Sessão de caixa não encontrada"));
-
-            assertThrows(RuntimeException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, supervisorOperator.getId(), null)
-            );
-
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Deve lançar exceção quando não há venda em andamento")
-        void deveLancarExcecaoQuandoNaoHaVendaEmAndamento() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
-
-            assertThrows(RuntimeException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, supervisorOperator.getId(), null)
-            );
-
             verify(saleRepository, never()).save(any());
         }
     }

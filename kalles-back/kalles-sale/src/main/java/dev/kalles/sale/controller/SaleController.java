@@ -28,6 +28,7 @@ import dev.kalles.sale.dto.*;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.service.PaymentService;
 import dev.kalles.sale.service.SaleCancellationService;
+import dev.kalles.sale.service.SaleDiscountService;
 import dev.kalles.sale.service.SaleHistoryService;
 import dev.kalles.sale.service.SaleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,7 @@ import lombok.RequiredArgsConstructor;
 public class SaleController {
 
     private final SaleService saleService;
+    private final SaleDiscountService saleDiscountService;
     private final SaleCancellationService saleCancellationService;
     private final PaymentService paymentService;
     private final SaleHistoryService saleHistoryService;
@@ -264,7 +266,7 @@ public class SaleController {
             @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId,
             @Valid @RequestBody ApplyDiscountRequest request) {
 
-        saleService.applyItemDiscount(
+        saleDiscountService.applyItemDiscount(
                 sessionToken, request.itemId(), request.discountAmount(), operatorId, authorizerId);
         return ResponseEntity.noContent().build();
     }
@@ -280,7 +282,7 @@ public class SaleController {
             @PathVariable @NotBlank String sessionToken,
             @PathVariable @NotNull UUID clientId) {
 
-        Sale sale = saleService.associateClientWithSale(sessionToken, clientId);
+        Sale sale = saleDiscountService.associateClientWithSale(sessionToken, clientId);
         return ResponseEntity.ok(SaleResponse.from(sale));
     }
 
@@ -295,7 +297,7 @@ public class SaleController {
     public ResponseEntity<SaleResponse> applyFidelityDiscount(
             @PathVariable @NotBlank String sessionToken) {
 
-        Sale sale = saleService.applyFidelityDiscountToSale(sessionToken);
+        Sale sale = saleDiscountService.applyFidelityDiscountToSale(sessionToken);
         return ResponseEntity.ok(SaleResponse.from(sale));
     }
 }
