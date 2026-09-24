@@ -27,6 +27,7 @@ import dev.kalles.product.enums.ProductCodeType;
 import dev.kalles.sale.dto.*;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.service.PaymentService;
+import dev.kalles.sale.service.SaleCancellationService;
 import dev.kalles.sale.service.SaleHistoryService;
 import dev.kalles.sale.service.SaleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +51,7 @@ import lombok.RequiredArgsConstructor;
 public class SaleController {
 
     private final SaleService saleService;
+    private final SaleCancellationService saleCancellationService;
     private final PaymentService paymentService;
     private final SaleHistoryService saleHistoryService;
 
@@ -190,9 +192,9 @@ public class SaleController {
             @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
-            saleService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);
+            saleCancellationService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);
         } else {
-            saleService.cancelSale(sessionToken, operatorId);
+            saleCancellationService.cancelSale(sessionToken, operatorId);
         }
 
         return ResponseEntity.noContent().build();

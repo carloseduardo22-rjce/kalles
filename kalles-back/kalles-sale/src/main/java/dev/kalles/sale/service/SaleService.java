@@ -198,11 +198,6 @@ public class SaleService {
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda em andamento para esta sessão"));
     }
 
-    private Sale findCancellableSale(UUID sessionId) {
-        return saleRepository.findCancellableSaleBySessionId(sessionId)
-                .orElseThrow(() -> new NotFoundException("Nenhuma venda cancelável para esta sessão"));
-    }
-
     private Product findProductByBarCode(String barCode) {
         return productRepository.findByBarcodeAndTenantId(barCode, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código de barras: " + barCode));
@@ -309,53 +304,6 @@ public class SaleService {
                 .orElse(null);
         auditRepository.save(
                 SaleAuditEvent.forItemDiscount(sale, discountedProduct, discountAmount, operator, authorizer));
-    }
-
-    @Transactional
-    public void cancelSale(String sessionToken, UUID operatorId) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Operator operator = findOperator(operatorId);
-
-        if (!permissionService.canCancelSale(operator)) {
-            throw new ForbiddenOperationException(
-                    "Operador não possui permissão para cancelar vendas. Solicite autorização de um supervisor.");
-        }
-
-        Sale sale = findCancellableSale(sessionId);
-        sale.cancel();
-        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
-        // na conclusão da venda, que não é um estado cancelável.
-        saleRepository.save(sale);
-        auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, null));
-    }
-
-    @Transactional
-    public void cancelSaleWithAuthorization(
-            String sessionToken,
-            UUID operatorId,
-            UUID authorizerId) {
-
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Operator operator = findOperator(operatorId);
-        Operator authorizer = findOperator(authorizerId);
-
-        validateCancellationAuthorization(operator, authorizer);
-
-        Sale sale = findCancellableSale(sessionId);
-        sale.cancel();
-        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
-        // na conclusão da venda, que não é um estado cancelável.
-        saleRepository.save(sale);
-        auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, authorizer));
-    }
-
-    private void validateCancellationAuthorization(Operator operator, Operator authorizer) {
-        if (!permissionService.canAuthorizeCancellation(authorizer, operator)) {
-            throw new ForbiddenOperationException(
-                    "O operador autorizador não possui nível de permissão suficiente para autorizar o cancelamento.");
-        }
     }
 
     @Transactional
