@@ -1,7 +1,6 @@
 package dev.kalles.sale.service;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 import java.math.BigDecimal;
 
@@ -15,9 +14,7 @@ import dev.kalles.cashregister.service.PermissionService;
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.fidelity.service.FidelityService;
-import dev.kalles.inventory.entity.Stock;
-import dev.kalles.inventory.exception.InsufficientStockException;
-import dev.kalles.inventory.repository.StockRepository;
+import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
@@ -44,7 +41,7 @@ public class SaleService {
     private final OperatorRepository operatorRepository;
     private final PermissionService permissionService;
     private final SaleAuditEventRepository auditRepository;
-    private final StockRepository stockRepository;
+    private final StockService stockService;
     private final FidelityService fidelityService;
     private final ClientRepository clientRepository;
     private final CompanyProductRepository companyProductRepository;
@@ -394,38 +391,12 @@ public class SaleService {
     }
 
     private void validateStock(Product product, Sale sale, int quantityToAdd) {
-        int currentQtyInCart = sale.getItemQuantity(product);
-        int totalStock = stockRepository.sumQuantityByProductId(product.getId(), sale.getCompanyId());
-        if (totalStock < currentQtyInCart + quantityToAdd) {
-            throw new InsufficientStockException(product.getName(), totalStock);
-        }
+        stockService.requireAvailable(product, sale.getItemQuantity(product) + quantityToAdd, sale.getCompanyId());
     }
 
     private void deductStock(Sale sale) {
         sale.getItems().stream()
                 .sorted(Comparator.comparing(item -> item.getProduct().getId()))
-                .forEach(item -> deductFrom(item.getProduct(), item.getQuantity(), sale.getCompanyId()));
-    }
-
-    private void deductFrom(Product product, int quantity, UUID companyId) {
-        List<Stock> locked = stockRepository.lockAllByProductId(product.getId(), companyId);
-
-        int available = locked.stream().mapToInt(Stock::getQuantity).sum();
-        if (available < quantity) {
-            throw new InsufficientStockException(product.getName(), available);
-        }
-
-        int remaining = quantity;
-        for (Stock stock : locked.stream()
-                .sorted(Comparator.comparingInt(Stock::getQuantity).reversed())
-                .toList()) {
-            if (remaining <= 0) {
-                break;
-            }
-            int deducted = Math.min(stock.getQuantity(), remaining);
-            stock.setQuantity(stock.getQuantity() - deducted);
-            remaining -= deducted;
-            stockRepository.save(stock);
-        }
+                .forEach(item -> stockService.deduct(item.getProduct(), item.getQuantity(), sale.getCompanyId()));
     }
 }

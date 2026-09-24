@@ -24,8 +24,7 @@ import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.fidelity.service.FidelityService;
-import dev.kalles.inventory.entity.Stock;
-import dev.kalles.inventory.repository.StockRepository;
+import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.sale.entity.Payment;
@@ -63,7 +62,7 @@ class SaleServiceTest {
     private SaleAuditEventRepository auditRepository;
 
     @Mock
-    private StockRepository stockRepository;
+    private StockService stockService;
 
     @Mock
     private FidelityService fidelityService;
@@ -534,12 +533,11 @@ class SaleServiceTest {
 
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(stockRepository.lockAllByProductId(product.getId(), COMPANY_ID))
-                    .thenReturn(java.util.List.of(new Stock(UUID.randomUUID(), null, product, null, 10)));
 
             saleService.completeSale(SESSION_TOKEN);
 
             assertEquals("COMPLETED", sale.getStateName());
+            verify(stockService).deduct(product, 1, COMPANY_ID);
             verify(saleRepository).save(sale);
         }
 
