@@ -271,8 +271,8 @@ O backend combina testes unitários, testes de API com REST Assured e **26 featu
 
 Melhorias identificadas em code review, em ordem de prioridade:
 
-- [ ] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
-- [ ] Decompor `SaleService` em use cases por operação
+- [x] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
+- [ ] Mover a baixa de estoque para `inventory` e dividir `SaleService` por responsabilidade (carrinho, descontos, cancelamento, finalização)
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [ ] Testcontainers como padrão nos testes de integração, no lugar do H2
 - [ ] Hierarquia de exceções de domínio no lugar de `IllegalStateException`/`IllegalArgumentException`
