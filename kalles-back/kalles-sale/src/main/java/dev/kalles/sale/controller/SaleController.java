@@ -28,6 +28,7 @@ import dev.kalles.sale.dto.*;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.service.PaymentService;
 import dev.kalles.sale.service.SaleCancellationService;
+import dev.kalles.sale.service.SaleCompletionService;
 import dev.kalles.sale.service.SaleDiscountService;
 import dev.kalles.sale.service.SaleHistoryService;
 import dev.kalles.sale.service.SaleService;
@@ -54,6 +55,7 @@ public class SaleController {
     private final SaleService saleService;
     private final SaleDiscountService saleDiscountService;
     private final SaleCancellationService saleCancellationService;
+    private final SaleCompletionService saleCompletionService;
     private final PaymentService paymentService;
     private final SaleHistoryService saleHistoryService;
 
@@ -229,7 +231,7 @@ public class SaleController {
     public ResponseEntity<Void> completeSale(
             @PathVariable @NotBlank String sessionToken) {
 
-        saleService.completeSale(sessionToken);
+        saleCompletionService.completeSale(sessionToken);
         return ResponseEntity.noContent().build();
     }
 

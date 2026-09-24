@@ -1,6 +1,5 @@
 package dev.kalles.sale.service;
 
-import java.util.Comparator;
 import java.util.UUID;
 
 
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
-import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
@@ -39,7 +37,6 @@ public class SaleService {
     private final PermissionService permissionService;
     private final SaleAuditEventRepository auditRepository;
     private final StockService stockService;
-    private final FidelityService fidelityService;
     private final CompanyProductRepository companyProductRepository;
 
     @Transactional
@@ -245,36 +242,7 @@ public class SaleService {
         return saleRepository.save(sale);
     }
 
-    @Transactional
-    public void completeSale(String sessionToken) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Sale sale = saleRepository.findPaidSaleBySessionId(sessionId)
-                .orElseThrow(() -> new NotFoundException("Nenhuma venda paga encontrada para esta sessão."));
-
-        if (sale.getAmountDue().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            throw new IllegalStateException(
-                    "Não é possível finalizar a venda: ainda há valores pendentes de pagamento.");
-        }
-
-        sale.completeSale();
-        sale.setCompletedAt(java.time.LocalDateTime.now());
-        deductStock(sale);
-        if (sale.getClient() != null) {
-            int pointsEarned = fidelityService.processCompletedSale(
-                    sale.getClient().getId(), sale.getSubtotal(), sale.getFidelityDiscountApplied());
-            sale.setPointsEarned(pointsEarned);
-        }
-        saleRepository.save(sale);
-    }
-
     private void validateStock(Product product, Sale sale, int quantityToAdd) {
         stockService.requireAvailable(product, sale.getItemQuantity(product) + quantityToAdd, sale.getCompanyId());
-    }
-
-    private void deductStock(Sale sale) {
-        sale.getItems().stream()
-                .sorted(Comparator.comparing(item -> item.getProduct().getId()))
-                .forEach(item -> stockService.deduct(item.getProduct(), item.getQuantity(), sale.getCompanyId()));
     }
 }

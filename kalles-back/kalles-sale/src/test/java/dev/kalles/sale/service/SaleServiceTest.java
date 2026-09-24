@@ -22,14 +22,10 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
-import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
-import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
-import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -61,12 +57,6 @@ class SaleServiceTest {
 
     @Mock
     private StockService stockService;
-
-    @Mock
-    private FidelityService fidelityService;
-
-    @Mock
-    private ClientRepository clientRepository;
 
     @InjectMocks
     private SaleService saleService;
@@ -369,41 +359,6 @@ class SaleServiceTest {
                 saleService.removeItemByInternalCode(SESSION_TOKEN, INTERNAL_CODE, operadorInexistente)
             );
 
-            verify(saleRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("US010 - Finalização da Venda")
-    class FinalizacaoVenda {
-
-        @Test
-        @DisplayName("Cenário 1 — Deve finalizar venda paga com sucesso")
-        void deveFinalizarVendaPagaComSucesso() {
-            sale.startPayment();
-            Payment payment = new Payment(sale, PaymentMethod.CASH,
-                    new BigDecimal("25.50"), BigDecimal.ZERO, null, true);
-            sale.addPayment(payment);
-            assertEquals("PAID", sale.getStateName());
-            assertEquals(0, BigDecimal.ZERO.compareTo(sale.getAmountDue()));
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-
-            saleService.completeSale(SESSION_TOKEN);
-
-            assertEquals("COMPLETED", sale.getStateName());
-            verify(stockService).deduct(product, 1, COMPANY_ID);
-            verify(saleRepository).save(sale);
-        }
-
-        @Test
-        @DisplayName("Cenário 2 — Deve bloquear finalização quando não há venda paga")
-        void deveBloquearFinalizacaoQuandoNaoHaVendaPaga() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
-
-            assertThrows(RuntimeException.class, () -> saleService.completeSale(SESSION_TOKEN));
             verify(saleRepository, never()).save(any());
         }
     }
