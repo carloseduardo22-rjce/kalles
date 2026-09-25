@@ -17,13 +17,13 @@ import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +48,9 @@ class CloseSessionUseCaseTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("99f449b5-3f12-48f6-b4a7-dfa165ed39d7");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private CashRegisterSessionRepository sessionRepository;
 
@@ -64,18 +67,12 @@ class CloseSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         useCase = new CloseSessionUseCase(
                 sessionRepository,
                 closingRepository,
                 operatorRepository,
                 saleRepository
         );
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     @Test

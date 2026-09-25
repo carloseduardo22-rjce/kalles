@@ -9,14 +9,14 @@ import dev.kalles.fidelity.enums.FidelityDiscountType;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.fidelity.service.FidelityService;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -37,6 +37,9 @@ class FidelityServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private FidelityRepository fidelityRepository;
 
@@ -55,7 +58,6 @@ class FidelityServiceTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         clientId = UUID.randomUUID();
         client = new Client();
         client.setId(clientId);
@@ -70,11 +72,6 @@ class FidelityServiceTest {
         activePolicy.setDiscountType(FidelityDiscountType.FIXED);
         activePolicy.setActive(true);
         activePolicy.setCreatedAt(LocalDateTime.now());
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     private Fidelity buildFidelity(int points, BigDecimal discount) {

@@ -5,6 +5,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.PosContextHolder;
+import dev.kalles.security.context.RequestContext;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.service.JwtService;
@@ -59,10 +60,25 @@ class JwtAuthenticationFilterTest {
 
     @AfterEach
     void tearDown() {
-        TenantContextHolder.clear();
-        CompanyContextHolder.clear();
-        PosContextHolder.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("deve expor o contexto do token a cadeia apenas durante a requisicao")
+    void shouldExposeTokenContextToChainOnlyDuringRequest() throws ServletException, IOException {
+        UUID tenantId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        UUID posId = UUID.randomUUID();
+        DecodedJWT decodedJWT = decodedToken(tenantId, companyId, posId);
+        when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
+
+        AtomicReference<RequestContext> contextSeenByChain = new AtomicReference<>();
+        FilterChain capturingChain = (req, res) -> contextSeenByChain.set(RequestContext.current());
+
+        filter.doFilter(authenticatedRequest("/api/sales"), new MockHttpServletResponse(), capturingChain);
+
+        assertEquals(new RequestContext(tenantId, companyId, posId), contextSeenByChain.get());
+        assertContextIsClear();
     }
 
     @Test

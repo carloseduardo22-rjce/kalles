@@ -12,8 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,11 +27,10 @@ import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.entity.SaleAuditEvent;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.service.CheckoutSessionService;
 import dev.kalles.shared.service.Session;
+import dev.kalles.testsupport.RequestContextExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SaleCancellationService - Cancelamento de Venda")
@@ -62,6 +61,9 @@ class SaleCancellationServiceTest {
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
+
     private Product product;
     private Sale sale;
     private Operator supervisorOperator;
@@ -70,9 +72,6 @@ class SaleCancellationServiceTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-        TenantContextHolder.setTenantId(TENANT_ID);
-
         product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto Teste");
@@ -101,12 +100,6 @@ class SaleCancellationServiceTest {
         session = mock(Session.class);
         lenient().when(session.getId()).thenReturn(SESSION_ID);
         lenient().when(session.isOpen()).thenReturn(true);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-        TenantContextHolder.clear();
     }
 
     @Nested

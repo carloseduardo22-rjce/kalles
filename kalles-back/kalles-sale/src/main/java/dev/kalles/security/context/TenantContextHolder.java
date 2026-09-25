@@ -6,25 +6,15 @@ import java.util.UUID;
 
 public class TenantContextHolder {
 
-    private static final ThreadLocal<UUID> CONTEXT = new ThreadLocal<>();
-
-    public static void setTenantId(UUID tenantId) {
-        CONTEXT.set(tenantId);
-    }
-
     public static UUID getTenantId() {
-        return CONTEXT.get();
+        return RequestContext.current().tenantId();
     }
 
     public static UUID requireTenantId() {
-        UUID tenantId = CONTEXT.get();
+        UUID tenantId = getTenantId();
         if (tenantId == null) {
             throw new TenantContextRequiredException();
         }
         return tenantId;
-    }
-
-    public static void clear() {
-        CONTEXT.remove();
     }
 }

@@ -9,9 +9,7 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,12 +25,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Tag("unit")
 class PaymentTerminalMappingServiceTest {
 
     private static final UUID TENANT_ID = UUID.randomUUID();
     private static final UUID COMPANY_ID = UUID.randomUUID();
+
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
     private static final UUID CASH_REGISTER_ID = UUID.randomUUID();
 
     private PaymentTerminalMappingRepository mappingRepository;
@@ -47,16 +49,8 @@ class PaymentTerminalMappingServiceTest {
         companyRepository = mock(CompanyRepository.class);
         service = new PaymentTerminalMappingService(mappingRepository, cashRegisterRepository, companyRepository);
 
-        TenantContextHolder.setTenantId(TENANT_ID);
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         when(companyRepository.findByIdAndTenantId(COMPANY_ID, TENANT_ID))
                 .thenReturn(Optional.of(new Company(COMPANY_ID, "Matriz", TENANT_ID, null, null, null, null, null, null)));
-    }
-
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-        CompanyContextHolder.clear();
     }
 
     @Test

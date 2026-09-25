@@ -5,14 +5,14 @@ import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,21 +32,14 @@ class OperatorServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("7ec7d531-95a4-4f19-b989-459e2c1ea701");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private OperatorRepository operatorRepository;
 
     @InjectMocks
     private OperatorService operatorService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar operador vinculado a filial ativa")
@@ -134,9 +127,8 @@ class OperatorServiceTest {
     @Test
     @DisplayName("Deve exigir filial ativa no contexto")
     void shouldRequireCompanyContext() {
-        CompanyContextHolder.clear();
-
-        assertThrows(CompanyContextRequiredException.class, () -> operatorService.listAll());
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(CompanyContextRequiredException.class, () -> operatorService.listAll()));
         verifyNoInteractions(operatorRepository);
     }
 

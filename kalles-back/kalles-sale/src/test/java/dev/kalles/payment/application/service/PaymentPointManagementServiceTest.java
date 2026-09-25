@@ -13,10 +13,11 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.security.exception.TenantContextRequiredException;
-import dev.kalles.security.context.TenantContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,6 +36,9 @@ import static org.mockito.Mockito.when;
 class PaymentPointManagementServiceTest {
 
     private static final UUID TENANT_ID = UUID.randomUUID();
+
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenant(TENANT_ID);
 
     @Mock
     private PaymentProviderPortFactory portFactory;
@@ -57,15 +61,9 @@ class PaymentPointManagementServiceTest {
     @InjectMocks
     private PaymentPointManagementService service;
 
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-    }
-
     @Test
     void shouldRejectTerminalListingWhenStoreDoesNotBelongToCurrentTenant() {
         UUID companyId = UUID.randomUUID();
-        TenantContextHolder.setTenantId(TENANT_ID);
 
         when(companyRepository.findByTenantId(TENANT_ID))
                 .thenReturn(List.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
@@ -87,7 +85,6 @@ class PaymentPointManagementServiceTest {
         UUID companyId = UUID.randomUUID();
         UUID cashRegisterId = UUID.randomUUID();
         CashRegister cashRegister = mock(CashRegister.class);
-        TenantContextHolder.setTenantId(TENANT_ID);
 
         when(companyRepository.findByTenantId(TENANT_ID))
                 .thenReturn(List.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
@@ -113,11 +110,12 @@ class PaymentPointManagementServiceTest {
 
     @Test
     void shouldRequireTenantContextForTerminalListing() {
-        assertThrows(TenantContextRequiredException.class, () ->
-                service.execute(new ListPaymentTerminalsQuery(
-                        PaymentProvider.MERCADO_PAGO,
-                        "store-1",
-                        "point-1"
-                )));
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(TenantContextRequiredException.class, () ->
+                        service.execute(new ListPaymentTerminalsQuery(
+                                PaymentProvider.MERCADO_PAGO,
+                                "store-1",
+                                "point-1"
+                        ))));
     }
 }

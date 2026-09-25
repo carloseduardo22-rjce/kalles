@@ -7,14 +7,14 @@ import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
 import dev.kalles.goal.exception.GoalDomainException;
 import dev.kalles.goal.repository.GoalRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,6 +35,9 @@ class GoalServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("1d2d8778-e0cd-4d6b-9f0d-f186cb11a301");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private GoalRepository goalRepository;
 
@@ -43,16 +46,6 @@ class GoalServiceTest {
 
     @InjectMocks
     private GoalService goalService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar meta em rascunho para a filial ativa")
@@ -121,9 +114,8 @@ class GoalServiceTest {
     @Test
     @DisplayName("Deve exigir filial ativa no contexto")
     void shouldRequireCompanyContext() {
-        CompanyContextHolder.clear();
-
-        assertThrows(CompanyContextRequiredException.class, () -> goalService.listAll());
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(CompanyContextRequiredException.class, () -> goalService.listAll()));
         verifyNoInteractions(goalRepository);
     }
 }

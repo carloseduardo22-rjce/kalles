@@ -14,17 +14,15 @@ import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -65,22 +63,11 @@ class StockServiceTest {
     @InjectMocks
     private StockService stockService;
 
-    private UUID companyId;
-    private UUID tenantId;
+    private final UUID companyId = UUID.randomUUID();
+    private final UUID tenantId = UUID.randomUUID();
 
-    @BeforeEach
-    void setUp() {
-        companyId = UUID.randomUUID();
-        tenantId = UUID.randomUUID();
-        CompanyContextHolder.setCompanyId(companyId);
-        TenantContextHolder.setTenantId(tenantId);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-        TenantContextHolder.clear();
-    }
+    @RegisterExtension
+    final RequestContextExtension requestContext = RequestContextExtension.tenantAndCompany(tenantId, companyId);
 
     private Product buildProduct(UUID id) {
         Product p = new Product();

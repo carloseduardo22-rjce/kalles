@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,7 +24,7 @@ import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.CompletedState;
-import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.testsupport.RequestContextExtension;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -32,20 +32,17 @@ class SaleHistoryServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174999");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private SaleRepository saleRepository;
 
     @Mock
     private SaleHistoryExcelExporter excelExporter;
 
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
-
     @Test
     void shouldListSalesWithDetailsForActiveCompanyAndPeriod() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         UUID saleId = UUID.randomUUID();
         LocalDateTime openedAt = LocalDateTime.of(2026, 4, 20, 10, 0);
         Sale sale = completedSale(saleId, UUID.randomUUID());
@@ -71,7 +68,6 @@ class SaleHistoryServiceTest {
 
     @Test
     void shouldFilterByStateWhenStateIsProvided() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         SaleHistoryService service = new SaleHistoryService(saleRepository, excelExporter);
 
         service.list(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30), "completed");
@@ -86,7 +82,6 @@ class SaleHistoryServiceTest {
 
     @Test
     void shouldRejectInvalidPeriod() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         SaleHistoryService service = new SaleHistoryService(saleRepository, excelExporter);
 
         assertThatThrownBy(() -> service.list(LocalDate.of(2026, 4, 30), LocalDate.of(2026, 4, 1), null))
@@ -96,7 +91,6 @@ class SaleHistoryServiceTest {
 
     @Test
     void shouldExportListedSales() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         UUID saleId = UUID.randomUUID();
         Sale sale = completedSale(saleId, UUID.randomUUID());
         when(saleRepository.findHistoryRows(any(), any(), any()))

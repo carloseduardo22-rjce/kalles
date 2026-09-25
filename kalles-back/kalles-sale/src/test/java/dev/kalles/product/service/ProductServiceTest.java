@@ -10,15 +10,14 @@ import dev.kalles.product.repository.CompanyProductReadRepository;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.product.service.ProductService;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -44,6 +43,9 @@ class ProductServiceTest {
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174501");
     private static final UUID COMPANY_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174502");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
+
     @Mock
     private ProductRepository productRepository;
 
@@ -58,18 +60,6 @@ class ProductServiceTest {
 
     @InjectMocks
     private ProductService productService;
-
-    @BeforeEach
-    void setUp() {
-        TenantContextHolder.setTenantId(TENANT_ID);
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar produto dentro do tenant atual")
@@ -146,8 +136,6 @@ class ProductServiceTest {
     @Test
     @DisplayName("Deve exigir tenant no contexto para criar produto")
     void shouldRequireTenantContextWhenCreatingProduct() {
-        TenantContextHolder.clear();
-
         ProductRequest request = new ProductRequest(
                 "Arroz Tipo 1",
                 "ARZ-001",
@@ -157,8 +145,8 @@ class ProductServiceTest {
                 new BigDecimal("24.50")
         );
 
-        assertThrows(TenantContextRequiredException.class,
-                () -> productService.create(request));
+        RequestContext.runWithin(RequestContext.empty().withCompany(COMPANY_ID), () ->
+                assertThrows(TenantContextRequiredException.class, () -> productService.create(request)));
     }
 
     @Test

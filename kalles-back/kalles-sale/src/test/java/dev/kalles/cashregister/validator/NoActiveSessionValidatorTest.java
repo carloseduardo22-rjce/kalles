@@ -6,12 +6,12 @@ import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.specification.ActiveSessionSpecification;
-import dev.kalles.security.context.CompanyContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,6 +32,9 @@ class NoActiveSessionValidatorTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("ff6e3613-db5e-4aea-a333-f7a4e9f07804");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private CashRegisterRepository cashRegisterRepository;
 
@@ -42,13 +45,7 @@ class NoActiveSessionValidatorTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         validator = new NoActiveSessionValidator(cashRegisterRepository, activeSessionSpec);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     @Test

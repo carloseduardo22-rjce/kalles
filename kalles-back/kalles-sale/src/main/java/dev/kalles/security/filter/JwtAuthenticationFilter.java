@@ -2,9 +2,7 @@ package dev.kalles.security.filter;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import dev.kalles.company.repository.CompanyRepository;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.PosContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.security.context.RequestContext;
 import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -26,6 +24,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -59,18 +58,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        try {
-            if (establishRequestContext(request, response)) {
-                filterChain.doFilter(request, response);
-            }
-        } finally {
-            TenantContextHolder.clear();
-            CompanyContextHolder.clear();
-            PosContextHolder.clear();
+        Optional<RequestContext> context = resolveRequestContext(request, response);
+        if (context.isPresent()) {
+            proceedWithin(context.get(), request, response, filterChain);
         }
     }
 
-    private boolean establishRequestContext(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private void proceedWithin(RequestContext context,
+                               HttpServletRequest request,
+                               HttpServletResponse response,
+                               FilterChain filterChain) throws ServletException, IOException {
+        try {
+            RequestContext.callWithin(context, () -> {
+                filterChain.doFilter(request, response);
+                return null;
+            });
+        } catch (ServletException | IOException | RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ServletException(ex);
+        }
+    }
+
+    private Optional<RequestContext> resolveRequestContext(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        RequestContext context = RequestContext.empty();
         var token = this.recoverToken(request);
         if (token != null) {
             DecodedJWT decodedJWT = jwtService.validateToken(token);
@@ -78,63 +90,60 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var login = decodedJWT.getSubject();
                 var tenantId = decodedJWT.getClaim("tenantId").asString();
                 var role = decodedJWT.getClaim("role").asString();
-                
+
                 var companyId = decodedJWT.getClaim("companyId").asString();
                 var posId = decodedJWT.getClaim("posId").asString();
                 UUID tenantUuid = UUID.fromString(tenantId);
 
-                // Set Spring Security Context
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 var authentication = new UsernamePasswordAuthenticationToken(login, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Set Tenant Context
-                TenantContextHolder.setTenantId(tenantUuid);
-                
-                // Set Specific Store Context if present
+                context = RequestContext.ofTenant(tenantUuid);
+
                 String headerCompanyId = request.getHeader(COMPANY_HEADER_NAME);
                 if (companyId != null && !companyId.trim().isEmpty()) {
                     UUID tokenCompanyId = UUID.fromString(companyId);
                     if (headerCompanyId != null && !headerCompanyId.isBlank()) {
                         UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                         if (requestedCompanyId == null) {
-                            return false;
+                            return Optional.empty();
                         }
                         if (!tokenCompanyId.equals(requestedCompanyId)) {
                             sendCompanyContextForbidden(response, "Company header conflicts with authenticated company");
-                            return false;
+                            return Optional.empty();
                         }
                     }
-                    CompanyContextHolder.setCompanyId(tokenCompanyId);
+                    context = context.withCompany(tokenCompanyId);
                 } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
                     UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
                     if (requestedCompanyId == null) {
-                        return false;
+                        return Optional.empty();
                     }
 
                     if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
                         sendCompanyContextForbidden(response, "Requested company is not accessible for authenticated tenant");
-                        return false;
+                        return Optional.empty();
                     }
-                    CompanyContextHolder.setCompanyId(requestedCompanyId);
+                    context = context.withCompany(requestedCompanyId);
                 }
-                
+
                 if (posId != null && !posId.trim().isEmpty()) {
-                    PosContextHolder.setPosId(UUID.fromString(posId));
+                    context = context.withPos(UUID.fromString(posId));
                 }
             }
         }
 
         if (isAuthenticated()
                 && requiresCompanyContext(request)
-                && CompanyContextHolder.getCompanyId() == null) {
+                && context.companyId() == null) {
             writeProblem(response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
                     "Contexto de filial obrigatorio",
                     "Esta rota exige uma filial ativa. Envie X-Company-ID com uma filial acessivel para o tenant autenticado.");
-            return false;
+            return Optional.empty();
         }
 
-        return true;
+        return Optional.of(context);
     }
 
     private String recoverToken(HttpServletRequest request) {
