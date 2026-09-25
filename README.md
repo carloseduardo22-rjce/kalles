@@ -273,7 +273,7 @@ Melhorias identificadas em code review, em ordem de prioridade:
 
 - [x] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
 - [x] Mover a baixa de estoque para `inventory` e dividir `SaleService` por responsabilidade (carrinho, descontos, cancelamento, finalização)
-- [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
+- [x] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
 - [x] Testcontainers como padrão nos testes de integração, no lugar do H2
 - [ ] Hierarquia de exceções de domínio no lugar de `IllegalStateException`/`IllegalArgumentException`
 - [ ] Testes unitários de frontend (Vitest + Testing Library)
