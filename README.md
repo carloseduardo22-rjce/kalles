@@ -247,9 +247,9 @@ cd frontend
 npm run e2e
 ```
 
-O backend combina testes unitários, testes de API com REST Assured e **26 features Cucumber** cobrindo fluxo de PDV, sessão de caixa, isolamento multi-tenant, emissão fiscal, pagamento via Stone/Mercado Pago, fidelidade, metas e assinatura.
+O backend combina testes unitários, testes de API com REST Assured e **20 features Cucumber** cobrindo fluxo de PDV, sessão de caixa, isolamento multi-tenant, emissão fiscal, pagamento via Stone/Mercado Pago, fidelidade, metas e assinatura.
 
-> **Limitação conhecida:** a suíte roda majoritariamente sobre H2 com schema gerado pelo Hibernate e Flyway desabilitado. As migrations não são exercitadas pelos testes, e comportamentos específicos do PostgreSQL (índices únicos parciais, por exemplo) não são cobertos. Migrar para Testcontainers está no [roadmap](#roadmap).
+Os testes de integração rodam sobre PostgreSQL 17 com Testcontainers, compartilhando um único container por execução. O schema vem das migrations do Flyway, e um teste dedicado valida que toda entidade JPA bate com as tabelas que elas criam. Rodar a suíte exige Docker.
 
 ---
 
@@ -274,7 +274,7 @@ Melhorias identificadas em code review, em ordem de prioridade:
 - [x] Lock pessimista na baixa de estoque para eliminar risco de oversell concorrente
 - [x] Mover a baixa de estoque para `inventory` e dividir `SaleService` por responsabilidade (carrinho, descontos, cancelamento, finalização)
 - [ ] Substituir `ThreadLocal` por `ScopedValue` (Java 25) nos context holders
-- [ ] Testcontainers como padrão nos testes de integração, no lugar do H2
+- [x] Testcontainers como padrão nos testes de integração, no lugar do H2
 - [ ] Hierarquia de exceções de domínio no lugar de `IllegalStateException`/`IllegalArgumentException`
 - [ ] Testes unitários de frontend (Vitest + Testing Library)
 - [ ] Quebrar páginas do admin em componentes menores
