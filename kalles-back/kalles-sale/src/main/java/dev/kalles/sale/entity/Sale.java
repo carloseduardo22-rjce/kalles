@@ -13,6 +13,7 @@ import dev.kalles.sale.state.OpenState;
 import dev.kalles.sale.state.SaleState;
 import dev.kalles.sale.state.SaleStateConverter;
 import dev.kalles.shared.entity.BaseAuditableEntity;
+import dev.kalles.shared.exception.NotFoundException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -170,7 +171,7 @@ public class Sale extends BaseAuditableEntity {
         SaleItem item = items.stream()
                 .filter(i -> Objects.equals(i.getId(), itemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Item nao encontrado na venda com o id: " + itemId));
+                .orElseThrow(() -> new NotFoundException("Item nao encontrado na venda com o id: " + itemId));
         item.applyDiscount(discountAmount);
         recalculateTotals();
     }

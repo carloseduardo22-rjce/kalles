@@ -15,6 +15,7 @@ import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.exception.DiscountExceedsItemTotalException;
 import dev.kalles.sale.exception.SaleStateTransitionException;
+import dev.kalles.shared.exception.NotFoundException;
 
 @DisplayName("Sale - Entidade de Domínio da Venda")
 class SaleTest {
@@ -356,7 +357,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
 
             UUID itemIdInexistente = UUID.randomUUID();
 
-            assertThrows(IllegalArgumentException.class, () ->
+            assertThrows(NotFoundException.class, () ->
                 sale.applyItemDiscount(itemIdInexistente, new BigDecimal("5.00"))
             );
         }
