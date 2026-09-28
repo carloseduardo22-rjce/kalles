@@ -16,6 +16,7 @@ import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.entity.SaleAuditEvent;
+import dev.kalles.sale.exception.ActiveSaleAlreadyExistsException;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -217,8 +218,7 @@ public class SaleService {
         } catch (DataIntegrityViolationException e) {
             // Corrida: outra requisição criou a venda ativa entre o SELECT e o INSERT.
             // A transação já foi abortada pelo banco; o cliente deve rebuscar a venda atual.
-            throw new IllegalStateException(
-                    "Já existe uma venda ativa para esta sessão. Recarregue a venda atual.", e);
+            throw new ActiveSaleAlreadyExistsException(e);
         }
     }
 

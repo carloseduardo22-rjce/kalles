@@ -26,6 +26,7 @@ import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.exception.ActiveSaleAlreadyExistsException;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.shared.service.CheckoutSessionService;
@@ -132,7 +133,7 @@ class SaleServiceTest {
             when(saleRepository.saveAndFlush(any(Sale.class)))
                     .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uk_sale_active_per_session"));
 
-            IllegalStateException exception = assertThrows(IllegalStateException.class,
+            ActiveSaleAlreadyExistsException exception = assertThrows(ActiveSaleAlreadyExistsException.class,
                     () -> saleService.getOrCreateSale(SESSION_TOKEN));
 
             assertTrue(exception.getMessage().contains("Já existe uma venda ativa"));

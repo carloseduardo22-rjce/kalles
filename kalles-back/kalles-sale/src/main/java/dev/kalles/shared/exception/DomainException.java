@@ -10,6 +10,11 @@ public abstract sealed class DomainException extends RuntimeException
         this.code = code;
     }
 
+    DomainException(String code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
+
     public String getCode() {
         return code;
     }

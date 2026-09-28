@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.product.entity.Product;
+import dev.kalles.sale.exception.SaleStateTransitionException;
 
 @DisplayName("Sale - Entidade de Domínio da Venda")
 class SaleTest {
@@ -130,7 +131,7 @@ class SaleTest {
             sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
-            assertThrows(IllegalStateException.class, () -> 
+            assertThrows(SaleStateTransitionException.class, () -> 
                 sale.removeItem(product)
             );
         }
@@ -141,7 +142,7 @@ class SaleTest {
             sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
-            assertThrows(IllegalStateException.class, () -> 
+            assertThrows(SaleStateTransitionException.class, () -> 
                 sale.removeItem(product)
             );
         }
@@ -153,7 +154,7 @@ class SaleTest {
             sale.startPayment();
             sale.finishPayment();
 
-            assertThrows(IllegalStateException.class, () -> 
+            assertThrows(SaleStateTransitionException.class, () -> 
                 sale.removeItem(product)
             );
         }
@@ -181,7 +182,7 @@ class SaleTest {
         void deveImpedirFinalizacaoQuandoVendaAberta() {
             sale.addItem(product, new BigDecimal("25.50"));
 
-            assertThrows(IllegalStateException.class, () -> sale.completeSale());
+            assertThrows(SaleStateTransitionException.class, () -> sale.completeSale());
         }
 
         @Test
@@ -190,7 +191,7 @@ class SaleTest {
             sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
-            assertThrows(IllegalStateException.class, () -> sale.completeSale());
+            assertThrows(SaleStateTransitionException.class, () -> sale.completeSale());
         }
 
         @Test
@@ -199,7 +200,7 @@ class SaleTest {
             sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
-            assertThrows(IllegalStateException.class, () -> sale.completeSale());
+            assertThrows(SaleStateTransitionException.class, () -> sale.completeSale());
         }
 
         @Test
@@ -210,7 +211,7 @@ class SaleTest {
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () -> sale.addItem(product, new BigDecimal("25.50")));
+            assertThrows(SaleStateTransitionException.class, () -> sale.addItem(product, new BigDecimal("25.50")));
         }
 
         @Test
@@ -221,7 +222,7 @@ class SaleTest {
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () -> sale.startPayment());
+            assertThrows(SaleStateTransitionException.class, () -> sale.startPayment());
         }
 
         @Test
@@ -232,7 +233,7 @@ class SaleTest {
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () -> sale.cancel());
+            assertThrows(SaleStateTransitionException.class, () -> sale.cancel());
         }
     }
 
@@ -317,7 +318,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.cancel();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("5.00"))
             );
         }
@@ -329,7 +330,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             UUID itemId = sale.getItems().iterator().next().getId();
             sale.startPayment();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("5.00"))
             );
         }
@@ -342,7 +343,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.startPayment();
             sale.finishPayment();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("5.00"))
             );
         }
@@ -368,7 +369,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("5.00"))
             );
         }
@@ -396,7 +397,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.addItem(product, new BigDecimal("25.50"));
             sale.cancel();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyFidelityDiscount(new BigDecimal("10.00"))
             );
         }
@@ -407,7 +408,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.addItem(product, new BigDecimal("25.50"));
             sale.startPayment();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyFidelityDiscount(new BigDecimal("10.00"))
             );
         }
@@ -419,7 +420,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.startPayment();
             sale.finishPayment();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyFidelityDiscount(new BigDecimal("10.00"))
             );
         }
@@ -432,7 +433,7 @@ sale.addItem(product, new java.math.BigDecimal("45.50"));
             sale.finishPayment();
             sale.completeSale();
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(SaleStateTransitionException.class, () ->
                 sale.applyFidelityDiscount(new BigDecimal("10.00"))
             );
         }
