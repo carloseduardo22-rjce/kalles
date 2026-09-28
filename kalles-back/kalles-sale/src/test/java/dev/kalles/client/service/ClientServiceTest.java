@@ -3,6 +3,7 @@ package dev.kalles.client.service;
 import dev.kalles.client.dto.ClientRequest;
 import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
+import dev.kalles.client.exception.ClientCpfAlreadyExistsException;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -87,7 +88,7 @@ class ClientServiceTest {
 
         when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
 
-        assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
+        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
     }
 
@@ -191,7 +192,7 @@ class ClientServiceTest {
         ClientRequest request = new ClientRequest("X", null, null,
                 cpf, null, null, null, null, null, null);
 
-        assertThrows(IllegalArgumentException.class, () -> clientService.update(id, request));
+        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.update(id, request));
         verify(clientRepository, never()).save(any());
     }
 

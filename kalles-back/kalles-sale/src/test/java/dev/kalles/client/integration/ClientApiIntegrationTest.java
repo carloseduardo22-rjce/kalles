@@ -60,7 +60,8 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                 .when()
                 .post("/api/clients")
                 .then()
-                .statusCode(400)
+                .statusCode(409)
+                .body("code", equalTo("CLIENT_CPF_ALREADY_EXISTS"))
                 .body("detail", equalTo("Já existe um cliente com o CPF informado nesta filial."));
     }
 
