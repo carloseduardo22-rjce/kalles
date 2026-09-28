@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.EmptySaleException;
+import dev.kalles.sale.exception.PaymentExceedsBalanceException;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.strategy.*;
 import dev.kalles.shared.exception.NotFoundException;
@@ -197,7 +199,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(emptySale));
 
-            IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+            EmptySaleException exception = assertThrows(EmptySaleException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CASH, new BigDecimal("10.00"))
             );
             assertNotNull(exception.getMessage());
@@ -264,7 +266,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            PaymentExceedsBalanceException exception = assertThrows(PaymentExceedsBalanceException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("100.00"))
             );
 
@@ -280,7 +282,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            PaymentExceedsBalanceException exception = assertThrows(PaymentExceedsBalanceException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.PIX, new BigDecimal("100.00"))
             );
 
@@ -296,7 +298,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            PaymentExceedsBalanceException exception = assertThrows(PaymentExceedsBalanceException.class, () ->
                     paymentService.addPayment(SESSION_TOKEN, PaymentMethod.DEBIT_CARD, new BigDecimal("100.00"))
             );
 
@@ -442,7 +444,7 @@ class PaymentServiceTest {
             when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
-            assertThrows(IllegalArgumentException.class, () -> paymentService.registerExternalPayment(
+            assertThrows(PaymentExceedsBalanceException.class, () -> paymentService.registerExternalPayment(
                     SESSION_TOKEN, PaymentMethod.CREDIT_CARD, new BigDecimal("80.00"), "mp-payment-1"));
         }
     }

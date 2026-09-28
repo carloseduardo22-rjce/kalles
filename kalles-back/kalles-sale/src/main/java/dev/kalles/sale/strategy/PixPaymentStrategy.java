@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.PaymentMethodUnavailableException;
 
 @Component
 public class PixPaymentStrategy implements PaymentStrategy {
@@ -27,7 +28,7 @@ public class PixPaymentStrategy implements PaymentStrategy {
         if (!simulationEnabled) {
             // Sem integração real neste fluxo: confirmar aqui marcaria a venda como
             // paga sem nenhuma cobrança real de PIX.
-            throw new IllegalStateException(
+            throw new PaymentMethodUnavailableException(
                     "Pagamento PIX indisponível neste fluxo. Utilize o terminal integrado.");
         }
         String simulatedTransactionId = UUID.randomUUID().toString();

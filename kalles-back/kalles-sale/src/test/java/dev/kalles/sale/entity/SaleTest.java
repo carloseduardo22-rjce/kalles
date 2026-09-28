@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.product.entity.Product;
+import dev.kalles.sale.exception.DiscountExceedsItemTotalException;
 import dev.kalles.sale.exception.SaleStateTransitionException;
 
 @DisplayName("Sale - Entidade de Domínio da Venda")
@@ -272,7 +273,7 @@ class SaleTest {
             sale.addItem(produtoCaro, produtoCaroPrice);
             UUID itemId = sale.getItems().iterator().next().getId();
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            DiscountExceedsItemTotalException exception = assertThrows(DiscountExceedsItemTotalException.class, () ->
                 sale.applyItemDiscount(itemId, new BigDecimal("160.00"))
             );
 

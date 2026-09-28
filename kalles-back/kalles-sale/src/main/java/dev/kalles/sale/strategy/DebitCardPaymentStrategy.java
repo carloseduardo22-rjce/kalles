@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.PaymentMethodUnavailableException;
 
 @Component
 public class DebitCardPaymentStrategy implements PaymentStrategy {
@@ -28,7 +29,7 @@ public class DebitCardPaymentStrategy implements PaymentStrategy {
             // Sem integração real neste fluxo: confirmar aqui marcaria a venda como
             // paga sem nenhuma cobrança. Cartão deve ser cobrado via terminal
             // integrado (Mercado Pago), confirmado por webhook.
-            throw new IllegalStateException(
+            throw new PaymentMethodUnavailableException(
                     "Pagamento com cartão de débito indisponível neste fluxo. Utilize o terminal integrado.");
         }
         String simulatedTransactionId = UUID.randomUUID().toString();

@@ -16,6 +16,7 @@ import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.entity.SaleAuditEvent;
+import dev.kalles.sale.exception.SaleWithoutClientException;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -51,7 +52,7 @@ public class SaleDiscountService {
         UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
         Sale sale = findActiveSale(sessionId);
         if (sale.getClient() == null) {
-            throw new IllegalStateException("Nenhum cliente associado à venda.");
+            throw new SaleWithoutClientException();
         }
         BigDecimal applied = fidelityService.calculateDiscount(sale.getClient().getId(), sale.getSubtotal());
         if (applied.compareTo(BigDecimal.ZERO) > 0) {

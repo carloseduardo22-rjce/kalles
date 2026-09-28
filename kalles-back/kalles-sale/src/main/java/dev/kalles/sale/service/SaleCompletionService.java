@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.kalles.fidelity.service.FidelityService;
 import dev.kalles.inventory.service.StockService;
 import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.exception.SaleBalancePendingException;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.shared.service.CheckoutSessionService;
@@ -33,8 +34,7 @@ public class SaleCompletionService {
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda paga encontrada para esta sessão."));
 
         if (sale.getAmountDue().compareTo(BigDecimal.ZERO) > 0) {
-            throw new IllegalStateException(
-                    "Não é possível finalizar a venda: ainda há valores pendentes de pagamento.");
+            throw new SaleBalancePendingException();
         }
 
         sale.completeSale();

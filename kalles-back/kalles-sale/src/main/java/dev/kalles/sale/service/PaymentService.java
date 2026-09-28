@@ -1,8 +1,11 @@
 package dev.kalles.sale.service;
 
+import dev.kalles.cashregister.exception.CashOnlySessionException;
 import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.EmptySaleException;
+import dev.kalles.sale.exception.PaymentExceedsBalanceException;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.sale.strategy.PaymentFactory;
@@ -39,7 +42,7 @@ public class PaymentService {
         }
 
         if (amount.compareTo(sale.getAmountDue()) > 0 && method != PaymentMethod.CASH) {
-            throw new IllegalArgumentException("O valor do pagamento excede o saldo devedor da venda.");
+            throw new PaymentExceedsBalanceException();
         }
 
         BigDecimal changeAmount = BigDecimal.ZERO;
@@ -79,7 +82,7 @@ public class PaymentService {
         }
 
         if (amount.compareTo(sale.getAmountDue()) > 0) {
-            throw new IllegalArgumentException("O valor do pagamento excede o saldo devedor da venda.");
+            throw new PaymentExceedsBalanceException();
         }
 
         Payment payment = new Payment(sale, method, amount, BigDecimal.ZERO, transactionId, true);
@@ -95,7 +98,7 @@ public class PaymentService {
 
     private void validatePayment(Sale sale, Session session, PaymentMethod method, BigDecimal amount) {
         if (sale.getItems().isEmpty()) {
-            throw new IllegalStateException("Nao e possivel processar o pagamento: a venda nao possui itens.");
+            throw new EmptySaleException();
         }
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -107,9 +110,7 @@ public class PaymentService {
 
     private void validatePaymentMethodAvailability(Session session, PaymentMethod method) {
         if (method != PaymentMethod.CASH && !session.allowsElectronicPayments()) {
-            throw new IllegalStateException(
-                "Esta sessao foi aberta em modo somente dinheiro. PIX, vouchers e cartoes estao indisponiveis."
-            );
+            throw new CashOnlySessionException();
         }
     }
 }

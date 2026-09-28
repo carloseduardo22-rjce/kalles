@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.PaymentMethodUnavailableException;
 
 @Component
 public class PaymentFactory {
@@ -22,7 +23,7 @@ public class PaymentFactory {
     public PaymentStrategy getStrategy(PaymentMethod method) {
         PaymentStrategy strategy = strategies.get(method);
         if (strategy == null) {
-            throw new IllegalArgumentException("Payment method not supported: " + method);
+            throw new PaymentMethodUnavailableException("Forma de pagamento não suportada: " + method);
         }
         return strategy;
     }

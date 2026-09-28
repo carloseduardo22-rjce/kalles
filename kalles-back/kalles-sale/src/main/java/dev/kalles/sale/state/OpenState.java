@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.exception.EmptySaleException;
 
 public class OpenState extends AbstractSaleState {
 
@@ -38,7 +39,7 @@ public class OpenState extends AbstractSaleState {
     @Override
     public void startPayment(Sale sale) {
         if (sale.getItems().isEmpty()) {
-            throw new IllegalStateException("Não é possível iniciar pagamento sem itens na venda.");
+            throw new EmptySaleException();
         }
         sale.doStartPayment();
         sale.setState(new PaymentInProgressState());

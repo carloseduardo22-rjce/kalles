@@ -20,7 +20,7 @@ Funcionalidade: Fluxo principal de venda no PDV
     E iniciar uma nova venda no PDV
     E adicionar um item pelo codigo interno "SKU-001" com quantidade 1
     Quando registrar um pagamento via "PIX" no valor de "30.00"
-    Então a operacao da venda deve responder com status HTTP 409
+    Então a operacao da venda deve responder com status HTTP 422
     E a resposta da venda deve informar "Esta sessao foi aberta em modo somente dinheiro. PIX, vouchers e cartoes estao indisponiveis."
 
   Cenário: Bloquear desconto maior que o valor do item
@@ -29,7 +29,7 @@ Funcionalidade: Fluxo principal de venda no PDV
     E iniciar uma nova venda no PDV
     E adicionar um item pelo codigo interno "SKU-001" com quantidade 1
     Quando aplicar um desconto de "35.00" no item da venda
-    Então a operacao da venda deve responder com status HTTP 400
+    Então a operacao da venda deve responder com status HTTP 422
     E a resposta da venda deve informar "O desconto não pode exceder o valor do produto. Valor do item: R$ 30.00"
 
   Cenário: Exigir autorizacao para cancelar venda com operador sem permissao
