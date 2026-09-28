@@ -74,6 +74,22 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(DomainException.class)
+    public ProblemDetail handleDomain(DomainException ex) {
+        return switch (ex) {
+            case ConflictException _ -> domainProblem(HttpStatus.CONFLICT, "Conflito com o estado atual", ex);
+            case BusinessRuleViolationException _ ->
+                domainProblem(HttpStatus.UNPROCESSABLE_ENTITY, "Regra de negócio violada", ex);
+        };
+    }
+
+    private ProblemDetail domainProblem(HttpStatus status, String title, DomainException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+        problem.setTitle(title);
+        problem.setProperty("code", ex.getCode());
+        return problem;
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ProblemDetail handleIllegalState(IllegalStateException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
