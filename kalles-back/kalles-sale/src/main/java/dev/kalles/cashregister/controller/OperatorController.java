@@ -35,7 +35,8 @@ public class OperatorController {
     @Operation(summary = "Cadastrar operador")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Operador cadastrado com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Dados inválidos ou código já cadastrado")
+        @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+        @ApiResponse(responseCode = "409", description = "Código já cadastrado nesta filial")
     })
     public ResponseEntity<OperatorResponse> create(@Valid @RequestBody OperatorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(operatorService.create(request));
@@ -56,7 +57,7 @@ public class OperatorController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Operador atualizado"),
         @ApiResponse(responseCode = "404", description = "Operador não encontrado"),
-        @ApiResponse(responseCode = "400", description = "Código já utilizado por outro operador")
+        @ApiResponse(responseCode = "409", description = "Código já utilizado por outro operador")
     })
     public ResponseEntity<OperatorResponse> update(
             @PathVariable UUID id, @Valid @RequestBody OperatorRequest request) {

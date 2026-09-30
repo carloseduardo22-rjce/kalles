@@ -4,6 +4,7 @@ import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.OperatorCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -69,9 +70,25 @@ class OperatorServiceTest {
         when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID))
                 .thenReturn(Optional.of(buildOperator(UUID.randomUUID(), "Outra Maria", "maria.silva", PermissionLevel.BASIC, true)));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> operatorService.create(request));
+        OperatorCodeAlreadyExistsException exception = assertThrows(OperatorCodeAlreadyExistsException.class, () -> operatorService.create(request));
 
-        assertEquals("Já existe um operador com o código informado nesta filial.", exception.getMessage());
+        assertEquals("OPERATOR_CODE_ALREADY_EXISTS", exception.getCode());
+        verify(operatorRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar edicao para codigo de outro operador da filial")
+    void shouldRejectUpdateToCodeOfAnotherOperator() {
+        UUID operatorId = UUID.randomUUID();
+        OperatorRequest request = new OperatorRequest("Maria Silva", "maria.silva", PermissionLevel.MANAGER);
+        when(operatorRepository.findByIdAndCompanyId(operatorId, COMPANY_ID))
+                .thenReturn(Optional.of(buildOperator(operatorId, "Maria Silva", "maria", PermissionLevel.MANAGER, true)));
+        when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID))
+                .thenReturn(Optional.of(buildOperator(UUID.randomUUID(), "Outra Maria", "maria.silva", PermissionLevel.BASIC, true)));
+
+        OperatorCodeAlreadyExistsException exception = assertThrows(OperatorCodeAlreadyExistsException.class, () -> operatorService.update(operatorId, request));
+
+        assertEquals("OPERATOR_CODE_ALREADY_EXISTS", exception.getCode());
         verify(operatorRepository, never()).save(any());
     }
 

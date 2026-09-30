@@ -56,7 +56,8 @@ class OperatorApiIntegrationTest extends AbstractOperatorApiSupport {
                 .when()
                 .post("/api/operators")
                 .then()
-                .statusCode(400)
+                .statusCode(409)
+                .body("code", equalTo("OPERATOR_CODE_ALREADY_EXISTS"))
                 .body("detail", equalTo("Já existe um operador com o código informado nesta filial."));
     }
 
