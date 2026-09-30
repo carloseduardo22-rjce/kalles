@@ -1,7 +1,10 @@
 package dev.kalles.cashregister.exception;
 
-public class ActiveSessionAlreadyExistsException extends RuntimeException {
+import dev.kalles.shared.exception.ConflictException;
+
+public class ActiveSessionAlreadyExistsException extends ConflictException {
+
     public ActiveSessionAlreadyExistsException(String cashRegisterCode) {
-        super("O caixa " + cashRegisterCode + " já possui uma sessão ativa");
+        super("CASH_REGISTER_SESSION_ALREADY_OPEN", "O caixa " + cashRegisterCode + " já possui uma sessão ativa");
     }
 }

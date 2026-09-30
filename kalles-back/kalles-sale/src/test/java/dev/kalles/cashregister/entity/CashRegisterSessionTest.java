@@ -1,5 +1,6 @@
 package dev.kalles.cashregister.entity;
 
+import dev.kalles.cashregister.exception.SessionAlreadyClosedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -136,11 +137,11 @@ class CashRegisterSessionTest {
         CashRegisterSession session = CashRegisterSession.open(cashRegister, operator, new BigDecimal("100.00"));
         session.close();
 
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        SessionAlreadyClosedException exception = assertThrows(
+            SessionAlreadyClosedException.class,
             () -> session.close()
         );
 
-        assertEquals("Sessao ja esta fechada", exception.getMessage());
+        assertEquals("CASH_REGISTER_SESSION_ALREADY_CLOSED", exception.getCode());
     }
 }

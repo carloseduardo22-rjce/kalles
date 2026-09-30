@@ -1,6 +1,9 @@
 package dev.kalles.cashregister.exception;
 
-public class OperatorNotFoundException extends RuntimeException {
+import dev.kalles.shared.exception.NotFoundException;
+
+public class OperatorNotFoundException extends NotFoundException {
+
     public OperatorNotFoundException(String code) {
         super("Operador não encontrado: " + code);
     }

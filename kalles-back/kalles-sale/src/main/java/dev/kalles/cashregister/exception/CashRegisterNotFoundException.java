@@ -1,6 +1,9 @@
 package dev.kalles.cashregister.exception;
 
-public class CashRegisterNotFoundException extends RuntimeException {
+import dev.kalles.shared.exception.NotFoundException;
+
+public class CashRegisterNotFoundException extends NotFoundException {
+
     public CashRegisterNotFoundException(String code) {
         super("Caixa não encontrado: " + code);
     }
