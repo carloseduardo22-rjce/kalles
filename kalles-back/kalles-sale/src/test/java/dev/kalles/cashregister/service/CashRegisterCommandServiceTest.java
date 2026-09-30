@@ -4,6 +4,8 @@ import dev.kalles.cashregister.dto.CreateCashRegisterRequest;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.exception.CashRegisterCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
+import dev.kalles.security.context.RequestContext;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,16 @@ class CashRegisterCommandServiceTest {
                 assertThrows(CashRegisterCodeAlreadyExistsException.class, () -> service.create(request));
 
         assertEquals("CASH_REGISTER_CODE_ALREADY_EXISTS", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve exigir filial no contexto ou na requisicao")
+    void shouldRequireCompanyWhenNeitherContextNorRequestHasOne() {
+        CreateCashRegisterRequest request = new CreateCashRegisterRequest("PDV-01", "Caixa Principal", null);
+
+        RequestContext.runWithin(RequestContext.empty(),
+                () -> assertThrows(CompanyContextRequiredException.class, () -> service.create(request)));
         verify(repository, never()).save(any());
     }
 }

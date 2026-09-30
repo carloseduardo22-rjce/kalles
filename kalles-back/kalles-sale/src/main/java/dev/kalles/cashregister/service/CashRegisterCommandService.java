@@ -5,6 +5,7 @@ import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.exception.CashRegisterCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,6 @@ public class CashRegisterCommandService {
         if (requestCompanyId != null) {
             return requestCompanyId;
         }
-        throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        throw new CompanyContextRequiredException();
     }
 }
