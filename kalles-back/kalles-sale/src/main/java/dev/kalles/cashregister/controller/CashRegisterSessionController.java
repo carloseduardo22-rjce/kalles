@@ -39,6 +39,7 @@ public class CashRegisterSessionController {
             description = "Registra a abertura de um caixa com o operador e o valor inicial em espécie.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Sessão aberta com sucesso"),
+        @ApiResponse(responseCode = "403", description = "Dispositivo não pareado a este caixa", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "404", description = "Caixa ou operador não encontrado", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "409", description = "Já existe uma sessão ativa para este caixa", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "422", description = "Pagamento não configurado e operação somente em dinheiro não confirmada", content = @Content(schema = @Schema(hidden = true)))
@@ -53,6 +54,7 @@ public class CashRegisterSessionController {
             description = "Fecha a sessão ativa do caixa e retorna o resumo financeiro do dia: total vendido, vendas concluídas/canceladas e breakdown por método de pagamento.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Sessão fechada com sucesso"),
+        @ApiResponse(responseCode = "403", description = "Operador autorizador sem nível de supervisor", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "404", description = "Sessão não encontrada", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "409", description = "Sessão já está fechada", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "422", description = "Há vendas pendentes na sessão", content = @Content(schema = @Schema(hidden = true)))

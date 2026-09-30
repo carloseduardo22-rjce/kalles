@@ -18,6 +18,7 @@ import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,6 +170,24 @@ class CloseSessionUseCaseTest {
                 NotFoundException.class,
                 () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
         );
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar operador autorizador sem nivel de supervisor")
+    void shouldRejectAuthorizerBelowSupervisor() {
+        UUID sessionId = UUID.randomUUID();
+        CashRegisterSession session = buildOpenSession();
+        Operator authorizer = buildAuthorizer();
+        authorizer.setPermissionLevel(PermissionLevel.BASIC);
+
+        when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
+        when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
+
+        assertThrows(
+                ForbiddenOperationException.class,
+                () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
+        );
+        verify(closingRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test

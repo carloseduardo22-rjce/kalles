@@ -13,6 +13,7 @@ import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -282,16 +283,16 @@ class OpenSessionUseCaseTest {
 
         when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o."))
+        doThrow(new ForbiddenOperationException("O dispositivo precisa estar pareado antes da operação."))
             .when(pairedDeviceSessionGuard)
             .ensureCanOperate(cashRegister);
 
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        ForbiddenOperationException exception = assertThrows(
+            ForbiddenOperationException.class,
             () -> useCase.execute(request)
         );
 
-        assertEquals("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o.", exception.getMessage());
+        assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);

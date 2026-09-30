@@ -17,6 +17,7 @@ import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -137,7 +138,7 @@ public class CloseSessionUseCase {
 
         PermissionLevel permissionLevel = operator.getPermissionLevel();
         if (permissionLevel == null || permissionLevel.getLevel() < PermissionLevel.SUPERVISOR.getLevel()) {
-            throw new IllegalArgumentException("Operador sem permissao para autorizar fechamento de caixa.");
+            throw new ForbiddenOperationException("Operador sem permissao para autorizar fechamento de caixa.");
         }
 
         return operator;

@@ -64,7 +64,7 @@ Funcionalidade: Login web e pareamento do dispositivo com o caixa
     Dado que o dispositivo nao possui o cookie "kalles_pos_token"
     E que o operador esta autenticado
     Quando ele tentar abrir sessao no caixa "CAIXA-01"
-    Entao a resposta da abertura deve ter status HTTP 400
+    Entao a resposta da abertura deve ter status HTTP 403
     E a resposta deve indicar que o dispositivo precisa estar pareado antes da operacao
 
   Cenario: Pareamento falha quando o token informado esta invalido

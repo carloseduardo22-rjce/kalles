@@ -2,6 +2,7 @@ package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.security.context.PosContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -13,11 +14,11 @@ public class PairedDeviceSessionGuard {
         UUID pairedPosId = PosContextHolder.getPosId();
 
         if (pairedPosId == null) {
-            throw new IllegalArgumentException("O dispositivo precisa estar pareado antes da operação.");
+            throw new ForbiddenOperationException("O dispositivo precisa estar pareado antes da operação.");
         }
 
         if (!pairedPosId.equals(cashRegister.getId())) {
-            throw new IllegalArgumentException("O dispositivo pareado não corresponde ao caixa informado.");
+            throw new ForbiddenOperationException("O dispositivo pareado não corresponde ao caixa informado.");
         }
     }
 }
