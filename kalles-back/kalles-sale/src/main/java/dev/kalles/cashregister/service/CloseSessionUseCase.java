@@ -7,6 +7,7 @@ import dev.kalles.cashregister.entity.CashRegisterClosing;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.PendingSalesBlockClosingException;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -116,10 +117,7 @@ public class CloseSessionUseCase {
         }
 
         if (blockingSales > 0) {
-            throw new IllegalStateException(
-                    "Nao e possivel fechar o caixa: existem " + blockingSales
-                            + " venda(s) pendente(s) (em andamento, em pagamento ou pagas sem conclusao)."
-                            + " Conclua ou cancele as vendas antes de fechar a sessao.");
+            throw new PendingSalesBlockClosingException(blockingSales);
         }
     }
 

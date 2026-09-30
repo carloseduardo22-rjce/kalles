@@ -17,7 +17,7 @@ Funcionalidade: Abertura de sessao de caixa sem integracao de pagamento
     Dado que o caixa nao possui integracao de pagamento configurada
     E um operador autenticado deseja abrir a sessao do caixa com valor inicial "100.00"
     Quando solicitar a abertura da sessao
-    Entao a resposta da abertura deve ter status HTTP 409
+    Entao a resposta da abertura deve ter status HTTP 422
     E a resposta deve informar "Pagamento nao configurado, neste caixa voce apenas podera operar com dinheiro mas nao podera receber pagamentos via pix, vouchers e cartoes de credito."
 
   Cenario: Permitir abertura em modo somente dinheiro quando houver confirmacao explicita

@@ -69,7 +69,8 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .when()
                 .post("/api/cash-register-sessions/open")
                 .then()
-                .statusCode(409)
+                .statusCode(422)
+                .body("code", equalTo("PAYMENT_INTEGRATION_NOT_CONFIGURED"))
                 .body("detail", equalTo("Pagamento nao configurado, neste caixa voce apenas podera operar com dinheiro mas nao podera receber pagamentos via pix, vouchers e cartoes de credito."));
     }
 

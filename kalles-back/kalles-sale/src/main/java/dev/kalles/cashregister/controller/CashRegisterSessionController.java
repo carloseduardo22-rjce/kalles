@@ -40,7 +40,8 @@ public class CashRegisterSessionController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Sessão aberta com sucesso"),
         @ApiResponse(responseCode = "404", description = "Caixa ou operador não encontrado", content = @Content(schema = @Schema(hidden = true))),
-        @ApiResponse(responseCode = "409", description = "Já existe uma sessão ativa para este caixa", content = @Content(schema = @Schema(hidden = true)))
+        @ApiResponse(responseCode = "409", description = "Já existe uma sessão ativa para este caixa", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "422", description = "Pagamento não configurado e operação somente em dinheiro não confirmada", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<SessionResponse> openSession(@Valid @RequestBody OpenSessionRequest request) {
         SessionResponse response = openSessionUseCase.execute(request);
@@ -53,7 +54,8 @@ public class CashRegisterSessionController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Sessão fechada com sucesso"),
         @ApiResponse(responseCode = "404", description = "Sessão não encontrada", content = @Content(schema = @Schema(hidden = true))),
-        @ApiResponse(responseCode = "409", description = "Sessão já está fechada", content = @Content(schema = @Schema(hidden = true)))
+        @ApiResponse(responseCode = "409", description = "Sessão já está fechada", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "422", description = "Há vendas pendentes na sessão", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<CloseSessionResponse> closeSession(
             @PathVariable UUID sessionId,

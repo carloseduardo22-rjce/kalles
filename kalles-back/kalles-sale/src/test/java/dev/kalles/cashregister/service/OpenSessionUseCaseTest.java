@@ -7,6 +7,7 @@ import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.exception.OperatorNotFoundException;
+import dev.kalles.cashregister.exception.PaymentIntegrationNotConfiguredException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -171,12 +172,12 @@ class OpenSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
             .thenReturn(Optional.of(operator));
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        PaymentIntegrationNotConfiguredException exception = assertThrows(
+            PaymentIntegrationNotConfiguredException.class,
             () -> useCase.execute(request)
         );
 
-        assertTrue(exception.getMessage().contains("Pagamento"));
+        assertEquals("PAYMENT_INTEGRATION_NOT_CONFIGURED", exception.getCode());
     }
 
     @Test

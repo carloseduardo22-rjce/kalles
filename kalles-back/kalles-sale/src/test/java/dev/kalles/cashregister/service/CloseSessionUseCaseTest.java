@@ -8,6 +8,7 @@ import dev.kalles.cashregister.entity.CashRegisterClosing;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.PendingSalesBlockClosingException;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -183,12 +184,12 @@ class CloseSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
         when(saleRepository.findPendingBySessionId(sessionId)).thenReturn(List.of(paidSale));
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        PendingSalesBlockClosingException exception = assertThrows(
+                PendingSalesBlockClosingException.class,
                 () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
         );
 
-        assertTrue(exception.getMessage().contains("venda(s) pendente(s)"));
+        assertEquals("CASH_REGISTER_PENDING_SALES", exception.getCode());
         verify(closingRepository, org.mockito.Mockito.never()).save(any());
     }
 
