@@ -2,6 +2,7 @@ package dev.kalles.security.service;
 
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.PosDeviceSession;
+import dev.kalles.security.exception.InvalidPosSessionException;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ public class PosDeviceAuthorizationService {
 
         var session = posDeviceSessionRepository
                 .findByTokenAndActiveTrueAndExpiresAtGreaterThan(posToken, LocalDateTime.now())
-                .orElseThrow(() -> new IllegalArgumentException("Sessão do terminal inválida ou expirada."));
+                .orElseThrow(InvalidPosSessionException::new);
 
         if (!session.getCompanyId().equals(account.getCompanyId())) {
             throw new IllegalArgumentException("Este terminal não pertence a filial do caixa.");

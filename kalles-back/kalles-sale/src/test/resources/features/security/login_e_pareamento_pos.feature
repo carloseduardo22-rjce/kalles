@@ -51,7 +51,7 @@ Funcionalidade: Login web e pareamento do dispositivo com o caixa
   Cenario: Operador nao consegue logar com posToken revogado
     Dado que o dispositivo possui um cookie "kalles_pos_token" revogado para o caixa "CAIXA-01"
     Quando eu enviar o login com email "operador.caixa01@sistema.local" e senha "123456"
-    Entao a resposta de login deve ter status HTTP 400
+    Entao a resposta de login deve ter status HTTP 401
     E a resposta deve conter a mensagem "Sessao do terminal invalida ou expirada."
 
   Cenario: Operador nao consegue logar com posToken de outra empresa
@@ -70,7 +70,7 @@ Funcionalidade: Login web e pareamento do dispositivo com o caixa
   Cenario: Pareamento falha quando o token informado esta invalido
     Dado que o dispositivo nao possui o cookie "kalles_pos_token"
     Quando o dispositivo enviar um token de pareamento invalido
-    Entao a resposta de pareamento deve ter status HTTP 400
+    Entao a resposta de pareamento deve ter status HTTP 401
     E a resposta deve conter a mensagem "Token de pareamento invalido ou expirado."
 
   Cenario: Geracao de token exige companyId e posId

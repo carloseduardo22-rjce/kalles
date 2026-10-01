@@ -210,7 +210,8 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .when()
                 .post("/api/auth/login")
                 .then()
-                .statusCode(400)
+                .statusCode(401)
+                .body("code", equalTo("POS_SESSION_INVALID"))
                 .body("detail", equalTo("Sessão do terminal inválida ou expirada."));
     }
 
@@ -222,7 +223,8 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .when()
                 .post("/api/pos/setup")
                 .then()
-                .statusCode(400)
+                .statusCode(401)
+                .body("code", equalTo("PAIRING_TOKEN_INVALID"))
                 .body("detail", equalTo("Token de pareamento inválido ou expirado."));
     }
 
