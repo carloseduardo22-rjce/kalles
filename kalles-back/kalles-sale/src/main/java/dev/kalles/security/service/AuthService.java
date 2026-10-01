@@ -9,6 +9,7 @@ import dev.kalles.security.dto.VerifyCodeRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.InvalidCredentialsException;
+import dev.kalles.security.exception.VerificationCodeRejectedException;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.shared.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
@@ -86,11 +87,8 @@ public class AuthService {
         authenticationProtectionService.assertVerificationAllowed(request.email(), request.tenantId());
         try {
             Account account = resolveAccountOptional(request.email(), request.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
-
-            if (account.isVerified()) {
-            throw new IllegalArgumentException("Conta já está verificada.");
-        }
+                    .filter(candidate -> !candidate.isVerified())
+                    .orElseThrow(VerificationCodeRejectedException::invalid);
 
             accountVerificationService.verifyCode(account, request.code());
         // Since we opened a transaction, and Hibernate manages `account`, it could
@@ -109,10 +107,9 @@ public class AuthService {
     @Transactional
     public void resendVerificationCode(String email, String tenantId) {
         authenticationProtectionService.assertResendAllowed(email, tenantId);
-        Account account = resolveAccountOptional(email, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
-
-        accountVerificationService.resendCode(account);
+        resolveAccountOptional(email, tenantId)
+                .filter(account -> !account.isVerified())
+                .ifPresent(accountVerificationService::generateAndSendVerificationCode);
     }
     @Transactional
     public AuthTokens refresh(String rawRefreshToken) {
