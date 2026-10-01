@@ -44,23 +44,6 @@ public class AuthService {
 
             UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
 
-        /* if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
-            if (posToken == null || posToken.isBlank()) {
-                throw new IllegalArgumentException(
-                        "Terminal não configurado. Por favor, solicite o pareamento do caixa.");
-            }
-
-            var session = posDeviceSessionRepository
-                    .findByTokenAndActiveTrueAndExpiresAtGreaterThan(posToken, LocalDateTime.now())
-                    .orElseThrow(() -> new IllegalArgumentException("Sessão do terminal inválida ou expirada."));
-
-            if (!session.getCompanyId().equals(account.getCompanyId())) {
-                throw new IllegalArgumentException("Este terminal não pertence a filial do caixa.");
-            }
-
-            posId = session.getPosId();
-        } */
-
             authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId());
             return buildSessionTokens(account, posId);
         } catch (RuntimeException ex) {
