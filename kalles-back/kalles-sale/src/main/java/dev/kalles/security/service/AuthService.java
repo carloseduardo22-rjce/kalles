@@ -34,10 +34,13 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationProtectionService authenticationProtectionService;
 
+    private volatile String unknownAccountPasswordHash;
+
     public AuthTokens authenticate(LoginRequest request, String posToken) {
         authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId());
         try {
-            var account = resolveAccount(request.email(), request.tenantId());
+            var account = resolveAccountOptional(request.email(), request.tenantId())
+                    .orElseThrow(() -> rejectUnknownAccount(request.password()));
             if (!passwordEncoder.matches(request.password(), account.getPassword())) {
                 throw new InvalidCredentialsException();
             }
@@ -130,9 +133,16 @@ public class AuthService {
         return new AuthTokens(accessToken, refreshToken);
     }
 
-    private Account resolveAccount(String email, String tenantId) {
-        return resolveAccountOptional(email, tenantId)
-                .orElseThrow(InvalidCredentialsException::new);
+    private InvalidCredentialsException rejectUnknownAccount(String rawPassword) {
+        passwordEncoder.matches(rawPassword, unknownAccountPasswordHash());
+        return new InvalidCredentialsException();
+    }
+
+    private String unknownAccountPasswordHash() {
+        if (unknownAccountPasswordHash == null) {
+            unknownAccountPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+        }
+        return unknownAccountPasswordHash;
     }
 
     private Optional<Account> resolveAccountOptional(String email, String tenantId) {

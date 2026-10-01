@@ -166,8 +166,10 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest("ninguem@kalles.local", "123456");
 
         when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
+        when(passwordEncoder.encode(any())).thenReturn("hash-de-conta-inexistente");
 
         assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        verify(passwordEncoder).matches("123456", "hash-de-conta-inexistente");
         verify(authenticationProtectionService).registerLoginFailure("ninguem@kalles.local", null);
     }
 
