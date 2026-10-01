@@ -10,6 +10,7 @@ import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.InvalidCredentialsException;
 import dev.kalles.security.repository.AccountRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,7 @@ public class AuthService {
                 throw new InvalidCredentialsException();
             }
             if (!account.isVerified()) {
-                throw new IllegalArgumentException("Conta ainda nao verificada.");
+                throw new ForbiddenOperationException("Conta ainda nao verificada.");
             }
 
             UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);

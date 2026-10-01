@@ -23,7 +23,7 @@ Funcionalidade: Login web e pareamento do dispositivo com o caixa
   Cenario: Operador nao consegue logar sem posToken configurado no dispositivo
     Dado que o dispositivo nao possui o cookie "kalles_pos_token"
     Quando eu enviar o login com email "operador.caixa01@sistema.local" e senha "123456"
-    Entao a resposta de login deve ter status HTTP 400
+    Entao a resposta de login deve ter status HTTP 403
     E a resposta deve conter a mensagem "Terminal nao configurado. Por favor, solicite o pareamento do caixa."
 
   Cenario: Administrador gera token de pareamento para um caixa da propria empresa
@@ -57,7 +57,7 @@ Funcionalidade: Login web e pareamento do dispositivo com o caixa
   Cenario: Operador nao consegue logar com posToken de outra empresa
     Dado que o dispositivo possui um cookie "kalles_pos_token" valido para um caixa de outra empresa
     Quando eu enviar o login com email "operador.caixa01@sistema.local" e senha "123456"
-    Entao a resposta de login deve ter status HTTP 400
+    Entao a resposta de login deve ter status HTTP 403
     E a resposta deve conter a mensagem "Este terminal nao pertence a filial do caixa."
 
   Cenario: Operador nao pode abrir sessao de caixa sem dispositivo previamente pareado

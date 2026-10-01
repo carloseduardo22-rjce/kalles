@@ -6,6 +6,7 @@ import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.InvalidCredentialsException;
 import dev.kalles.security.repository.AccountRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -165,6 +166,19 @@ class AuthServiceTest {
 
         assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
         verify(authenticationProtectionService).registerLoginFailure("ninguem@kalles.local", null);
+    }
+
+    @Test
+    @DisplayName("deve bloquear conta ainda nao verificada")
+    void shouldBlockUnverifiedAccount() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        account.setVerified(false);
+        LoginRequest request = new LoginRequest(account.getEmail(), "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+        when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
+
+        assertThrows(ForbiddenOperationException.class, () -> authService.authenticate(request, null));
     }
 
     private Account account(AccountRole role, UUID companyId) {

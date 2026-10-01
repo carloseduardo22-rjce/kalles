@@ -4,6 +4,7 @@ import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.PosDeviceSession;
 import dev.kalles.security.exception.InvalidPosSessionException;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +24,7 @@ public class PosDeviceAuthorizationService {
         }
 
         if (posToken == null || posToken.isBlank()) {
-            throw new IllegalArgumentException(
+            throw new ForbiddenOperationException(
                     "Terminal não configurado. Por favor, solicite o pareamento do caixa.");
         }
 
@@ -32,7 +33,7 @@ public class PosDeviceAuthorizationService {
                 .orElseThrow(InvalidPosSessionException::new);
 
         if (!session.getCompanyId().equals(account.getCompanyId())) {
-            throw new IllegalArgumentException("Este terminal não pertence a filial do caixa.");
+            throw new ForbiddenOperationException("Este terminal não pertence a filial do caixa.");
         }
 
         return session.getPosId();

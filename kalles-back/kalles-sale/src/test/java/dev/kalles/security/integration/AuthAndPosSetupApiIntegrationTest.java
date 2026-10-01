@@ -131,7 +131,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .when()
                 .post("/api/auth/login")
                 .then()
-                .statusCode(400)
+                .statusCode(403)
                 .body("detail", equalTo("Terminal não configurado. Por favor, solicite o pareamento do caixa."));
     }
 

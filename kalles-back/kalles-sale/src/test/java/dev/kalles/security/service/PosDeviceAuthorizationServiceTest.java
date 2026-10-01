@@ -5,6 +5,7 @@ import dev.kalles.security.entity.PosDeviceSession;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.InvalidPosSessionException;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,8 +62,8 @@ class PosDeviceAuthorizationServiceTest {
         Account account = account(AccountRole.OPERATOR, UUID.randomUUID());
         when(posBindingAccessPolicy.requiresPairedDevice(account)).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ForbiddenOperationException exception = assertThrows(
+                ForbiddenOperationException.class,
                 () -> service.resolveAuthorizedPosId(account, null)
         );
 
@@ -97,8 +98,8 @@ class PosDeviceAuthorizationServiceTest {
         when(posDeviceSessionRepository.findByTokenAndActiveTrueAndExpiresAtGreaterThan(eq("token-outra-empresa"), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(session));
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ForbiddenOperationException exception = assertThrows(
+                ForbiddenOperationException.class,
                 () -> service.resolveAuthorizedPosId(account, "token-outra-empresa")
         );
 
