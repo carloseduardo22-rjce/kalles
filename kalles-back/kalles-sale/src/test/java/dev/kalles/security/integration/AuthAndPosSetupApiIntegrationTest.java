@@ -303,6 +303,21 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     }
 
     @Test
+    void shouldAnswerWrongPasswordAndUnknownAccountWithTheSameUnauthorized() {
+        for (String email : new String[] {"admin@sistema.local", "ninguem@sistema.local"}) {
+            RestAssured.given()
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("email", email, "password", "senha-errada"))
+                    .when()
+                    .post("/api/auth/login")
+                    .then()
+                    .statusCode(401)
+                    .body("code", equalTo("INVALID_CREDENTIALS"))
+                    .body("detail", equalTo("Credenciais invalidas."));
+        }
+    }
+
+    @Test
     void shouldReturnTooManyRequestsAfterRepeatedLoginFailures() {
         accountRepository.save(newAccount("Alvo do rate limit", RATE_LIMITED_EMAIL, AccountRole.ADMIN, companyId));
 
@@ -313,7 +328,7 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                     .when()
                     .post("/api/auth/login")
                     .then()
-                    .statusCode(400);
+                    .statusCode(401);
         }
 
         RestAssured.given()

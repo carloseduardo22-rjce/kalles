@@ -80,6 +80,8 @@ public class GlobalExceptionHandler {
             case ConflictException _ -> domainProblem(HttpStatus.CONFLICT, "Conflito com o estado atual", ex);
             case BusinessRuleViolationException _ ->
                 domainProblem(HttpStatus.UNPROCESSABLE_ENTITY, "Regra de negócio violada", ex);
+            case AuthenticationFailedException _ ->
+                domainProblem(HttpStatus.UNAUTHORIZED, "Falha de autenticação", ex);
         };
     }
 

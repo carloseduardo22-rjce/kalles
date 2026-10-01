@@ -4,6 +4,7 @@ import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.dto.LoginRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.exception.InvalidCredentialsException;
 import dev.kalles.security.repository.AccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -140,6 +141,30 @@ class AuthServiceTest {
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());
+    }
+
+    @Test
+    @DisplayName("deve recusar senha incorreta como credencial invalida")
+    void shouldRejectWrongPasswordAsInvalidCredentials() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        LoginRequest request = new LoginRequest(account.getEmail(), "senha-errada");
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+        when(passwordEncoder.matches("senha-errada", "encoded")).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        verify(authenticationProtectionService).registerLoginFailure(account.getEmail(), null);
+    }
+
+    @Test
+    @DisplayName("deve recusar conta inexistente como credencial invalida")
+    void shouldRejectUnknownAccountAsInvalidCredentials() {
+        LoginRequest request = new LoginRequest("ninguem@kalles.local", "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        verify(authenticationProtectionService).registerLoginFailure("ninguem@kalles.local", null);
     }
 
     private Account account(AccountRole role, UUID companyId) {

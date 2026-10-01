@@ -1,7 +1,7 @@
 package dev.kalles.shared.exception;
 
 public abstract sealed class DomainException extends RuntimeException
-        permits ConflictException, BusinessRuleViolationException {
+        permits ConflictException, BusinessRuleViolationException, AuthenticationFailedException {
 
     private final String code;
 

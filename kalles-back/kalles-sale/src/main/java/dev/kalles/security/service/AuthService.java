@@ -8,6 +8,7 @@ import dev.kalles.security.dto.RegisterResponse;
 import dev.kalles.security.dto.VerifyCodeRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.exception.InvalidCredentialsException;
 import dev.kalles.security.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,7 +37,7 @@ public class AuthService {
         try {
             var account = resolveAccount(request.email(), request.tenantId());
             if (!passwordEncoder.matches(request.password(), account.getPassword())) {
-                throw new IllegalArgumentException("Credenciais invalidas.");
+                throw new InvalidCredentialsException();
             }
             if (!account.isVerified()) {
                 throw new IllegalArgumentException("Conta ainda nao verificada.");
@@ -133,7 +134,7 @@ public class AuthService {
 
     private Account resolveAccount(String email, String tenantId) {
         return resolveAccountOptional(email, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Conta nao encontrada."));
+                .orElseThrow(InvalidCredentialsException::new);
     }
 
     private Optional<Account> resolveAccountOptional(String email, String tenantId) {
