@@ -10,6 +10,7 @@ import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
 import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -148,7 +149,7 @@ class PaymentTerminalMappingServiceTest {
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO,
                 "6N021234"
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(ForbiddenOperationException.class)
                 .hasMessage("Filial nao encontrada para o tenant atual.");
 
         verify(cashRegisterRepository, never()).findByIdAndCompanyId(CASH_REGISTER_ID, COMPANY_ID);

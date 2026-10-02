@@ -2,7 +2,6 @@ package dev.kalles.payment.application.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
-import dev.kalles.company.entity.Company;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.payment.application.port.in.GetPaymentTerminalMappingUseCase;
 import dev.kalles.payment.application.port.in.ListPaymentTerminalMappingsUseCase;
@@ -15,6 +14,7 @@ import dev.kalles.payment.domain.PaymentTerminalMapping;
 import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,10 +107,8 @@ public class PaymentTerminalMappingService implements
     }
 
     private void ensureAccessibleCompany(UUID companyId, UUID tenantId) {
-        Company company = companyRepository.findByIdAndTenantId(companyId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Filial nao encontrada para o tenant atual."));
-        if (!company.getId().equals(companyId)) {
-            throw new IllegalArgumentException("Filial invalida para o tenant atual.");
+        if (companyRepository.findByIdAndTenantId(companyId, tenantId).isEmpty()) {
+            throw new ForbiddenOperationException("Filial nao encontrada para o tenant atual.");
         }
     }
 }
