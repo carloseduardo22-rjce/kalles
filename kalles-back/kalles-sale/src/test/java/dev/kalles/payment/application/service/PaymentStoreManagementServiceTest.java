@@ -6,6 +6,7 @@ import dev.kalles.payment.application.port.in.command.CreatePaymentStoreCommand;
 import dev.kalles.payment.application.port.out.PaymentStoreRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
+import dev.kalles.payment.exception.PaymentStoreReferenceMismatchException;
 import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
@@ -62,6 +63,26 @@ class PaymentStoreManagementServiceTest {
                 )));
 
         verify(paymentStoreRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRefuseAnotherExternalReferenceForTheCompanyStore() {
+        UUID companyId = UUID.randomUUID();
+
+        when(companyRepository.findByIdAndTenantId(companyId, TENANT_ID))
+                .thenReturn(Optional.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
+        when(paymentStoreRepository.findByCompanyIdAndProvider(companyId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentStore(UUID.randomUUID(), companyId, PaymentProvider.MERCADO_PAGO, "FILIAL-01", "store-1")));
+
+        assertThrows(PaymentStoreReferenceMismatchException.class, () ->
+                service.execute(new CreatePaymentStoreCommand(
+                        PaymentProvider.MERCADO_PAGO,
+                        companyId,
+                        "FILIAL-02",
+                        null
+                )));
+
+        verify(portFactory, never()).store(PaymentProvider.MERCADO_PAGO);
     }
 
     @Test

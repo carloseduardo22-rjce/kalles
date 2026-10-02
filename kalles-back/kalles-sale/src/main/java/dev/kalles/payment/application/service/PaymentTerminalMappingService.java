@@ -12,6 +12,7 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
+import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -56,7 +57,7 @@ public class PaymentTerminalMappingService implements
                 normalizedSerial
         ).ifPresent(existing -> {
             if (!existing.cashRegisterId().equals(cashRegister.getId())) {
-                throw new IllegalArgumentException("Este numero de serie ja esta vinculado a outro caixa desta filial.");
+                throw new TerminalSerialAlreadyMappedException();
             }
         });
 

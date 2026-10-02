@@ -9,6 +9,7 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
+import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,7 +109,7 @@ class PaymentTerminalMappingServiceTest {
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO,
                 "6N021234"
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(TerminalSerialAlreadyMappedException.class)
                 .hasMessage("Este numero de serie ja esta vinculado a outro caixa desta filial.");
     }
 
