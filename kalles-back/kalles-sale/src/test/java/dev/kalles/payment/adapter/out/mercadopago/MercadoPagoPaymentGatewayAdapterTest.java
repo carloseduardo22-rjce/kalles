@@ -10,6 +10,7 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.payment.exception.PaymentOperationNotSupportedException;
 import dev.kalles.payment.exception.PaymentPointNotConfiguredException;
 import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -296,7 +297,14 @@ class MercadoPagoPaymentGatewayAdapterTest {
     @Test
     void shouldRefuseToCloseTheOrderWithAnyStatusOtherThanCanceled() {
         assertThatThrownBy(() -> adapter.closePaymentOrder(ORDER_ID, PaymentStatus.APPROVED))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(PaymentOperationNotSupportedException.class);
+        server.verify();
+    }
+
+    @Test
+    void shouldRefuseToPrintADocument() {
+        assertThatThrownBy(() -> adapter.printDocument(ORDER_ID, null))
+                .isInstanceOf(PaymentOperationNotSupportedException.class);
         server.verify();
     }
 
