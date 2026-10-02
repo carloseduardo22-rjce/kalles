@@ -14,6 +14,7 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,7 +87,7 @@ public class PaymentTerminalMappingService implements
         CashRegister cashRegister = findAccessibleCashRegister(query.cashRegisterId(), companyId);
 
         return mappingRepository.findActiveByCashRegisterIdAndProvider(cashRegister.getId(), query.provider())
-                .orElseThrow(() -> new IllegalArgumentException("Nenhuma maquininha esta vinculada a este caixa."));
+                .orElseThrow(() -> new NotFoundException("Nenhuma maquininha esta vinculada a este caixa."));
     }
 
     @Override
@@ -101,7 +102,7 @@ public class PaymentTerminalMappingService implements
     private CashRegister findAccessibleCashRegister(UUID cashRegisterId, UUID companyId) {
         return cashRegisterRepository.findByIdAndCompanyId(cashRegisterId, companyId)
                 .filter(CashRegister::isActive)
-                .orElseThrow(() -> new IllegalArgumentException("Caixa nao encontrado na filial ativa."));
+                .orElseThrow(() -> new NotFoundException("Caixa nao encontrado na filial ativa."));
     }
 
     private void ensureAccessibleCompany(UUID companyId, UUID tenantId) {

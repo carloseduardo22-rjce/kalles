@@ -9,6 +9,7 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
+import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -119,8 +120,23 @@ class PaymentTerminalMappingServiceTest {
         assertThatThrownBy(() -> service.execute(new GetPaymentTerminalMappingQuery(
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(NotFoundException.class)
                 .hasMessage("Caixa nao encontrado na filial ativa.");
+    }
+
+    @Test
+    void shouldAnswerNotFoundWhenNoTerminalIsMappedToTheCashRegister() {
+        CashRegister cashRegister = accessibleCashRegister();
+        when(cashRegisterRepository.findByIdAndCompanyId(CASH_REGISTER_ID, COMPANY_ID))
+                .thenReturn(Optional.of(cashRegister));
+        when(mappingRepository.findActiveByCashRegisterIdAndProvider(CASH_REGISTER_ID, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.execute(new GetPaymentTerminalMappingQuery(
+                CASH_REGISTER_ID,
+                PaymentProvider.MERCADO_PAGO
+        ))).isInstanceOf(NotFoundException.class)
+                .hasMessage("Nenhuma maquininha esta vinculada a este caixa.");
     }
 
     @Test

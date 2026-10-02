@@ -12,6 +12,7 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentStoreView;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,7 +43,7 @@ public class PaymentStoreManagementService implements
     public PaymentStore execute(CreatePaymentStoreCommand command) {
         UUID tenantId = TenantContextHolder.requireTenantId();
         Company company = companyRepository.findByIdAndTenantId(command.companyId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + command.companyId()));
+                .orElseThrow(() -> new NotFoundException("Company not found: " + command.companyId()));
 
         PaymentStore store = paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), command.provider())
                 .map(existing -> validateExternalReference(existing, command.externalReference()))

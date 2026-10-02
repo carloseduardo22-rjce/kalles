@@ -14,6 +14,7 @@ import dev.kalles.payment.domain.PaymentFlow;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -142,7 +143,7 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
 
     private PaymentResult createQrOrder(PaymentCommand command) {
         CashRegister cashRegister = cashRegisterRepository.findByCode(command.targetId())
-                .orElseThrow(() -> new IllegalArgumentException("Cash Register code not found: " + command.targetId()));
+                .orElseThrow(() -> new NotFoundException("Cash Register code not found: " + command.targetId()));
 
         var point = paymentPointRepository.findByCashRegisterIdAndProvider(cashRegister.getId(), PaymentProvider.MERCADO_PAGO)
                 .orElseThrow(() -> new IllegalArgumentException(

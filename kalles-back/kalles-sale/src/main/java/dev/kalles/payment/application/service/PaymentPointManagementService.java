@@ -22,6 +22,7 @@ import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentTerminal;
 import dev.kalles.payment.domain.TerminalOperationMode;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -110,13 +111,13 @@ public class PaymentPointManagementService implements
         ensureAccessibleTerminalScope(command.provider(), command.storeId(), command.pointId());
         List<PaymentTerminal> terminals = portFactory.terminal(command.provider()).listTerminals(command.storeId(), command.pointId());
         if (terminals.isEmpty()) {
-            throw new IllegalStateException("No terminal associated with the informed store and point");
+            throw new NotFoundException("No terminal associated with the informed store and point");
         }
 
         PaymentTerminal targetTerminal = terminals.stream()
                 .filter(terminal -> terminal.id() != null && terminal.id().endsWith(command.terminalSerial()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Terminal not found for informed serial"));
+                .orElseThrow(() -> new NotFoundException("Terminal not found for informed serial"));
 
         if (targetTerminal.operationMode() != TerminalOperationMode.POINT_OF_SALE) {
             boolean success = portFactory.terminal(command.provider())
@@ -147,7 +148,7 @@ public class PaymentPointManagementService implements
                 .map(company -> cashRegisterRepository.findByIdAndCompanyId(cashRegisterId, company.getId()))
                 .flatMap(Optional::stream)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Cash register not found: " + cashRegisterId));
+                .orElseThrow(() -> new NotFoundException("Cash register not found: " + cashRegisterId));
     }
 
     private void ensureAccessibleTerminalScope(PaymentProvider provider, String storeId, String pointId) {
@@ -157,7 +158,7 @@ public class PaymentPointManagementService implements
                 .anyMatch(store -> storeId.equals(store.providerStoreId()));
 
         if (!accessibleStore) {
-            throw new IllegalArgumentException("Payment store not found for current tenant");
+            throw new NotFoundException("Payment store not found for current tenant");
         }
 
         boolean accessiblePoint = accessibleCompanies().stream()
@@ -167,7 +168,7 @@ public class PaymentPointManagementService implements
                 .anyMatch(point -> pointId.equals(point.providerPointId()));
 
         if (!accessiblePoint) {
-            throw new IllegalArgumentException("Payment point not found for current tenant");
+            throw new NotFoundException("Payment point not found for current tenant");
         }
     }
 

@@ -7,6 +7,7 @@ import dev.kalles.payment.application.port.out.PaymentStoreRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.security.exception.TenantContextRequiredException;
+import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
 import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class PaymentStoreManagementServiceTest {
 
         when(companyRepository.findByIdAndTenantId(companyId, TENANT_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NotFoundException.class, () ->
                 service.execute(new CreatePaymentStoreCommand(
                         PaymentProvider.MERCADO_PAGO,
                         companyId,

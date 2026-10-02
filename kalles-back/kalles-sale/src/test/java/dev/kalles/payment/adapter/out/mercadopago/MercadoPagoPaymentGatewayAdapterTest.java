@@ -10,6 +10,7 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -143,6 +144,15 @@ class MercadoPagoPaymentGatewayAdapterTest {
         assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.QR_CODE, "CAIXA-01")))
                 .isInstanceOf(MercadoPagoAdapterException.class)
                 .hasMessageContaining("qr_data");
+        server.verify();
+    }
+
+    @Test
+    void shouldAnswerNotFoundWhenTheCashRegisterCodeIsUnknown() {
+        when(cashRegisterRepository.findByCode("CAIXA-99")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.QR_CODE, "CAIXA-99")))
+                .isInstanceOf(NotFoundException.class);
         server.verify();
     }
 
