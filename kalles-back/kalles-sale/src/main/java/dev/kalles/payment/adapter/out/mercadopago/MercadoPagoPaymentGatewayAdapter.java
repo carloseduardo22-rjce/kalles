@@ -14,6 +14,7 @@ import dev.kalles.payment.domain.PaymentFlow;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.payment.exception.PaymentPointNotConfiguredException;
 import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -146,11 +147,10 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
                 .orElseThrow(() -> new NotFoundException("Cash Register code not found: " + command.targetId()));
 
         var point = paymentPointRepository.findByCashRegisterIdAndProvider(cashRegister.getId(), PaymentProvider.MERCADO_PAGO)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Caixa Integration mapping not found for code: " + command.targetId()));
+                .orElseThrow(PaymentPointNotConfiguredException::new);
 
         if (!point.hasProviderPoint()) {
-            throw new IllegalStateException("Caixa does not have a Mercado Pago POS configured.");
+            throw new PaymentPointNotConfiguredException();
         }
 
         QrOrderRequest payload = new QrOrderRequest(

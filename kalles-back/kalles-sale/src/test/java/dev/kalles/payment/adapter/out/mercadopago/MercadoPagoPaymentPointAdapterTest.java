@@ -5,6 +5,7 @@ import dev.kalles.payment.domain.PaymentPointDescriptor;
 import dev.kalles.payment.domain.PaymentPointView;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
+import dev.kalles.payment.exception.PaymentStoreNotConfiguredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -149,7 +150,7 @@ class MercadoPagoPaymentPointAdapterTest {
                 UUID.randomUUID(), UUID.randomUUID(), PaymentProvider.MERCADO_PAGO, "FILIAL-01", null);
 
         assertThatThrownBy(() -> adapter.createPoint(newPoint(), storeWithoutProvider, DESCRIPTOR))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(PaymentStoreNotConfiguredException.class);
         server.verify();
     }
 

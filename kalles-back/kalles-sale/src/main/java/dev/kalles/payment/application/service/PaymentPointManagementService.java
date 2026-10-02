@@ -21,6 +21,7 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentTerminal;
 import dev.kalles.payment.domain.TerminalOperationMode;
+import dev.kalles.payment.exception.PaymentStoreNotConfiguredException;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -71,12 +72,10 @@ public class PaymentPointManagementService implements
         CashRegister cashRegister = findAccessibleCashRegister(command.cashRegisterId());
 
         PaymentStore store = paymentStoreRepository.findByCompanyIdAndProvider(cashRegister.getCompanyId(), command.provider())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Payment store mapping not found for company " + cashRegister.getCompanyId() + " and provider " + command.provider()
-                ));
+                .orElseThrow(PaymentStoreNotConfiguredException::new);
 
         if (!store.hasProviderStore()) {
-            throw new IllegalStateException("Company does not have a payment store configured for provider " + command.provider());
+            throw new PaymentStoreNotConfiguredException();
         }
 
         PaymentPoint createdPoint = portFactory.point(command.provider()).createPoint(

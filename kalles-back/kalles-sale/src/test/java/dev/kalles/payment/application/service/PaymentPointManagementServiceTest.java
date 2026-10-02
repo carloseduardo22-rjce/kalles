@@ -5,6 +5,7 @@ import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.company.entity.Company;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.payment.application.port.in.command.ActivatePaymentTerminalCommand;
+import dev.kalles.payment.application.port.in.command.CreatePaymentPointCommand;
 import dev.kalles.payment.application.port.in.command.ListPaymentTerminalsQuery;
 import dev.kalles.payment.application.port.out.PaymentPointRepository;
 import dev.kalles.payment.application.port.out.PaymentStoreRepository;
@@ -14,6 +15,7 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentTerminal;
+import dev.kalles.payment.exception.PaymentStoreNotConfiguredException;
 import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
@@ -142,6 +144,32 @@ class PaymentPointManagementServiceTest {
                 )));
 
         verify(paymentTerminalRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRefuseToCreateThePointWhenTheCompanyHasNoProviderStore() {
+        UUID companyId = UUID.randomUUID();
+        UUID cashRegisterId = UUID.randomUUID();
+        CashRegister cashRegister = mock(CashRegister.class);
+
+        when(paymentPointRepository.findByCashRegisterIdAndProvider(cashRegisterId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentPoint(UUID.randomUUID(), cashRegisterId, PaymentProvider.MERCADO_PAGO, "CAIXA-01", null)));
+        when(companyRepository.findByTenantId(TENANT_ID))
+                .thenReturn(List.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
+        when(cashRegisterRepository.findByIdAndCompanyId(cashRegisterId, companyId)).thenReturn(Optional.of(cashRegister));
+        when(cashRegister.getCompanyId()).thenReturn(companyId);
+        when(paymentStoreRepository.findByCompanyIdAndProvider(companyId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentStore(UUID.randomUUID(), companyId, PaymentProvider.MERCADO_PAGO, "FILIAL-01", null)));
+
+        assertThrows(PaymentStoreNotConfiguredException.class, () ->
+                service.execute(new CreatePaymentPointCommand(
+                        PaymentProvider.MERCADO_PAGO,
+                        cashRegisterId,
+                        "CAIXA-01",
+                        null
+                )));
+
+        verify(portFactory, never()).point(PaymentProvider.MERCADO_PAGO);
     }
 
     @Test
