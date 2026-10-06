@@ -322,8 +322,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 .when()
                 .post("/api/sales/{sessionToken}/items")
                 .then()
-                .statusCode(409)
-                .body("title", equalTo("Estoque insuficiente"))
+                .statusCode(422)
+                .body("code", equalTo("INSUFFICIENT_STOCK"))
                 .body("detail", equalTo("Estoque insuficiente para o produto 'Produto PDV'. Quantidade disponível: 20"));
     }
 

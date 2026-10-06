@@ -130,7 +130,8 @@ public class SaleController {
             description = "Adiciona um produto à venda ativa da sessão, criando a venda se ainda não existir. Incrementa a quantidade se o produto já estiver na venda.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Item adicionado com sucesso"),
-        @ApiResponse(responseCode = "404", description = "Sessão de caixa ou produto não encontrado", content = @Content(schema = @Schema(hidden = true)))
+        @ApiResponse(responseCode = "404", description = "Sessão de caixa ou produto não encontrado", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "422", description = "Estoque insuficiente", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<SaleResponse> addItem(
             @PathVariable @NotBlank String sessionToken,

@@ -321,8 +321,9 @@ class StockServiceTest {
         Product product = buildProduct(UUID.randomUUID());
         when(stockRepository.sumQuantityByProductId(product.getId(), companyId)).thenReturn(5);
 
-        assertThrows(InsufficientStockException.class,
+        InsufficientStockException error = assertThrows(InsufficientStockException.class,
                 () -> stockService.requireAvailable(product, 6, companyId));
+        assertEquals("INSUFFICIENT_STOCK", error.getCode());
     }
 
     @Test
