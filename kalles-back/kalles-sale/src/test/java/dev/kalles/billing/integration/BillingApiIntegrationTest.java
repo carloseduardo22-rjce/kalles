@@ -60,7 +60,7 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
     }
 
     @Test
-    void shouldReturnConflictWhenPortalSessionIsRequestedWithoutSubscription() {
+    void shouldReturnUnprocessableEntityWhenPortalSessionIsRequestedWithoutSubscription() {
         AuthContext auth = authenticateTenantAdminWithCsrf();
 
         givenAuthenticated(auth)
@@ -68,7 +68,8 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .when()
                 .post("/api/billing/portal-sessions")
                 .then()
-                .statusCode(409)
+                .statusCode(422)
+                .body("code", equalTo("BILLING_SUBSCRIPTION_NOT_CONFIGURED"))
                 .body("detail", equalTo("Nenhuma assinatura Stripe encontrada para este tenant."));
     }
 

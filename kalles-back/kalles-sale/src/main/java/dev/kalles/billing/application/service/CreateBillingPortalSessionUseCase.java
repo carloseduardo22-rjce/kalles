@@ -4,6 +4,7 @@ import dev.kalles.billing.application.port.out.BillingGateway;
 import dev.kalles.billing.application.port.out.BillingSubscriptionRepository;
 import dev.kalles.billing.domain.BillingProvider;
 import dev.kalles.billing.domain.BillingSubscription;
+import dev.kalles.billing.exception.BillingSubscriptionNotConfiguredException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +20,10 @@ public class CreateBillingPortalSessionUseCase {
     public BillingGateway.PortalSession execute(UUID tenantId, String returnUrl) {
         BillingSubscription subscription = billingSubscriptionRepository
                 .findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE)
-                .orElseThrow(() -> new IllegalStateException("Nenhuma assinatura Stripe encontrada para este tenant."));
+                .orElseThrow(BillingSubscriptionNotConfiguredException::new);
 
         if (subscription.getExternalCustomerId() == null || subscription.getExternalCustomerId().isBlank()) {
-            throw new IllegalStateException("Nenhum cliente Stripe encontrado para este tenant.");
+            throw new BillingSubscriptionNotConfiguredException();
         }
 
         return billingGateway.createPortalSession(
