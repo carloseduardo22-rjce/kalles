@@ -4,6 +4,7 @@ import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.support.domain.Priority;
 import dev.kalles.support.entity.CategoryEntity;
+import dev.kalles.support.exception.CategoryAlreadyExistsException;
 import dev.kalles.support.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,8 +34,7 @@ public class CategoryService {
     public CategoryEntity create(String name, String subcategory, Priority defaultPriority) {
         UUID tenantId = TenantContextHolder.requireTenantId();
         categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
-            throw new IllegalArgumentException(
-                    "A category with name '" + name + "' and subcategory '" + subcategory + "' already exists.");
+            throw new CategoryAlreadyExistsException(name, subcategory);
         });
         CategoryEntity category = new CategoryEntity();
         category.setTenantId(tenantId);
@@ -51,8 +51,7 @@ public class CategoryService {
         UUID tenantId = TenantContextHolder.requireTenantId();
         categoryRepository.findByTenantIdAndNameAndSubcategory(tenantId, name, subcategory).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException(
-                        "Another category already uses name '" + name + "' and subcategory '" + subcategory + "'.");
+                throw new CategoryAlreadyExistsException(name, subcategory);
             }
         });
         category.setName(name);
