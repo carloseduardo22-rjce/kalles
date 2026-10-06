@@ -6,6 +6,7 @@ import dev.kalles.note.application.port.out.CryptoPort;
 import dev.kalles.note.application.port.out.SensitiveContentRepositoryPort;
 import dev.kalles.note.domain.SensitiveContent;
 import dev.kalles.security.entity.Account;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,7 @@ public class SensitiveContentService implements EncryptSensitiveContentUseCase, 
     @Transactional(readOnly = true)
     public String decrypt(String token, String secret, UUID accountId) {
         SensitiveContent sensitiveContent = repositoryPort.findByTokenAndAccountId(token, accountId)
-                .orElseThrow(() -> new RuntimeException("Content not found or unauthorized"));
+                .orElseThrow(() -> new NotFoundException("Content not found or unauthorized"));
 
         return cryptoPort.decrypt(sensitiveContent.getEncryptedText(), secret);
     }
