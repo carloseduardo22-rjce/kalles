@@ -7,6 +7,8 @@ import dev.kalles.product.dto.ProductCatalogResponse;
 import dev.kalles.product.dto.ProductRequest;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
+import dev.kalles.product.exception.ProductBarcodeAlreadyExistsException;
+import dev.kalles.product.exception.ProductInternalCodeAlreadyExistsException;
 import dev.kalles.product.repository.CompanyProductReadRepository;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
@@ -83,11 +85,11 @@ public class ProductService {
         UUID tenantId = TenantContextHolder.requireTenantId();
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
-            throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
+            throw new ProductInternalCodeAlreadyExistsException();
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
             productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
-                throw new IllegalArgumentException("Ja existe um produto com o codigo de barras informado.");
+                throw new ProductBarcodeAlreadyExistsException();
             });
         }
 
@@ -117,13 +119,13 @@ public class ProductService {
 
         productRepository.findByInternalCodeAndTenantId(request.internalCode(), tenantId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException("Ja existe um produto com o codigo interno informado.");
+                throw new ProductInternalCodeAlreadyExistsException();
             }
         });
         if (request.barcode() != null && !request.barcode().isBlank()) {
             productRepository.findByBarcodeAndTenantId(request.barcode(), tenantId).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
-                    throw new IllegalArgumentException("Ja existe um produto com o codigo de barras informado.");
+                    throw new ProductBarcodeAlreadyExistsException();
                 }
             });
         }

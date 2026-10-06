@@ -6,6 +6,8 @@ import dev.kalles.product.dto.ProductCatalogResponse;
 import dev.kalles.product.dto.ProductRequest;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
+import dev.kalles.product.exception.ProductBarcodeAlreadyExistsException;
+import dev.kalles.product.exception.ProductInternalCodeAlreadyExistsException;
 import dev.kalles.product.repository.CompanyProductReadRepository;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
@@ -126,10 +128,57 @@ class ProductServiceTest {
         when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID))
                 .thenReturn(Optional.of(new Product()));
 
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+        ProductInternalCodeAlreadyExistsException error = assertThrows(ProductInternalCodeAlreadyExistsException.class,
                 () -> productService.create(request));
 
-        assertTrue(error.getMessage().contains("codigo interno"));
+        assertEquals("PRODUCT_INTERNAL_CODE_ALREADY_EXISTS", error.getCode());
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar codigo de barras duplicado no mesmo tenant")
+    void shouldRejectDuplicateBarcodeInsideSameTenant() {
+        ProductRequest request = new ProductRequest(
+                "Arroz Tipo 1",
+                "ARZ-001",
+                "789100000001",
+                "Pacote 5kg",
+                new BigDecimal("32.90"),
+                new BigDecimal("24.50")
+        );
+
+        when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID)).thenReturn(Optional.empty());
+        when(productRepository.findByBarcodeAndTenantId("789100000001", TENANT_ID))
+                .thenReturn(Optional.of(new Product()));
+
+        ProductBarcodeAlreadyExistsException error = assertThrows(ProductBarcodeAlreadyExistsException.class,
+                () -> productService.create(request));
+
+        assertEquals("PRODUCT_BARCODE_ALREADY_EXISTS", error.getCode());
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar atualizacao com codigo interno de outro produto")
+    void shouldRejectUpdateWithInternalCodeOfAnotherProduct() {
+        UUID productId = UUID.randomUUID();
+        ProductRequest request = new ProductRequest(
+                "Arroz Tipo 1",
+                "ARZ-001",
+                "789100000001",
+                "Pacote 5kg",
+                new BigDecimal("32.90"),
+                new BigDecimal("24.50")
+        );
+        Product current = new Product();
+        current.setId(productId);
+        Product another = new Product();
+        another.setId(UUID.randomUUID());
+
+        when(productRepository.findByIdAndTenantId(productId, TENANT_ID)).thenReturn(Optional.of(current));
+        when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID)).thenReturn(Optional.of(another));
+
+        assertThrows(ProductInternalCodeAlreadyExistsException.class, () -> productService.update(productId, request));
         verify(productRepository, never()).save(any());
     }
 
