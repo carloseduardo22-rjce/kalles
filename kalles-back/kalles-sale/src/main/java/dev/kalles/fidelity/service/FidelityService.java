@@ -5,6 +5,8 @@ import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.fidelity.dto.FidelityResponse;
 import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.entity.FidelityPolicy;
+import dev.kalles.fidelity.exception.ClientAlreadyInFidelityException;
+import dev.kalles.fidelity.exception.FidelityPolicyNotConfiguredException;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -28,11 +30,11 @@ public class FidelityService {
     @Transactional
     public FidelityResponse enrollClient(UUID clientId) {
         if (fidelityRepository.existsByClientId(clientId)) {
-            throw new IllegalArgumentException("Cliente já está inserido no programa de fidelidade.");
+            throw new ClientAlreadyInFidelityException();
         }
         UUID companyId = CompanyContextHolder.requireCompanyId();
         FidelityPolicy policy = fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(companyId)
-                .orElseThrow(() -> new IllegalStateException("Nenhuma política de fidelidade ativa encontrada para esta filial."));
+                .orElseThrow(() -> new FidelityPolicyNotConfiguredException());
         Client client = clientRepository.findByIdAndCompanyId(clientId, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
         Fidelity fidelity = new Fidelity();

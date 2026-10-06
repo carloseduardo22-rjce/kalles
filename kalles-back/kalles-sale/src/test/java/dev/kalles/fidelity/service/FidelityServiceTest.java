@@ -6,6 +6,8 @@ import dev.kalles.fidelity.dto.FidelityResponse;
 import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.enums.FidelityDiscountType;
+import dev.kalles.fidelity.exception.ClientAlreadyInFidelityException;
+import dev.kalles.fidelity.exception.FidelityPolicyNotConfiguredException;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.fidelity.service.FidelityService;
@@ -114,7 +116,9 @@ class FidelityServiceTest {
         void shouldThrowWhenClientAlreadyEnrolled() {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(true);
 
-            assertThrows(IllegalArgumentException.class, () -> fidelityService.enrollClient(clientId));
+            ClientAlreadyInFidelityException error =
+                    assertThrows(ClientAlreadyInFidelityException.class, () -> fidelityService.enrollClient(clientId));
+            assertEquals("CLIENT_ALREADY_IN_FIDELITY", error.getCode());
             verify(fidelityRepository, never()).save(any());
         }
 
@@ -124,7 +128,9 @@ class FidelityServiceTest {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
             when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.empty());
 
-            assertThrows(IllegalStateException.class, () -> fidelityService.enrollClient(clientId));
+            FidelityPolicyNotConfiguredException error =
+                    assertThrows(FidelityPolicyNotConfiguredException.class, () -> fidelityService.enrollClient(clientId));
+            assertEquals("FIDELITY_POLICY_NOT_CONFIGURED", error.getCode());
             verify(fidelityRepository, never()).save(any());
         }
 
