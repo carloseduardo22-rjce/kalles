@@ -37,8 +37,4 @@ public class CompanyService {
 
         return listCompaniesByTenant(tenantId);
     }
-
-    public Company getCompanyById(UUID id) {
-        return companyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Company not found"));
-    }
 }
