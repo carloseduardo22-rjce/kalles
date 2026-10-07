@@ -252,8 +252,8 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
     }
 
     @Test
-    void shouldReturnBadGatewayWhenWebhookValidationFails() {
-        stubBillingGateway.failNextWebhook("Falha ao validar webhook Stripe.");
+    void shouldReturnBadRequestWhenWebhookSignatureIsInvalid() {
+        stubBillingGateway.rejectNextWebhook();
 
         givenWebhookRequest()
                 .header("Stripe-Signature", "sig_invalid")
@@ -261,8 +261,9 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .when()
                 .post("/api/billing/webhook")
                 .then()
-                .statusCode(502)
-                .body("detail", equalTo("Falha ao validar webhook Stripe."));
+                .statusCode(400)
+                .body("detail", equalTo("Assinatura do webhook Stripe invalida."))
+                .body("code", equalTo("BILLING_WEBHOOK_REJECTED"));
 
         assertThat(billingSubscriptionRepository.count()).isZero();
         assertThat(billingWebhookEventRepository.count()).isZero();
