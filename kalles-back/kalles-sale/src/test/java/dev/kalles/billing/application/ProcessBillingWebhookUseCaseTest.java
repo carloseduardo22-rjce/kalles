@@ -9,6 +9,7 @@ import dev.kalles.billing.domain.BillingInterval;
 import dev.kalles.billing.domain.BillingProvider;
 import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.domain.BillingSubscription;
+import dev.kalles.billing.exception.BillingWebhookTenantUnresolvedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -179,7 +180,7 @@ class ProcessBillingWebhookUseCaseTest {
                 .thenReturn(false);
         when(billingSubscriptionRepository.findByExternalCustomerId("cus_unknown")).thenReturn(Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+        org.junit.jupiter.api.Assertions.assertThrows(BillingWebhookTenantUnresolvedException.class, () ->
                 useCase.execute("{payload}", "signature"));
 
         verify(billingSubscriptionRepository, never()).save(any());

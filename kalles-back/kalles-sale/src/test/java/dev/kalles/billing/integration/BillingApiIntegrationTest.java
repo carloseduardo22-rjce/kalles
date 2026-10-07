@@ -244,7 +244,8 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .post("/api/billing/webhook")
                 .then()
                 .statusCode(409)
-                .body("detail", equalTo("Nao foi possivel resolver o tenant da notificacao Stripe."));
+                .body("detail", equalTo("Nao foi possivel resolver o tenant da notificacao Stripe."))
+                .body("code", equalTo("BILLING_WEBHOOK_TENANT_UNRESOLVED"));
 
         assertThat(billingSubscriptionRepository.count()).isZero();
         assertThat(billingWebhookEventRepository.count()).isZero();
