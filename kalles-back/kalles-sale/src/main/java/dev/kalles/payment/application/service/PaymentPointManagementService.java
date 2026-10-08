@@ -119,11 +119,8 @@ public class PaymentPointManagementService implements
                 .orElseThrow(() -> new NotFoundException("Terminal not found for informed serial"));
 
         if (targetTerminal.operationMode() != TerminalOperationMode.POINT_OF_SALE) {
-            boolean success = portFactory.terminal(command.provider())
+            portFactory.terminal(command.provider())
                     .changeOperationMode(targetTerminal.id(), TerminalOperationMode.POINT_OF_SALE);
-            if (!success) {
-                throw new IllegalStateException("Failed to change terminal operation mode");
-            }
         }
 
         paymentTerminalRepository.save(targetTerminal.withOperationMode(TerminalOperationMode.POINT_OF_SALE));

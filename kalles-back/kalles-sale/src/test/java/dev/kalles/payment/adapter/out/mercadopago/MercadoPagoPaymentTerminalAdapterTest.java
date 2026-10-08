@@ -14,6 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -141,7 +142,7 @@ class MercadoPagoPaymentTerminalAdapterTest {
     }
 
     @Test
-    void shouldSendTheOperationModeChangeAndReportSuccess() {
+    void shouldSendTheOperationModeChange() {
         server.expect(requestTo(SETUP_URL))
                 .andExpect(method(HttpMethod.PATCH))
                 .andExpect(header("Authorization", "Bearer token-do-tenant"))
@@ -150,21 +151,19 @@ class MercadoPagoPaymentTerminalAdapterTest {
                 .andExpect(jsonPath("$.terminals[0].operating_mode").value("STANDALONE"))
                 .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
-        boolean changed = adapter.changeOperationMode("TERMINAL-01", TerminalOperationMode.STANDALONE);
+        adapter.changeOperationMode("TERMINAL-01", TerminalOperationMode.STANDALONE);
 
-        assertThat(changed).isTrue();
         server.verify();
     }
 
     @Test
-    void shouldReportFailureWhenMercadoPagoRejectsTheOperationModeChange() {
+    void shouldFailWhenMercadoPagoRejectsTheOperationModeChange() {
         server.expect(requestTo(SETUP_URL))
                 .andExpect(jsonPath("$.terminals[0].operating_mode").value("PDV"))
                 .andRespond(withStatus(HttpStatus.BAD_REQUEST));
 
-        boolean changed = adapter.changeOperationMode("TERMINAL-01", TerminalOperationMode.POINT_OF_SALE);
-
-        assertThat(changed).isFalse();
+        assertThatThrownBy(() -> adapter.changeOperationMode("TERMINAL-01", TerminalOperationMode.POINT_OF_SALE))
+                .isInstanceOf(MercadoPagoAdapterException.class);
         server.verify();
     }
 }

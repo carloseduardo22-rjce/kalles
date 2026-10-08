@@ -80,7 +80,7 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
     }
 
     @Override
-    public boolean changeOperationMode(String terminalId, TerminalOperationMode operationMode) {
+    public void changeOperationMode(String terminalId, TerminalOperationMode operationMode) {
         String token = credentialsResolver.linkedAccessTokenOrThrow();
 
         try {
@@ -98,9 +98,14 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
                     )
             );
 
-            return response.getStatusCode().is2xxSuccessful();
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new MercadoPagoAdapterException("Fail to change terminal operation mode. HTTP Status: "
+                        + response.getStatusCode().value() + " - " + response.getBody());
+            }
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
-            return false;
+            throw new MercadoPagoAdapterException("Fail to change terminal operation mode: " + e.getMessage(), e);
         }
     }
 }

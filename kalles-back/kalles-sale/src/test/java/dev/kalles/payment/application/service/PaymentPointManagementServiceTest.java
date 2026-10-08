@@ -15,6 +15,8 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentTerminal;
+import dev.kalles.payment.domain.TerminalOperationMode;
+import dev.kalles.payment.exception.PaymentProviderIntegrationException;
 import dev.kalles.payment.exception.PaymentStoreNotConfiguredException;
 import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -33,6 +35,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -135,6 +138,40 @@ class PaymentPointManagementServiceTest {
                 .thenReturn(List.of(new PaymentTerminal("PAX_A910__OTHER", "point-1", "store-1", null, null)));
 
         assertThrows(NotFoundException.class, () ->
+                service.execute(new ActivatePaymentTerminalCommand(
+                        PaymentProvider.MERCADO_PAGO,
+                        "store-1",
+                        "point-1",
+                        "SERIAL-1",
+                        null
+                )));
+
+        verify(paymentTerminalRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldNotStoreTheTerminalWhenTheProviderFailsToChangeItsOperationMode() {
+        UUID companyId = UUID.randomUUID();
+        UUID cashRegisterId = UUID.randomUUID();
+        CashRegister cashRegister = mock(CashRegister.class);
+        PaymentTerminalPort terminalPort = mock(PaymentTerminalPort.class);
+
+        when(companyRepository.findByTenantId(TENANT_ID))
+                .thenReturn(List.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
+        when(paymentStoreRepository.findByCompanyIdAndProvider(companyId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentStore(UUID.randomUUID(), companyId, PaymentProvider.MERCADO_PAGO, "tenant-store", "store-1")));
+        when(cashRegister.getId()).thenReturn(cashRegisterId);
+        when(cashRegisterRepository.findAllByCompanyIdAndActiveTrueOrderByCodeAsc(companyId))
+                .thenReturn(List.of(cashRegister));
+        when(paymentPointRepository.findByCashRegisterIdAndProvider(cashRegisterId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentPoint(UUID.randomUUID(), cashRegisterId, PaymentProvider.MERCADO_PAGO, "CAIXA-01", "point-1")));
+        when(portFactory.terminal(PaymentProvider.MERCADO_PAGO)).thenReturn(terminalPort);
+        when(terminalPort.listTerminals("store-1", "point-1"))
+                .thenReturn(List.of(new PaymentTerminal("PAX_A910__SERIAL-1", "point-1", "store-1", null, TerminalOperationMode.STANDALONE)));
+        doThrow(new PaymentProviderIntegrationException("falha no provedor"))
+                .when(terminalPort).changeOperationMode("PAX_A910__SERIAL-1", TerminalOperationMode.POINT_OF_SALE);
+
+        assertThrows(PaymentProviderIntegrationException.class, () ->
                 service.execute(new ActivatePaymentTerminalCommand(
                         PaymentProvider.MERCADO_PAGO,
                         "store-1",
