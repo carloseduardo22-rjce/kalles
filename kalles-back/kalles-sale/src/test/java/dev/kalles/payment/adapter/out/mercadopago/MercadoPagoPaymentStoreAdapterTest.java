@@ -205,11 +205,11 @@ class MercadoPagoPaymentStoreAdapterTest {
     }
 
     @Test
-    void shouldListNoStoresWhenMercadoPagoFails() {
+    void shouldFailToListStoresWhenMercadoPagoFails() {
         server.expect(requestTo(SEARCH_URL))
                 .andRespond(withStatus(HttpStatus.FORBIDDEN));
 
-        assertThat(adapter.listStores()).isEmpty();
+        assertThatThrownBy(adapter::listStores).isInstanceOf(MercadoPagoAdapterException.class);
         server.verify();
     }
 }

@@ -118,7 +118,8 @@ public class MercadoPagoPaymentStoreAdapter implements PaymentStorePort {
             );
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                return List.of();
+                throw new MercadoPagoAdapterException("Fail to list MP Stores. HTTP Status: "
+                        + response.getStatusCode().value() + " - " + response.getBody());
             }
 
             StoreSearchResponse searchResponse = objectMapper.readValue(response.getBody(), StoreSearchResponse.class);
@@ -135,8 +136,10 @@ public class MercadoPagoPaymentStoreAdapter implements PaymentStorePort {
                             Map.of()
                     ))
                     .toList();
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
-            return List.of();
+            throw new MercadoPagoAdapterException("Fail to list MP Stores: " + e.getMessage(), e);
         }
     }
 

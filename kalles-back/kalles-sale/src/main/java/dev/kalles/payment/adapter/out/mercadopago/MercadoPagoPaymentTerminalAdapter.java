@@ -57,7 +57,8 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
             );
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                return List.of();
+                throw new MercadoPagoAdapterException("Fail to list MP terminals. HTTP Status: "
+                        + response.getStatusCode().value() + " - " + response.getBody());
             }
 
             TerminalListResponse listResponse = objectMapper.readValue(response.getBody(), TerminalListResponse.class);
@@ -74,8 +75,10 @@ public class MercadoPagoPaymentTerminalAdapter implements PaymentTerminalPort {
                             toTerminalOperationMode(terminal.operatingMode())
                     ))
                     .toList();
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
-            return List.of();
+            throw new MercadoPagoAdapterException("Fail to list MP terminals: " + e.getMessage(), e);
         }
     }
 

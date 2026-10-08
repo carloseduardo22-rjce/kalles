@@ -225,11 +225,11 @@ class MercadoPagoPaymentPointAdapterTest {
     }
 
     @Test
-    void shouldListNoPointsWhenMercadoPagoFails() {
+    void shouldFailToListPointsWhenMercadoPagoFails() {
         server.expect(requestTo(POS_URL))
                 .andRespond(withStatus(HttpStatus.FORBIDDEN));
 
-        assertThat(adapter.listPoints()).isEmpty();
+        assertThatThrownBy(adapter::listPoints).isInstanceOf(MercadoPagoAdapterException.class);
         server.verify();
     }
 }

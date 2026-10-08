@@ -133,11 +133,12 @@ class MercadoPagoPaymentTerminalAdapterTest {
     }
 
     @Test
-    void shouldReturnNoTerminalsWhenMercadoPagoFails() {
+    void shouldFailToListTerminalsWhenMercadoPagoFails() {
         server.expect(requestTo(LIST_URL))
                 .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 
-        assertThat(adapter.listTerminals("STORE-01", "POS-01")).isEmpty();
+        assertThatThrownBy(() -> adapter.listTerminals("STORE-01", "POS-01"))
+                .isInstanceOf(MercadoPagoAdapterException.class);
         server.verify();
     }
 
