@@ -1,6 +1,8 @@
 package dev.kalles.payment.adapter.out.mercadopago;
 
-public class MercadoPagoAdapterException extends RuntimeException {
+import dev.kalles.payment.exception.PaymentProviderIntegrationException;
+
+public class MercadoPagoAdapterException extends PaymentProviderIntegrationException {
 
     public MercadoPagoAdapterException(String message) {
         super(message);

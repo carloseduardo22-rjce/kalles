@@ -7,6 +7,7 @@ import dev.kalles.inventory.entity.Location;
 import dev.kalles.inventory.entity.Stock;
 import dev.kalles.inventory.entity.StockAdjustment;
 import dev.kalles.inventory.entity.StockEntry;
+import dev.kalles.inventory.exception.InsufficientStockException;
 import dev.kalles.inventory.repository.LocationRepository;
 import dev.kalles.inventory.repository.StockAdjustmentRepository;
 import dev.kalles.inventory.repository.StockEntryRepository;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -107,6 +109,37 @@ public class StockService {
     public int getTotalStockByProduct(UUID productId) {
         Product product = findTenantProduct(productId);
         return stockRepository.sumQuantityByProductId(product.getId(), CompanyContextHolder.requireCompanyId());
+    }
+
+    @Transactional(readOnly = true)
+    public void requireAvailable(Product product, int quantity, UUID companyId) {
+        int available = stockRepository.sumQuantityByProductId(product.getId(), companyId);
+        if (available < quantity) {
+            throw new InsufficientStockException(product.getName(), available);
+        }
+    }
+
+    @Transactional
+    public void deduct(Product product, int quantity, UUID companyId) {
+        List<Stock> locked = stockRepository.lockAllByProductId(product.getId(), companyId);
+
+        int available = locked.stream().mapToInt(Stock::getQuantity).sum();
+        if (available < quantity) {
+            throw new InsufficientStockException(product.getName(), available);
+        }
+
+        int remaining = quantity;
+        for (Stock stock : locked.stream()
+                .sorted(Comparator.comparingInt(Stock::getQuantity).reversed())
+                .toList()) {
+            if (remaining <= 0) {
+                break;
+            }
+            int deducted = Math.min(stock.getQuantity(), remaining);
+            stock.setQuantity(stock.getQuantity() - deducted);
+            remaining -= deducted;
+            stockRepository.save(stock);
+        }
     }
 
 

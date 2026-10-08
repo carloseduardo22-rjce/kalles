@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import dev.kalles.product.entity.Product;
+import dev.kalles.sale.exception.DiscountExceedsItemTotalException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
@@ -83,8 +84,7 @@ public class SaleItem {
         BigDecimal itemTotal = this.unitPrice.multiply(BigDecimal.valueOf(this.quantity));
 
         if (discountAmount.compareTo(itemTotal) > 0) {
-            throw new IllegalArgumentException(
-                "O desconto não pode exceder o valor do produto. Valor do item: R$ " + itemTotal);
+            throw new DiscountExceedsItemTotalException(itemTotal);
         }
 
         this.discount = discountAmount;

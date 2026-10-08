@@ -5,13 +5,12 @@ import dev.kalles.inventory.dto.WarehouseResponse;
 import dev.kalles.inventory.entity.Warehouse;
 import dev.kalles.inventory.repository.WarehouseRepository;
 import dev.kalles.inventory.service.WarehouseService;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,21 +30,14 @@ class WarehouseServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private WarehouseRepository warehouseRepository;
 
     @InjectMocks
     private WarehouseService warehouseService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar depósito como ativo por padrão")

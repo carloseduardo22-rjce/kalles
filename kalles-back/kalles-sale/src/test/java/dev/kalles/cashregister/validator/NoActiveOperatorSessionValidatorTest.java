@@ -7,12 +7,12 @@ import dev.kalles.cashregister.exception.OperatorNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.valueobject.SessionStatus;
-import dev.kalles.security.context.CompanyContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,6 +33,9 @@ class NoActiveOperatorSessionValidatorTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("bd60fd49-34d8-4d9c-ae58-62d290e8683c");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private OperatorRepository operatorRepository;
 
@@ -43,13 +46,7 @@ class NoActiveOperatorSessionValidatorTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         validator = new NoActiveOperatorSessionValidator(operatorRepository, sessionRepository);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     @Test

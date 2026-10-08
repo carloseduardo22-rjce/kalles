@@ -9,6 +9,7 @@ import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.exception.OperatorAlreadyInSessionException;
 import dev.kalles.cashregister.exception.OperatorNotFoundException;
+import dev.kalles.cashregister.exception.PaymentIntegrationNotConfiguredException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -68,9 +69,7 @@ public class OpenSessionUseCase {
         boolean cashOnlyOperation = !paymentIntegrationConfigured && request.shouldAllowCashOnlyOperation();
 
         if (!paymentIntegrationConfigured && !cashOnlyOperation) {
-            throw new IllegalStateException(
-                "Pagamento nao configurado, neste caixa voce apenas podera operar com dinheiro mas nao podera receber pagamentos via pix, vouchers e cartoes de credito."
-            );
+            throw new PaymentIntegrationNotConfiguredException();
         }
 
         CashRegisterSession session = CashRegisterSession.open(

@@ -7,17 +7,19 @@ import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.exception.OperatorNotFoundException;
+import dev.kalles.cashregister.exception.PaymentIntegrationNotConfiguredException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
-import dev.kalles.security.context.CompanyContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.shared.exception.ForbiddenOperationException;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,6 +48,9 @@ class OpenSessionUseCaseTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private CashRegisterRepository cashRegisterRepository;
 
@@ -68,7 +73,6 @@ class OpenSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         useCase = new OpenSessionUseCase(
             cashRegisterRepository,
             operatorRepository,
@@ -77,11 +81,6 @@ class OpenSessionUseCaseTest {
             pairedDeviceSessionGuard,
             paymentIntegrationService
         );
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     @Test
@@ -174,12 +173,12 @@ class OpenSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
             .thenReturn(Optional.of(operator));
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        PaymentIntegrationNotConfiguredException exception = assertThrows(
+            PaymentIntegrationNotConfiguredException.class,
             () -> useCase.execute(request)
         );
 
-        assertTrue(exception.getMessage().contains("Pagamento"));
+        assertEquals("PAYMENT_INTEGRATION_NOT_CONFIGURED", exception.getCode());
     }
 
     @Test
@@ -284,16 +283,16 @@ class OpenSessionUseCaseTest {
 
         when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        doThrow(new IllegalArgumentException("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o."))
+        doThrow(new ForbiddenOperationException("O dispositivo precisa estar pareado antes da operação."))
             .when(pairedDeviceSessionGuard)
             .ensureCanOperate(cashRegister);
 
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        ForbiddenOperationException exception = assertThrows(
+            ForbiddenOperationException.class,
             () -> useCase.execute(request)
         );
 
-        assertEquals("O dispositivo precisa estar pareado antes da operaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o.", exception.getMessage());
+        assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
 
         verify(validatorChain).validate(request);
         verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);

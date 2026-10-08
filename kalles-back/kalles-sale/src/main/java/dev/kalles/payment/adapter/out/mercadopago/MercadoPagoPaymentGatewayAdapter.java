@@ -14,6 +14,9 @@ import dev.kalles.payment.domain.PaymentFlow;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.payment.exception.PaymentOperationNotSupportedException;
+import dev.kalles.payment.exception.PaymentPointNotConfiguredException;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -108,7 +111,7 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
     @Override
     public PaymentResult closePaymentOrder(String providerOrderId, PaymentStatus status) {
         if (status != PaymentStatus.CANCELED) {
-            throw new IllegalArgumentException("Mercado Pago only supports canceling orders through this operation");
+            throw new PaymentOperationNotSupportedException("O Mercado Pago so permite encerrar um pedido cancelando-o.");
         }
         cancelPayment(providerOrderId);
         return getPayment(providerOrderId);
@@ -116,7 +119,7 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
 
     @Override
     public void printDocument(String providerOrderId, PaymentDocumentPrintCommand command) {
-        throw new IllegalStateException("Mercado Pago does not support document printing through this integration");
+        throw new PaymentOperationNotSupportedException("O Mercado Pago nao permite imprimir documentos por esta integracao.");
     }
 
     @Override
@@ -142,14 +145,13 @@ public class MercadoPagoPaymentGatewayAdapter implements PaymentGatewayPort {
 
     private PaymentResult createQrOrder(PaymentCommand command) {
         CashRegister cashRegister = cashRegisterRepository.findByCode(command.targetId())
-                .orElseThrow(() -> new IllegalArgumentException("Cash Register code not found: " + command.targetId()));
+                .orElseThrow(() -> new NotFoundException("Cash Register code not found: " + command.targetId()));
 
         var point = paymentPointRepository.findByCashRegisterIdAndProvider(cashRegister.getId(), PaymentProvider.MERCADO_PAGO)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Caixa Integration mapping not found for code: " + command.targetId()));
+                .orElseThrow(PaymentPointNotConfiguredException::new);
 
         if (!point.hasProviderPoint()) {
-            throw new IllegalStateException("Caixa does not have a Mercado Pago POS configured.");
+            throw new PaymentPointNotConfiguredException();
         }
 
         QrOrderRequest payload = new QrOrderRequest(

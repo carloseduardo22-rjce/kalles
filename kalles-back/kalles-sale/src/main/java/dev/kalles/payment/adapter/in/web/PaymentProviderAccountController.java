@@ -10,6 +10,7 @@ import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.entity.Account;
+import dev.kalles.security.exception.AuthenticatedAccountNotFoundException;
 import dev.kalles.security.repository.AccountRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -104,11 +105,11 @@ public class PaymentProviderAccountController {
 
     private Account resolveAuthenticatedAccount(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new IllegalArgumentException("Conta autenticada nao encontrada.");
+            throw new AuthenticatedAccountNotFoundException();
         }
 
         return accountRepository.findByTenantIdAndEmailIgnoreCase(TenantContextHolder.getTenantId(), authentication.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Conta autenticada nao encontrada."));
+                .orElseThrow(AuthenticatedAccountNotFoundException::new);
     }
 
     private String buildAuthorizationUrl(PaymentProvider provider, String state) {

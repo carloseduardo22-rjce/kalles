@@ -2,9 +2,13 @@ package dev.kalles.security.service;
 
 import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.dto.LoginRequest;
+import dev.kalles.security.dto.VerifyCodeRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.exception.InvalidCredentialsException;
+import dev.kalles.security.exception.VerificationCodeRejectedException;
 import dev.kalles.security.repository.AccountRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,6 +145,113 @@ class AuthServiceTest {
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());
+    }
+
+    @Test
+    @DisplayName("deve recusar senha incorreta como credencial invalida")
+    void shouldRejectWrongPasswordAsInvalidCredentials() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        LoginRequest request = new LoginRequest(account.getEmail(), "senha-errada");
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+        when(passwordEncoder.matches("senha-errada", "encoded")).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        verify(authenticationProtectionService).registerLoginFailure(account.getEmail(), null);
+    }
+
+    @Test
+    @DisplayName("deve recusar conta inexistente como credencial invalida")
+    void shouldRejectUnknownAccountAsInvalidCredentials() {
+        LoginRequest request = new LoginRequest("ninguem@kalles.local", "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
+        when(passwordEncoder.encode(any())).thenReturn("hash-de-conta-inexistente");
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        verify(passwordEncoder).matches("123456", "hash-de-conta-inexistente");
+        verify(authenticationProtectionService).registerLoginFailure("ninguem@kalles.local", null);
+    }
+
+    @Test
+    @DisplayName("deve bloquear conta ainda nao verificada")
+    void shouldBlockUnverifiedAccount() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        account.setVerified(false);
+        LoginRequest request = new LoginRequest(account.getEmail(), "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+        when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
+
+        assertThrows(ForbiddenOperationException.class, () -> authService.authenticate(request, null));
+    }
+
+    @Test
+    @DisplayName("deve tratar conta inexistente na verificacao como codigo invalido")
+    void shouldTreatUnknownAccountOnCodeVerificationAsInvalidCode() {
+        VerifyCodeRequest request = new VerifyCodeRequest("ninguem@kalles.local", "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
+
+        VerificationCodeRejectedException exception = assertThrows(
+                VerificationCodeRejectedException.class,
+                () -> authService.verifyCode(request)
+        );
+
+        assertEquals("VERIFICATION_CODE_INVALID", exception.getCode());
+        verify(authenticationProtectionService).registerVerificationFailure("ninguem@kalles.local", null);
+    }
+
+    @Test
+    @DisplayName("deve tratar conta ja verificada na verificacao como codigo invalido")
+    void shouldTreatVerifiedAccountOnCodeVerificationAsInvalidCode() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        VerifyCodeRequest request = new VerifyCodeRequest(account.getEmail(), "123456");
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+
+        VerificationCodeRejectedException exception = assertThrows(
+                VerificationCodeRejectedException.class,
+                () -> authService.verifyCode(request)
+        );
+
+        assertEquals("VERIFICATION_CODE_INVALID", exception.getCode());
+        verify(accountVerificationService, never()).verifyCode(any(), any());
+    }
+
+    @Test
+    @DisplayName("deve reenviar codigo para conta pendente de verificacao")
+    void shouldResendCodeForUnverifiedAccount() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+        account.setVerified(false);
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+
+        authService.resendVerificationCode(account.getEmail(), null);
+
+        verify(accountVerificationService).generateAndSendVerificationCode(account);
+    }
+
+    @Test
+    @DisplayName("deve ignorar em silencio o reenvio para conta inexistente")
+    void shouldSilentlyIgnoreResendForUnknownAccount() {
+        when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
+
+        authService.resendVerificationCode("ninguem@kalles.local", null);
+
+        verify(accountVerificationService, never()).generateAndSendVerificationCode(any());
+    }
+
+    @Test
+    @DisplayName("deve ignorar em silencio o reenvio para conta ja verificada")
+    void shouldSilentlyIgnoreResendForVerifiedAccount() {
+        Account account = account(AccountRole.ADMIN, UUID.randomUUID());
+
+        when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
+
+        authService.resendVerificationCode(account.getEmail(), null);
+
+        verify(accountVerificationService, never()).generateAndSendVerificationCode(any());
     }
 
     private Account account(AccountRole role, UUID companyId) {

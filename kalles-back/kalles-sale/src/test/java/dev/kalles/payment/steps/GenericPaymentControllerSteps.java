@@ -34,7 +34,7 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
 import dev.kalles.payment.domain.PaymentStore;
-import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.security.context.RequestContext;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
@@ -160,7 +160,6 @@ public class GenericPaymentControllerSteps {
                 state,
                 Map.of(metadataKey, metadataValue)
         );
-        TenantContextHolder.setTenantId(authenticatedAccount.getTenantId());
         when(authentication.getName()).thenReturn(authenticatedAccount.getEmail());
         when(accountRepository.findByTenantIdAndEmailIgnoreCase(authenticatedAccount.getTenantId(), authenticatedAccount.getEmail()))
                 .thenReturn(Optional.of(authenticatedAccount));
@@ -183,11 +182,8 @@ public class GenericPaymentControllerSteps {
 
     @Quando("o controller generico de vinculacao processar a solicitacao")
     public void whenLinkControllerProcessesRequest() {
-        try {
-            linkResponse = paymentProviderAccountController.linkAccount(linkRequest, authentication, httpServletRequest);
-        } finally {
-            TenantContextHolder.clear();
-        }
+        linkResponse = RequestContext.callWithin(RequestContext.ofTenant(authenticatedAccount.getTenantId()), () ->
+                paymentProviderAccountController.linkAccount(linkRequest, authentication, httpServletRequest));
     }
 
     @Entao("o caso de uso de vinculacao deve receber o provider {string}")

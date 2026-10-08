@@ -15,7 +15,7 @@ Funcionalidade: Gestao de assinatura multi-tenant em billing
   Cenario: Portal session falha quando o tenant nao possui assinatura
     Dado um admin autenticado para billing
     Quando ele solicitar uma portal session de billing
-    Entao a resposta de billing deve ter status HTTP 409
+    Entao a resposta de billing deve ter status HTTP 422
     E a resposta deve informar que nao existe assinatura Stripe
 
   Cenario: Webhook valido persiste assinatura do tenant correto

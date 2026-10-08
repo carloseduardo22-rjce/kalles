@@ -54,7 +54,8 @@ public class ProductController {
     @Operation(summary = "Cadastrar produto")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Produto cadastrado com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Dados inválidos ou código já cadastrado")
+        @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+        @ApiResponse(responseCode = "409", description = "Código interno ou código de barras já cadastrado")
     })
     public ResponseEntity<ProductCatalogResponse> create(@Valid @RequestBody ProductRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
@@ -75,7 +76,7 @@ public class ProductController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Produto atualizado"),
         @ApiResponse(responseCode = "404", description = "Produto não encontrado"),
-        @ApiResponse(responseCode = "400", description = "Código já utilizado por outro produto")
+        @ApiResponse(responseCode = "409", description = "Código interno ou código de barras já utilizado por outro produto")
     })
     public ResponseEntity<ProductCatalogResponse> update(
             @PathVariable UUID id, @Valid @RequestBody ProductRequest request) {

@@ -8,7 +8,10 @@ import dev.kalles.security.dto.RegisterResponse;
 import dev.kalles.security.dto.VerifyCodeRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.exception.InvalidCredentialsException;
+import dev.kalles.security.exception.VerificationCodeRejectedException;
 import dev.kalles.security.repository.AccountRepository;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,35 +34,21 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationProtectionService authenticationProtectionService;
 
+    private volatile String unknownAccountPasswordHash;
+
     public AuthTokens authenticate(LoginRequest request, String posToken) {
         authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId());
         try {
-            var account = resolveAccount(request.email(), request.tenantId());
+            var account = resolveAccountOptional(request.email(), request.tenantId())
+                    .orElseThrow(() -> rejectUnknownAccount(request.password()));
             if (!passwordEncoder.matches(request.password(), account.getPassword())) {
-                throw new IllegalArgumentException("Credenciais invalidas.");
+                throw new InvalidCredentialsException();
             }
             if (!account.isVerified()) {
-                throw new IllegalArgumentException("Conta ainda nao verificada.");
+                throw new ForbiddenOperationException("Conta ainda nao verificada.");
             }
 
             UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
-
-        /* if (account.getRole() == AccountRole.OPERATOR || account.getCompanyId() != null) {
-            if (posToken == null || posToken.isBlank()) {
-                throw new IllegalArgumentException(
-                        "Terminal não configurado. Por favor, solicite o pareamento do caixa.");
-            }
-
-            var session = posDeviceSessionRepository
-                    .findByTokenAndActiveTrueAndExpiresAtGreaterThan(posToken, LocalDateTime.now())
-                    .orElseThrow(() -> new IllegalArgumentException("Sessão do terminal inválida ou expirada."));
-
-            if (!session.getCompanyId().equals(account.getCompanyId())) {
-                throw new IllegalArgumentException("Este terminal não pertence a filial do caixa.");
-            }
-
-            posId = session.getPosId();
-        } */
 
             authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId());
             return buildSessionTokens(account, posId);
@@ -101,11 +90,8 @@ public class AuthService {
         authenticationProtectionService.assertVerificationAllowed(request.email(), request.tenantId());
         try {
             Account account = resolveAccountOptional(request.email(), request.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
-
-            if (account.isVerified()) {
-            throw new IllegalArgumentException("Conta já está verificada.");
-        }
+                    .filter(candidate -> !candidate.isVerified())
+                    .orElseThrow(VerificationCodeRejectedException::invalid);
 
             accountVerificationService.verifyCode(account, request.code());
         // Since we opened a transaction, and Hibernate manages `account`, it could
@@ -124,10 +110,9 @@ public class AuthService {
     @Transactional
     public void resendVerificationCode(String email, String tenantId) {
         authenticationProtectionService.assertResendAllowed(email, tenantId);
-        Account account = resolveAccountOptional(email, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
-
-        accountVerificationService.resendCode(account);
+        resolveAccountOptional(email, tenantId)
+                .filter(account -> !account.isVerified())
+                .ifPresent(accountVerificationService::generateAndSendVerificationCode);
     }
     @Transactional
     public AuthTokens refresh(String rawRefreshToken) {
@@ -148,9 +133,16 @@ public class AuthService {
         return new AuthTokens(accessToken, refreshToken);
     }
 
-    private Account resolveAccount(String email, String tenantId) {
-        return resolveAccountOptional(email, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Conta nao encontrada."));
+    private InvalidCredentialsException rejectUnknownAccount(String rawPassword) {
+        passwordEncoder.matches(rawPassword, unknownAccountPasswordHash());
+        return new InvalidCredentialsException();
+    }
+
+    private String unknownAccountPasswordHash() {
+        if (unknownAccountPasswordHash == null) {
+            unknownAccountPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+        }
+        return unknownAccountPasswordHash;
     }
 
     private Optional<Account> resolveAccountOptional(String email, String tenantId) {

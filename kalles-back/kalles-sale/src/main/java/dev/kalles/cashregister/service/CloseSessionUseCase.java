@@ -7,6 +7,7 @@ import dev.kalles.cashregister.entity.CashRegisterClosing;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.PendingSalesBlockClosingException;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -16,6 +17,7 @@ import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -116,10 +118,7 @@ public class CloseSessionUseCase {
         }
 
         if (blockingSales > 0) {
-            throw new IllegalStateException(
-                    "Nao e possivel fechar o caixa: existem " + blockingSales
-                            + " venda(s) pendente(s) (em andamento, em pagamento ou pagas sem conclusao)."
-                            + " Conclua ou cancele as vendas antes de fechar a sessao.");
+            throw new PendingSalesBlockClosingException(blockingSales);
         }
     }
 
@@ -139,7 +138,7 @@ public class CloseSessionUseCase {
 
         PermissionLevel permissionLevel = operator.getPermissionLevel();
         if (permissionLevel == null || permissionLevel.getLevel() < PermissionLevel.SUPERVISOR.getLevel()) {
-            throw new IllegalArgumentException("Operador sem permissao para autorizar fechamento de caixa.");
+            throw new ForbiddenOperationException("Operador sem permissao para autorizar fechamento de caixa.");
         }
 
         return operator;

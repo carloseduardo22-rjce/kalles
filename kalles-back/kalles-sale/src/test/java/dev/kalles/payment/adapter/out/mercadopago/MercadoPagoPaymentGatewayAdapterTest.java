@@ -10,6 +10,9 @@ import dev.kalles.payment.domain.PaymentPoint;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.payment.exception.PaymentOperationNotSupportedException;
+import dev.kalles.payment.exception.PaymentPointNotConfiguredException;
+import dev.kalles.shared.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -147,6 +150,15 @@ class MercadoPagoPaymentGatewayAdapterTest {
     }
 
     @Test
+    void shouldAnswerNotFoundWhenTheCashRegisterCodeIsUnknown() {
+        when(cashRegisterRepository.findByCode("CAIXA-99")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.QR_CODE, "CAIXA-99")))
+                .isInstanceOf(NotFoundException.class);
+        server.verify();
+    }
+
+    @Test
     void shouldFailTheQrOrderWhenTheCashRegisterHasNoPoint() {
         UUID cashRegisterId = UUID.randomUUID();
         CashRegister cashRegister = mock(CashRegister.class);
@@ -157,7 +169,21 @@ class MercadoPagoPaymentGatewayAdapterTest {
                         UUID.randomUUID(), cashRegisterId, PaymentProvider.MERCADO_PAGO, "CAIXA-01", null)));
 
         assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.QR_CODE, "CAIXA-01")))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(PaymentPointNotConfiguredException.class);
+        server.verify();
+    }
+
+    @Test
+    void shouldFailTheQrOrderWhenTheCashRegisterHasNoPointMapping() {
+        UUID cashRegisterId = UUID.randomUUID();
+        CashRegister cashRegister = mock(CashRegister.class);
+        when(cashRegister.getId()).thenReturn(cashRegisterId);
+        when(cashRegisterRepository.findByCode("CAIXA-01")).thenReturn(Optional.of(cashRegister));
+        when(paymentPointRepository.findByCashRegisterIdAndProvider(eq(cashRegisterId), any()))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adapter.processPayment(command(PaymentFlow.QR_CODE, "CAIXA-01")))
+                .isInstanceOf(PaymentPointNotConfiguredException.class);
         server.verify();
     }
 
@@ -271,7 +297,14 @@ class MercadoPagoPaymentGatewayAdapterTest {
     @Test
     void shouldRefuseToCloseTheOrderWithAnyStatusOtherThanCanceled() {
         assertThatThrownBy(() -> adapter.closePaymentOrder(ORDER_ID, PaymentStatus.APPROVED))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(PaymentOperationNotSupportedException.class);
+        server.verify();
+    }
+
+    @Test
+    void shouldRefuseToPrintADocument() {
+        assertThatThrownBy(() -> adapter.printDocument(ORDER_ID, null))
+                .isInstanceOf(PaymentOperationNotSupportedException.class);
         server.verify();
     }
 

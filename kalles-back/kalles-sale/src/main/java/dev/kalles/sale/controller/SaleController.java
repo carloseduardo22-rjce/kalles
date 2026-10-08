@@ -27,6 +27,9 @@ import dev.kalles.product.enums.ProductCodeType;
 import dev.kalles.sale.dto.*;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.service.PaymentService;
+import dev.kalles.sale.service.SaleCancellationService;
+import dev.kalles.sale.service.SaleCompletionService;
+import dev.kalles.sale.service.SaleDiscountService;
 import dev.kalles.sale.service.SaleHistoryService;
 import dev.kalles.sale.service.SaleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +53,9 @@ import lombok.RequiredArgsConstructor;
 public class SaleController {
 
     private final SaleService saleService;
+    private final SaleDiscountService saleDiscountService;
+    private final SaleCancellationService saleCancellationService;
+    private final SaleCompletionService saleCompletionService;
     private final PaymentService paymentService;
     private final SaleHistoryService saleHistoryService;
 
@@ -124,7 +130,8 @@ public class SaleController {
             description = "Adiciona um produto à venda ativa da sessão, criando a venda se ainda não existir. Incrementa a quantidade se o produto já estiver na venda.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Item adicionado com sucesso"),
-        @ApiResponse(responseCode = "404", description = "Sessão de caixa ou produto não encontrado", content = @Content(schema = @Schema(hidden = true)))
+        @ApiResponse(responseCode = "404", description = "Sessão de caixa ou produto não encontrado", content = @Content(schema = @Schema(hidden = true))),
+        @ApiResponse(responseCode = "422", description = "Estoque insuficiente", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<SaleResponse> addItem(
             @PathVariable @NotBlank String sessionToken,
@@ -190,9 +197,9 @@ public class SaleController {
             @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId) {
 
         if (authorizerId != null) {
-            saleService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);
+            saleCancellationService.cancelSaleWithAuthorization(sessionToken, operatorId, authorizerId);
         } else {
-            saleService.cancelSale(sessionToken, operatorId);
+            saleCancellationService.cancelSale(sessionToken, operatorId);
         }
 
         return ResponseEntity.noContent().build();
@@ -225,7 +232,7 @@ public class SaleController {
     public ResponseEntity<Void> completeSale(
             @PathVariable @NotBlank String sessionToken) {
 
-        saleService.completeSale(sessionToken);
+        saleCompletionService.completeSale(sessionToken);
         return ResponseEntity.noContent().build();
     }
 
@@ -262,7 +269,7 @@ public class SaleController {
             @RequestHeader(value = "X-Authorizer-Id", required = false) UUID authorizerId,
             @Valid @RequestBody ApplyDiscountRequest request) {
 
-        saleService.applyItemDiscount(
+        saleDiscountService.applyItemDiscount(
                 sessionToken, request.itemId(), request.discountAmount(), operatorId, authorizerId);
         return ResponseEntity.noContent().build();
     }
@@ -278,7 +285,7 @@ public class SaleController {
             @PathVariable @NotBlank String sessionToken,
             @PathVariable @NotNull UUID clientId) {
 
-        Sale sale = saleService.associateClientWithSale(sessionToken, clientId);
+        Sale sale = saleDiscountService.associateClientWithSale(sessionToken, clientId);
         return ResponseEntity.ok(SaleResponse.from(sale));
     }
 
@@ -293,7 +300,7 @@ public class SaleController {
     public ResponseEntity<SaleResponse> applyFidelityDiscount(
             @PathVariable @NotBlank String sessionToken) {
 
-        Sale sale = saleService.applyFidelityDiscountToSale(sessionToken);
+        Sale sale = saleDiscountService.applyFidelityDiscountToSale(sessionToken);
         return ResponseEntity.ok(SaleResponse.from(sale));
     }
 }

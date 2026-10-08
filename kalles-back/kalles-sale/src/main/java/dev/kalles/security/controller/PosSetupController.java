@@ -1,5 +1,6 @@
 package dev.kalles.security.controller;
 
+import dev.kalles.security.exception.InvalidPairingTokenException;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
 import dev.kalles.security.service.GeneratePosPairingTokenUseCase;
 import jakarta.servlet.http.Cookie;
@@ -29,7 +30,7 @@ public class PosSetupController {
         String pairingToken = request.get("pairingToken");
 
         repository.findByTokenAndActiveTrueAndExpiresAtGreaterThan(pairingToken, LocalDateTime.now())
-                .orElseThrow(() -> new IllegalArgumentException("Token de pareamento inválido ou expirado."));
+                .orElseThrow(InvalidPairingTokenException::new);
 
         // Injeta o cookie seguro HttpOnly
         Cookie cookie = new Cookie("kalles_pos_token", pairingToken);

@@ -145,7 +145,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 Map.of("X-Operator-Id", supervisorAuthorizerId.toString())
         )
                 .then()
-                .statusCode(400)
+                .statusCode(422)
+                .body("code", equalTo("DISCOUNT_EXCEEDS_ITEM_TOTAL"))
                 .body("detail", equalTo("O desconto não pode exceder o valor do produto. Valor do item: R$ 30.00"));
     }
 
@@ -176,7 +177,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 .when()
                 .post("/api/sales/{sessionToken}/payments")
                 .then()
-                .statusCode(409)
+                .statusCode(422)
+                .body("code", equalTo("CASH_ONLY_SESSION"))
                 .body("detail", equalTo("Esta sessao foi aberta em modo somente dinheiro. PIX, vouchers e cartoes estao indisponiveis."));
     }
 
@@ -320,8 +322,8 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
                 .when()
                 .post("/api/sales/{sessionToken}/items")
                 .then()
-                .statusCode(409)
-                .body("title", equalTo("Estoque insuficiente"))
+                .statusCode(422)
+                .body("code", equalTo("INSUFFICIENT_STOCK"))
                 .body("detail", equalTo("Estoque insuficiente para o produto 'Produto PDV'. Quantidade disponível: 20"));
     }
 

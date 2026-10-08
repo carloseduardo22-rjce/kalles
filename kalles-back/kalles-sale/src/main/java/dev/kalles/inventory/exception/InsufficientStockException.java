@@ -1,9 +1,11 @@
 package dev.kalles.inventory.exception;
 
-public class InsufficientStockException extends RuntimeException {
+import dev.kalles.shared.exception.BusinessRuleViolationException;
+
+public class InsufficientStockException extends BusinessRuleViolationException {
 
     public InsufficientStockException(String productName, int stockQuantity) {
-        super("Estoque insuficiente para o produto '" + productName
+        super("INSUFFICIENT_STOCK", "Estoque insuficiente para o produto '" + productName
                 + "'. Quantidade disponível: " + stockQuantity);
     }
 }

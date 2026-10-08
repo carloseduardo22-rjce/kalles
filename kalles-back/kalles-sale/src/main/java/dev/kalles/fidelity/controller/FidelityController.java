@@ -48,8 +48,9 @@ public class FidelityController {
             description = "Cria uma carteira de fidelidade para o cliente. O cliente começa com zero pontos e sem desconto disponível.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Cliente inscrito com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Cliente já está inscrito no programa"),
-        @ApiResponse(responseCode = "404", description = "Cliente não encontrado")
+        @ApiResponse(responseCode = "404", description = "Cliente não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Cliente já está inscrito no programa"),
+        @ApiResponse(responseCode = "422", description = "Filial sem política de fidelidade ativa")
     })
     public ResponseEntity<FidelityResponse> enroll(
             @PathVariable @NotNull UUID clientId) {

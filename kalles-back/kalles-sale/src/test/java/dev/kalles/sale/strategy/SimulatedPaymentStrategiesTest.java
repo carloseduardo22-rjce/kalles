@@ -1,5 +1,6 @@
 package dev.kalles.sale.strategy;
 
+import dev.kalles.sale.exception.PaymentMethodUnavailableException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,9 +19,9 @@ class SimulatedPaymentStrategiesTest {
     @Test
     @DisplayName("Com simulação desabilitada (default de produção), cartão e PIX devem ser rejeitados")
     void shouldRejectSimulatedPaymentsWhenDisabled() {
-        assertThrows(IllegalStateException.class, () -> new CreditCardPaymentStrategy(false).process(AMOUNT));
-        assertThrows(IllegalStateException.class, () -> new DebitCardPaymentStrategy(false).process(AMOUNT));
-        assertThrows(IllegalStateException.class, () -> new PixPaymentStrategy(false).process(AMOUNT));
+        assertThrows(PaymentMethodUnavailableException.class, () -> new CreditCardPaymentStrategy(false).process(AMOUNT));
+        assertThrows(PaymentMethodUnavailableException.class, () -> new DebitCardPaymentStrategy(false).process(AMOUNT));
+        assertThrows(PaymentMethodUnavailableException.class, () -> new PixPaymentStrategy(false).process(AMOUNT));
     }
 
     @Test

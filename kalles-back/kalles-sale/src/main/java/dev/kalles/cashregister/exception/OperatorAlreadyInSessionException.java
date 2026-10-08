@@ -1,7 +1,10 @@
 package dev.kalles.cashregister.exception;
 
-public class OperatorAlreadyInSessionException extends RuntimeException {
+import dev.kalles.shared.exception.ConflictException;
+
+public class OperatorAlreadyInSessionException extends ConflictException {
+
     public OperatorAlreadyInSessionException(String operatorCode) {
-        super("O operador " + operatorCode + " já está vinculado a uma sessão ativa em outro caixa");
+        super("OPERATOR_ALREADY_IN_SESSION", "O operador " + operatorCode + " já está vinculado a uma sessão ativa em outro caixa");
     }
 }

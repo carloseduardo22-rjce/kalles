@@ -5,6 +5,7 @@ import dev.kalles.billing.application.service.CreateBillingCheckoutSessionUseCas
 import dev.kalles.billing.application.service.CreateBillingPortalSessionUseCase;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.entity.Account;
+import dev.kalles.security.exception.AuthenticatedAccountNotFoundException;
 import dev.kalles.security.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ public class BillingController {
         }
 
         var account = accountRepository.findByTenantIdAndEmailIgnoreCase(tenantId, authentication.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Conta autenticada nao encontrada."));
+                .orElseThrow(AuthenticatedAccountNotFoundException::new);
 
         BillingGateway.CheckoutSession checkoutSession = createBillingCheckoutSessionUseCase.execute(
                 tenantId,

@@ -46,7 +46,8 @@ public class CategoryController {
     @Operation(summary = "Create category")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Category created"),
-        @ApiResponse(responseCode = "400", description = "Invalid data or duplicate name/subcategory combination")
+        @ApiResponse(responseCode = "400", description = "Invalid data"),
+        @ApiResponse(responseCode = "409", description = "Name/subcategory combination already in use")
     })
     public ResponseEntity<CategoryResponse> create(@Valid @RequestBody CategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(CategoryResponse.from(
@@ -58,7 +59,7 @@ public class CategoryController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Category updated"),
         @ApiResponse(responseCode = "404", description = "Category not found"),
-        @ApiResponse(responseCode = "400", description = "Name/subcategory combination already in use")
+        @ApiResponse(responseCode = "409", description = "Name/subcategory combination already in use")
     })
     public ResponseEntity<CategoryResponse> update(
             @PathVariable UUID id,

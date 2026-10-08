@@ -1,5 +1,6 @@
 package dev.kalles.payment.application.service;
 
+import dev.kalles.cashregister.exception.CashOnlySessionException;
 import dev.kalles.payment.application.port.out.PaymentGatewayPort;
 import dev.kalles.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.payment.domain.PaymentCommand;
@@ -10,6 +11,7 @@ import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
 import dev.kalles.shared.service.CheckoutSessionService;
+import dev.kalles.shared.service.Session;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -129,5 +132,28 @@ class PaymentLifecycleServiceTest {
         verify(paymentGatewayPort).processPayment(commandCaptor.capture());
         assertThat(commandCaptor.getValue().idempotencyKey()).isEqualTo("idem-qr-001");
     }
-}
 
+    @Test
+    void shouldRefuseElectronicPaymentsInACashOnlySession() {
+        Session cashOnlySession = mock(Session.class);
+        when(cashOnlySession.allowsElectronicPayments()).thenReturn(false);
+        when(checkoutSessionService.findByToken("SESSION-CASH-ONLY")).thenReturn(Optional.of(cashOnlySession));
+        PaymentCommand command = new PaymentCommand(
+                PaymentProvider.MERCADO_PAGO,
+                PaymentFlow.TERMINAL,
+                "SESSION-CASH-ONLY",
+                new BigDecimal("79.90"),
+                "TERM-001",
+                null,
+                "Venda no terminal",
+                PaymentMethodType.CREDIT_CARD,
+                Map.of()
+        );
+
+        assertThatThrownBy(() -> paymentLifecycleService.execute(command))
+                .isInstanceOf(CashOnlySessionException.class);
+
+        verify(paymentGatewayPort, never()).processPayment(any());
+        verify(paymentOrderRepository, never()).save(any());
+    }
+}

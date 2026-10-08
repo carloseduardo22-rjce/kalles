@@ -5,6 +5,7 @@ import dev.kalles.note.application.port.in.DecryptSensitiveContentUseCase;
 import dev.kalles.note.application.port.in.EncryptSensitiveContentUseCase;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.entity.Account;
+import dev.kalles.security.exception.AuthenticatedAccountNotFoundException;
 import dev.kalles.security.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -57,14 +58,14 @@ public class SensitiveContentController {
 
     private UUID resolveAuthenticatedAccountId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new IllegalArgumentException("Conta autenticada nao encontrada.");
+            throw new AuthenticatedAccountNotFoundException();
         }
 
         Account account = accountRepository.findByTenantIdAndEmailIgnoreCase(
                         TenantContextHolder.getTenantId(),
                         authentication.getName()
                 )
-                .orElseThrow(() -> new IllegalArgumentException("Conta autenticada nao encontrada."));
+                .orElseThrow(AuthenticatedAccountNotFoundException::new);
 
         return account.getId();
     }

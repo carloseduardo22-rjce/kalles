@@ -1,5 +1,6 @@
 package dev.kalles.payment.application.service;
 
+import dev.kalles.cashregister.exception.CashOnlySessionException;
 import dev.kalles.payment.application.port.in.ProcessPaymentUseCase;
 import dev.kalles.payment.application.port.out.PaymentOrderRepository;
 import dev.kalles.payment.domain.PaymentCommand;
@@ -77,9 +78,7 @@ public class PaymentLifecycleService implements ProcessPaymentUseCase {
 
     private void ensureElectronicPaymentsAllowed(Session session) {
         if (!session.allowsElectronicPayments()) {
-            throw new IllegalStateException(
-                "Esta sessao foi aberta em modo somente dinheiro. PIX, vouchers e cartoes estao indisponiveis."
-            );
+            throw new CashOnlySessionException();
         }
     }
 }

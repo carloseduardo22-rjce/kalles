@@ -8,6 +8,7 @@ import dev.kalles.cashregister.entity.CashRegisterClosing;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.PendingSalesBlockClosingException;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
@@ -17,13 +18,14 @@ import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +50,9 @@ class CloseSessionUseCaseTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("99f449b5-3f12-48f6-b4a7-dfa165ed39d7");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private CashRegisterSessionRepository sessionRepository;
 
@@ -64,18 +69,12 @@ class CloseSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         useCase = new CloseSessionUseCase(
                 sessionRepository,
                 closingRepository,
                 operatorRepository,
                 saleRepository
         );
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
     }
 
     @Test
@@ -174,6 +173,24 @@ class CloseSessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve rejeitar operador autorizador sem nivel de supervisor")
+    void shouldRejectAuthorizerBelowSupervisor() {
+        UUID sessionId = UUID.randomUUID();
+        CashRegisterSession session = buildOpenSession();
+        Operator authorizer = buildAuthorizer();
+        authorizer.setPermissionLevel(PermissionLevel.BASIC);
+
+        when(sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, COMPANY_ID)).thenReturn(Optional.of(session));
+        when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
+
+        assertThrows(
+                ForbiddenOperationException.class,
+                () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
+        );
+        verify(closingRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
     @DisplayName("Deve bloquear fechamento quando ha venda paga nao concluida")
     void shouldBlockClosingWhenPaidSaleIsPending() {
         UUID sessionId = UUID.randomUUID();
@@ -186,12 +203,12 @@ class CloseSessionUseCaseTest {
         when(operatorRepository.findByCodeAndCompanyId("SUP-001", COMPANY_ID)).thenReturn(Optional.of(authorizer));
         when(saleRepository.findPendingBySessionId(sessionId)).thenReturn(List.of(paidSale));
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        PendingSalesBlockClosingException exception = assertThrows(
+                PendingSalesBlockClosingException.class,
                 () -> useCase.execute(sessionId, new CloseSessionRequest("SUP-001", new BigDecimal("180.00")))
         );
 
-        assertTrue(exception.getMessage().contains("venda(s) pendente(s)"));
+        assertEquals("CASH_REGISTER_PENDING_SALES", exception.getCode());
         verify(closingRepository, org.mockito.Mockito.never()).save(any());
     }
 

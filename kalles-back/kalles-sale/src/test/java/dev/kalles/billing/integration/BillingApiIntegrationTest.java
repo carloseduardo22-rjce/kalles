@@ -60,7 +60,7 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
     }
 
     @Test
-    void shouldReturnConflictWhenPortalSessionIsRequestedWithoutSubscription() {
+    void shouldReturnUnprocessableEntityWhenPortalSessionIsRequestedWithoutSubscription() {
         AuthContext auth = authenticateTenantAdminWithCsrf();
 
         givenAuthenticated(auth)
@@ -68,7 +68,8 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .when()
                 .post("/api/billing/portal-sessions")
                 .then()
-                .statusCode(409)
+                .statusCode(422)
+                .body("code", equalTo("BILLING_SUBSCRIPTION_NOT_CONFIGURED"))
                 .body("detail", equalTo("Nenhuma assinatura Stripe encontrada para este tenant."));
     }
 
@@ -243,15 +244,16 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .post("/api/billing/webhook")
                 .then()
                 .statusCode(409)
-                .body("detail", equalTo("Nao foi possivel resolver o tenant da notificacao Stripe."));
+                .body("detail", equalTo("Nao foi possivel resolver o tenant da notificacao Stripe."))
+                .body("code", equalTo("BILLING_WEBHOOK_TENANT_UNRESOLVED"));
 
         assertThat(billingSubscriptionRepository.count()).isZero();
         assertThat(billingWebhookEventRepository.count()).isZero();
     }
 
     @Test
-    void shouldReturnBadGatewayWhenWebhookValidationFails() {
-        stubBillingGateway.failNextWebhook("Falha ao validar webhook Stripe.");
+    void shouldReturnBadRequestWhenWebhookSignatureIsInvalid() {
+        stubBillingGateway.rejectNextWebhook();
 
         givenWebhookRequest()
                 .header("Stripe-Signature", "sig_invalid")
@@ -259,8 +261,9 @@ class BillingApiIntegrationTest extends AbstractBillingApiSupport {
                 .when()
                 .post("/api/billing/webhook")
                 .then()
-                .statusCode(502)
-                .body("detail", equalTo("Falha ao validar webhook Stripe."));
+                .statusCode(400)
+                .body("detail", equalTo("Assinatura do webhook Stripe invalida."))
+                .body("code", equalTo("BILLING_WEBHOOK_REJECTED"));
 
         assertThat(billingSubscriptionRepository.count()).isZero();
         assertThat(billingWebhookEventRepository.count()).isZero();

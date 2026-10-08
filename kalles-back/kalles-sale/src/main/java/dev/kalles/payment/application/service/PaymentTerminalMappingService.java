@@ -2,7 +2,6 @@ package dev.kalles.payment.application.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
-import dev.kalles.company.entity.Company;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.payment.application.port.in.GetPaymentTerminalMappingUseCase;
 import dev.kalles.payment.application.port.in.ListPaymentTerminalMappingsUseCase;
@@ -12,8 +11,11 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
+import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.ForbiddenOperationException;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,7 +57,7 @@ public class PaymentTerminalMappingService implements
                 normalizedSerial
         ).ifPresent(existing -> {
             if (!existing.cashRegisterId().equals(cashRegister.getId())) {
-                throw new IllegalArgumentException("Este numero de serie ja esta vinculado a outro caixa desta filial.");
+                throw new TerminalSerialAlreadyMappedException();
             }
         });
 
@@ -86,7 +88,7 @@ public class PaymentTerminalMappingService implements
         CashRegister cashRegister = findAccessibleCashRegister(query.cashRegisterId(), companyId);
 
         return mappingRepository.findActiveByCashRegisterIdAndProvider(cashRegister.getId(), query.provider())
-                .orElseThrow(() -> new IllegalArgumentException("Nenhuma maquininha esta vinculada a este caixa."));
+                .orElseThrow(() -> new NotFoundException("Nenhuma maquininha esta vinculada a este caixa."));
     }
 
     @Override
@@ -101,14 +103,12 @@ public class PaymentTerminalMappingService implements
     private CashRegister findAccessibleCashRegister(UUID cashRegisterId, UUID companyId) {
         return cashRegisterRepository.findByIdAndCompanyId(cashRegisterId, companyId)
                 .filter(CashRegister::isActive)
-                .orElseThrow(() -> new IllegalArgumentException("Caixa nao encontrado na filial ativa."));
+                .orElseThrow(() -> new NotFoundException("Caixa nao encontrado na filial ativa."));
     }
 
     private void ensureAccessibleCompany(UUID companyId, UUID tenantId) {
-        Company company = companyRepository.findByIdAndTenantId(companyId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Filial nao encontrada para o tenant atual."));
-        if (!company.getId().equals(companyId)) {
-            throw new IllegalArgumentException("Filial invalida para o tenant atual.");
+        if (companyRepository.findByIdAndTenantId(companyId, tenantId).isEmpty()) {
+            throw new ForbiddenOperationException("Filial nao encontrada para o tenant atual.");
         }
     }
 }

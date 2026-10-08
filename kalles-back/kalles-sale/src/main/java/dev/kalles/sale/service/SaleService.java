@@ -1,9 +1,6 @@
 package dev.kalles.sale.service;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
-import java.math.BigDecimal;
 
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,18 +9,14 @@ import org.springframework.stereotype.Service;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
-import dev.kalles.client.entity.Client;
-import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.fidelity.service.FidelityService;
-import dev.kalles.inventory.entity.Stock;
-import dev.kalles.inventory.exception.InsufficientStockException;
-import dev.kalles.inventory.repository.StockRepository;
+import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.entity.SaleAuditEvent;
+import dev.kalles.sale.exception.ActiveSaleAlreadyExistsException;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -44,9 +37,7 @@ public class SaleService {
     private final OperatorRepository operatorRepository;
     private final PermissionService permissionService;
     private final SaleAuditEventRepository auditRepository;
-    private final StockRepository stockRepository;
-    private final FidelityService fidelityService;
-    private final ClientRepository clientRepository;
+    private final StockService stockService;
     private final CompanyProductRepository companyProductRepository;
 
     @Transactional
@@ -201,11 +192,6 @@ public class SaleService {
                 .orElseThrow(() -> new NotFoundException("Nenhuma venda em andamento para esta sessão"));
     }
 
-    private Sale findCancellableSale(UUID sessionId) {
-        return saleRepository.findCancellableSaleBySessionId(sessionId)
-                .orElseThrow(() -> new NotFoundException("Nenhuma venda cancelável para esta sessão"));
-    }
-
     private Product findProductByBarCode(String barCode) {
         return productRepository.findByBarcodeAndTenantId(barCode, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new NotFoundException("Produto não encontrado com o código de barras: " + barCode));
@@ -232,8 +218,7 @@ public class SaleService {
         } catch (DataIntegrityViolationException e) {
             // Corrida: outra requisição criou a venda ativa entre o SELECT e o INSERT.
             // A transação já foi abortada pelo banco; o cliente deve rebuscar a venda atual.
-            throw new IllegalStateException(
-                    "Já existe uma venda ativa para esta sessão. Recarregue a venda atual.", e);
+            throw new ActiveSaleAlreadyExistsException(e);
         }
     }
 
@@ -249,119 +234,6 @@ public class SaleService {
     }
 
     @Transactional
-    public Sale associateClientWithSale(String sessionToken, UUID clientId) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-        Sale sale = findActiveSale(sessionId);
-        Client client = clientRepository.findByIdAndCompanyId(clientId, sale.getCompanyId())
-                .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
-        sale.setClient(client);
-        return saleRepository.save(sale);
-    }
-
-
-    @Transactional
-    public Sale applyFidelityDiscountToSale(String sessionToken) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-        Sale sale = findActiveSale(sessionId);
-        if (sale.getClient() == null) {
-            throw new IllegalStateException("Nenhum cliente associado à venda.");
-        }
-        // Apenas calcula e registra na venda; o saldo do cliente só é consumido
-        // na conclusão (completeSale). Reaplicar recalcula sem perda.
-        BigDecimal applied = fidelityService.calculateDiscount(sale.getClient().getId(), sale.getSubtotal());
-        if (applied.compareTo(java.math.BigDecimal.ZERO) > 0) {
-            sale.applyFidelityDiscount(applied);
-            saleRepository.save(sale);
-        }
-        return sale;
-    }
-
-
-
-    @Transactional
-    public void applyItemDiscount(
-            String sessionToken,
-            UUID itemId,
-            BigDecimal discountAmount,
-            UUID operatorId,
-            UUID authorizerId) {
-
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Operator operator = findOperator(operatorId);
-        Operator authorizer = null;
-        if (authorizerId != null) {
-            authorizer = findOperator(authorizerId);
-            if (!permissionService.canAuthorizeItemDiscount(authorizer, operator)) {
-                throw new ForbiddenOperationException(
-                        "O operador autorizador não possui nível de permissão suficiente para autorizar o desconto.");
-            }
-        } else if (!permissionService.canApplyItemDiscount(operator)) {
-            throw new ForbiddenOperationException(
-                    "Operador não possui permissão para aplicar descontos. Solicite autorização de um supervisor.");
-        }
-
-        Sale sale = findActiveSale(sessionId);
-        sale.applyItemDiscount(itemId, discountAmount);
-        saleRepository.save(sale);
-
-        Product discountedProduct = sale.getItems().stream()
-                .filter(item -> java.util.Objects.equals(item.getId(), itemId))
-                .findFirst()
-                .map(item -> item.getProduct())
-                .orElse(null);
-        auditRepository.save(
-                SaleAuditEvent.forItemDiscount(sale, discountedProduct, discountAmount, operator, authorizer));
-    }
-
-    @Transactional
-    public void cancelSale(String sessionToken, UUID operatorId) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Operator operator = findOperator(operatorId);
-
-        if (!permissionService.canCancelSale(operator)) {
-            throw new ForbiddenOperationException(
-                    "Operador não possui permissão para cancelar vendas. Solicite autorização de um supervisor.");
-        }
-
-        Sale sale = findCancellableSale(sessionId);
-        sale.cancel();
-        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
-        // na conclusão da venda, que não é um estado cancelável.
-        saleRepository.save(sale);
-        auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, null));
-    }
-
-    @Transactional
-    public void cancelSaleWithAuthorization(
-            String sessionToken,
-            UUID operatorId,
-            UUID authorizerId) {
-
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Operator operator = findOperator(operatorId);
-        Operator authorizer = findOperator(authorizerId);
-
-        validateCancellationAuthorization(operator, authorizer);
-
-        Sale sale = findCancellableSale(sessionId);
-        sale.cancel();
-        // Fidelidade não precisa de estorno: saldo/pontos só são consumidos
-        // na conclusão da venda, que não é um estado cancelável.
-        saleRepository.save(sale);
-        auditRepository.save(SaleAuditEvent.forCancellation(sale, operator, authorizer));
-    }
-
-    private void validateCancellationAuthorization(Operator operator, Operator authorizer) {
-        if (!permissionService.canAuthorizeCancellation(authorizer, operator)) {
-            throw new ForbiddenOperationException(
-                    "O operador autorizador não possui nível de permissão suficiente para autorizar o cancelamento.");
-        }
-    }
-
-    @Transactional
     public Sale decrementItemByInternalCode(String sessionToken, String internalCode) {
         UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
         Sale sale = findActiveSale(sessionId);
@@ -370,62 +242,7 @@ public class SaleService {
         return saleRepository.save(sale);
     }
 
-    @Transactional
-    public void completeSale(String sessionToken) {
-        UUID sessionId = checkoutSessionService.getOpenSessionOrThrow(sessionToken).getId();
-
-        Sale sale = saleRepository.findPaidSaleBySessionId(sessionId)
-                .orElseThrow(() -> new NotFoundException("Nenhuma venda paga encontrada para esta sessão."));
-
-        if (sale.getAmountDue().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            throw new IllegalStateException(
-                    "Não é possível finalizar a venda: ainda há valores pendentes de pagamento.");
-        }
-
-        sale.completeSale();
-        sale.setCompletedAt(java.time.LocalDateTime.now());
-        deductStock(sale);
-        if (sale.getClient() != null) {
-            int pointsEarned = fidelityService.processCompletedSale(
-                    sale.getClient().getId(), sale.getSubtotal(), sale.getFidelityDiscountApplied());
-            sale.setPointsEarned(pointsEarned);
-        }
-        saleRepository.save(sale);
-    }
-
     private void validateStock(Product product, Sale sale, int quantityToAdd) {
-        int currentQtyInCart = sale.getItemQuantity(product);
-        int totalStock = stockRepository.sumQuantityByProductId(product.getId(), sale.getCompanyId());
-        if (totalStock < currentQtyInCart + quantityToAdd) {
-            throw new InsufficientStockException(product.getName(), totalStock);
-        }
-    }
-
-    private void deductStock(Sale sale) {
-        sale.getItems().stream()
-                .sorted(Comparator.comparing(item -> item.getProduct().getId()))
-                .forEach(item -> deductFrom(item.getProduct(), item.getQuantity(), sale.getCompanyId()));
-    }
-
-    private void deductFrom(Product product, int quantity, UUID companyId) {
-        List<Stock> locked = stockRepository.lockAllByProductId(product.getId(), companyId);
-
-        int available = locked.stream().mapToInt(Stock::getQuantity).sum();
-        if (available < quantity) {
-            throw new InsufficientStockException(product.getName(), available);
-        }
-
-        int remaining = quantity;
-        for (Stock stock : locked.stream()
-                .sorted(Comparator.comparingInt(Stock::getQuantity).reversed())
-                .toList()) {
-            if (remaining <= 0) {
-                break;
-            }
-            int deducted = Math.min(stock.getQuantity(), remaining);
-            stock.setQuantity(stock.getQuantity() - deducted);
-            remaining -= deducted;
-            stockRepository.save(stock);
-        }
+        stockService.requireAvailable(product, sale.getItemQuantity(product) + quantityToAdd, sale.getCompanyId());
     }
 }

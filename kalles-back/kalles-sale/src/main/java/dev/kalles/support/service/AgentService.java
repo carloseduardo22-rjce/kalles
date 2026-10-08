@@ -3,6 +3,7 @@ package dev.kalles.support.service;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.support.entity.AgentEntity;
+import dev.kalles.support.exception.AgentEmployeeIdAlreadyExistsException;
 import dev.kalles.support.repository.AgentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class AgentService {
     public AgentEntity create(String employeeId, String name) {
         UUID tenantId = TenantContextHolder.requireTenantId();
         agentRepository.findByTenantIdAndEmployeeId(tenantId, employeeId).ifPresent(existing -> {
-            throw new IllegalArgumentException("An agent with this employee ID already exists: " + employeeId);
+            throw new AgentEmployeeIdAlreadyExistsException(employeeId);
         });
         AgentEntity agent = new AgentEntity();
         agent.setTenantId(tenantId);
@@ -48,7 +49,7 @@ public class AgentService {
         UUID tenantId = TenantContextHolder.requireTenantId();
         agentRepository.findByTenantIdAndEmployeeId(tenantId, employeeId).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException("Employee ID already used by another agent: " + employeeId);
+                throw new AgentEmployeeIdAlreadyExistsException(employeeId);
             }
         });
         agent.setEmployeeId(employeeId);

@@ -1,5 +1,6 @@
 package dev.kalles.cashregister.entity;
 
+import dev.kalles.cashregister.exception.SessionAlreadyClosedException;
 import dev.kalles.cashregister.valueobject.InitialAmount;
 import dev.kalles.cashregister.valueobject.SessionPeriod;
 import dev.kalles.cashregister.valueobject.SessionStatus;
@@ -102,7 +103,7 @@ public class CashRegisterSession {
 
     public void close() {
         if (!isOpen()) {
-            throw new IllegalStateException("Sessao ja esta fechada");
+            throw new SessionAlreadyClosedException();
         }
         sessionPeriod.close(LocalDateTime.now());
         this.status = SessionStatus.CLOSED;

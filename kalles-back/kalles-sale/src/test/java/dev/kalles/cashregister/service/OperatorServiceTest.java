@@ -4,15 +4,16 @@ import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.OperatorCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.OperatorRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,21 +33,14 @@ class OperatorServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("7ec7d531-95a4-4f19-b989-459e2c1ea701");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private OperatorRepository operatorRepository;
 
     @InjectMocks
     private OperatorService operatorService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar operador vinculado a filial ativa")
@@ -76,9 +70,25 @@ class OperatorServiceTest {
         when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID))
                 .thenReturn(Optional.of(buildOperator(UUID.randomUUID(), "Outra Maria", "maria.silva", PermissionLevel.BASIC, true)));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> operatorService.create(request));
+        OperatorCodeAlreadyExistsException exception = assertThrows(OperatorCodeAlreadyExistsException.class, () -> operatorService.create(request));
 
-        assertEquals("Já existe um operador com o código informado nesta filial.", exception.getMessage());
+        assertEquals("OPERATOR_CODE_ALREADY_EXISTS", exception.getCode());
+        verify(operatorRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar edicao para codigo de outro operador da filial")
+    void shouldRejectUpdateToCodeOfAnotherOperator() {
+        UUID operatorId = UUID.randomUUID();
+        OperatorRequest request = new OperatorRequest("Maria Silva", "maria.silva", PermissionLevel.MANAGER);
+        when(operatorRepository.findByIdAndCompanyId(operatorId, COMPANY_ID))
+                .thenReturn(Optional.of(buildOperator(operatorId, "Maria Silva", "maria", PermissionLevel.MANAGER, true)));
+        when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID))
+                .thenReturn(Optional.of(buildOperator(UUID.randomUUID(), "Outra Maria", "maria.silva", PermissionLevel.BASIC, true)));
+
+        OperatorCodeAlreadyExistsException exception = assertThrows(OperatorCodeAlreadyExistsException.class, () -> operatorService.update(operatorId, request));
+
+        assertEquals("OPERATOR_CODE_ALREADY_EXISTS", exception.getCode());
         verify(operatorRepository, never()).save(any());
     }
 
@@ -134,9 +144,8 @@ class OperatorServiceTest {
     @Test
     @DisplayName("Deve exigir filial ativa no contexto")
     void shouldRequireCompanyContext() {
-        CompanyContextHolder.clear();
-
-        assertThrows(CompanyContextRequiredException.class, () -> operatorService.listAll());
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(CompanyContextRequiredException.class, () -> operatorService.listAll()));
         verifyNoInteractions(operatorRepository);
     }
 

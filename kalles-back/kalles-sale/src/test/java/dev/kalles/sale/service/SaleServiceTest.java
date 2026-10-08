@@ -12,8 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,23 +22,16 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.service.PermissionService;
-import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.fidelity.service.FidelityService;
-import dev.kalles.inventory.entity.Stock;
-import dev.kalles.inventory.repository.StockRepository;
+import dev.kalles.inventory.service.StockService;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.ProductRepository;
-import dev.kalles.sale.entity.Payment;
 import dev.kalles.sale.entity.Sale;
-import dev.kalles.sale.entity.SaleAuditEvent;
-import dev.kalles.sale.enums.PaymentMethod;
+import dev.kalles.sale.exception.ActiveSaleAlreadyExistsException;
 import dev.kalles.sale.repository.SaleAuditEventRepository;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
-import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.service.CheckoutSessionService;
 import dev.kalles.shared.service.Session;
+import dev.kalles.testsupport.RequestContextExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SaleService - Serviço de Venda")
@@ -63,13 +56,7 @@ class SaleServiceTest {
     private SaleAuditEventRepository auditRepository;
 
     @Mock
-    private StockRepository stockRepository;
-
-    @Mock
-    private FidelityService fidelityService;
-
-    @Mock
-    private ClientRepository clientRepository;
+    private StockService stockService;
 
     @InjectMocks
     private SaleService saleService;
@@ -81,6 +68,9 @@ class SaleServiceTest {
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
+
     private Product product;
     private Sale sale;
     private Operator supervisorOperator;
@@ -89,9 +79,6 @@ class SaleServiceTest {
 
     @BeforeEach
     void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-        TenantContextHolder.setTenantId(TENANT_ID);
-
         product = new Product();
         product.setId(UUID.randomUUID());
         product.setName("Produto Teste");
@@ -122,12 +109,6 @@ class SaleServiceTest {
         lenient().when(session.isOpen()).thenReturn(true);
     }
 
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-        TenantContextHolder.clear();
-    }
-
     @Nested
     @DisplayName("Criação de venda por sessão")
     class CriacaoVendaPorSessao {
@@ -152,7 +133,7 @@ class SaleServiceTest {
             when(saleRepository.saveAndFlush(any(Sale.class)))
                     .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uk_sale_active_per_session"));
 
-            IllegalStateException exception = assertThrows(IllegalStateException.class,
+            ActiveSaleAlreadyExistsException exception = assertThrows(ActiveSaleAlreadyExistsException.class,
                     () -> saleService.getOrCreateSale(SESSION_TOKEN));
 
             assertTrue(exception.getMessage().contains("Já existe uma venda ativa"));
@@ -316,148 +297,6 @@ class SaleServiceTest {
     }
 
     @Nested
-    @DisplayName("Cancelamento de Venda - US005")
-    class CancelamentoVenda {
-
-        @Test
-        @DisplayName("Cenário 1 - Supervisor pode cancelar venda sem autorização")
-        void supervisorPodeCancelarVendaSemAutorizacao() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
-
-            assertEquals("CANCELED", sale.getStateName());
-            verify(saleRepository).save(sale);
-        }
-
-        @Test
-        @DisplayName("Cenário 2 - Operador básico não pode cancelar sem autorização")
-        void operadorBasicoNaoPodeCancelarSemAutorizacao() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(permissionService.canCancelSale(basicOperator)).thenReturn(false);
-
-            ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () -> 
-                saleService.cancelSale(SESSION_TOKEN, basicOperator.getId())
-            );
-
-            assertTrue(exception.getMessage().contains("não possui permissão para cancelar vendas"));
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Cenário 3 - Operador básico pode cancelar com autorização de supervisor")
-        void operadorBasicoPodeCancelarComAutorizacao() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSaleWithAuthorization(
-                SESSION_TOKEN, basicOperator.getId(), supervisorOperator.getId());
-
-            assertEquals("CANCELED", sale.getStateName());
-            verify(saleRepository).save(sale);
-        }
-
-        @Test
-        @DisplayName("Cenário 4 - Deve registrar auditoria do cancelamento sem autorização")
-        void deveRegistrarAuditoriaCancelamentoSemAutorizacao() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
-
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Cenário 4 - Deve registrar auditoria do cancelamento com autorização")
-        void deveRegistrarAuditoriaCancelamentoComAutorizacao() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canAuthorizeCancellation(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSaleWithAuthorization(
-                SESSION_TOKEN, basicOperator.getId(), supervisorOperator.getId());
-
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Deve impedir cancelamento quando autorizador não tem nível suficiente")
-        void deveImpedirCancelamentoQuandoAutorizadorNaoTemNivel() {
-            Operator outroBasic = new Operator();
-            outroBasic.setId(UUID.randomUUID());
-            outroBasic.setName("Outro Operador Básico");
-            outroBasic.setCompanyId(COMPANY_ID);
-            outroBasic.setPermissionLevel(PermissionLevel.BASIC);
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findByIdAndCompanyId(outroBasic.getId(), COMPANY_ID)).thenReturn(Optional.of(outroBasic));
-            when(permissionService.canAuthorizeCancellation(outroBasic, basicOperator)).thenReturn(false);
-
-            ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () -> 
-                saleService.cancelSaleWithAuthorization(
-                    SESSION_TOKEN, basicOperator.getId(), outroBasic.getId())
-            );
-
-            assertTrue(exception.getMessage().contains("nível de permissão suficiente"));
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Deve cancelar venda em PAYMENT_IN_PROGRESS (cartão recusado / cliente desistiu)")
-        void deveCancelarVendaComPagamentoEmAndamento() {
-            sale.startPayment();
-            assertEquals("PAYMENT_IN_PROGRESS", sale.getStateName());
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
-
-            assertEquals("CANCELED", sale.getStateName());
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Deve cancelar venda PAID ainda não concluída")
-        void deveCancelarVendaPagaNaoConcluida() {
-            sale.startPayment();
-            sale.finishPayment();
-            assertEquals("PAID", sale.getStateName());
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canCancelSale(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findCancellableSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.cancelSale(SESSION_TOKEN, supervisorOperator.getId());
-
-            assertEquals("CANCELED", sale.getStateName());
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-    }
-
-    @Nested
     @DisplayName("BR001 - Validações de sessão e venda")
     class ValidacoesSessaoVenda {
 
@@ -512,130 +351,6 @@ class SaleServiceTest {
 
             assertThrows(RuntimeException.class, () -> 
                 saleService.removeItemByInternalCode(SESSION_TOKEN, INTERNAL_CODE, operadorInexistente)
-            );
-
-            verify(saleRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("US010 - Finalização da Venda")
-    class FinalizacaoVenda {
-
-        @Test
-        @DisplayName("Cenário 1 — Deve finalizar venda paga com sucesso")
-        void deveFinalizarVendaPagaComSucesso() {
-            sale.startPayment();
-            Payment payment = new Payment(sale, PaymentMethod.CASH,
-                    new BigDecimal("25.50"), BigDecimal.ZERO, null, true);
-            sale.addPayment(payment);
-            assertEquals("PAID", sale.getStateName());
-            assertEquals(0, BigDecimal.ZERO.compareTo(sale.getAmountDue()));
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(stockRepository.lockAllByProductId(product.getId(), COMPANY_ID))
-                    .thenReturn(java.util.List.of(new Stock(UUID.randomUUID(), null, product, null, 10)));
-
-            saleService.completeSale(SESSION_TOKEN);
-
-            assertEquals("COMPLETED", sale.getStateName());
-            verify(saleRepository).save(sale);
-        }
-
-        @Test
-        @DisplayName("Cenário 2 — Deve bloquear finalização quando não há venda paga")
-        void deveBloquearFinalizacaoQuandoNaoHaVendaPaga() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(saleRepository.findPaidSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
-
-            assertThrows(RuntimeException.class, () -> saleService.completeSale(SESSION_TOKEN));
-            verify(saleRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("US012 - Desconto no Item via Service")
-    class DescontoNoItem {
-
-        @Test
-        @DisplayName("Supervisor deve aplicar desconto com sucesso e registrar auditoria")
-        void deveAplicarDescontoComSucesso() {
-            UUID itemId = sale.getItems().stream().findFirst().orElseThrow().getId();
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), supervisorOperator.getId(), null);
-
-            assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
-            assertEquals(new BigDecimal("20.50"), sale.getTotal());
-            verify(saleRepository).save(sale);
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Operador básico não pode aplicar desconto sem autorização")
-        void operadorBasicoNaoPodeAplicarDescontoSemAutorizacao() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(permissionService.canApplyItemDiscount(basicOperator)).thenReturn(false);
-
-            ForbiddenOperationException exception = assertThrows(ForbiddenOperationException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, basicOperator.getId(), null)
-            );
-
-            assertTrue(exception.getMessage().contains("não possui permissão para aplicar descontos"));
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Operador básico pode aplicar desconto com autorização de supervisor")
-        void operadorBasicoPodeAplicarDescontoComAutorizacao() {
-            UUID itemId = sale.getItems().stream().findFirst().orElseThrow().getId();
-
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(basicOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(basicOperator));
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canAuthorizeItemDiscount(supervisorOperator, basicOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
-            when(saleRepository.save(any(Sale.class))).thenReturn(sale);
-
-            saleService.applyItemDiscount(SESSION_TOKEN, itemId, new BigDecimal("5.00"), basicOperator.getId(), supervisorOperator.getId());
-
-            assertEquals(new BigDecimal("5.00"), sale.getItems().stream().findFirst().orElseThrow().getDiscount());
-            verify(auditRepository).save(any(SaleAuditEvent.class));
-        }
-
-        @Test
-        @DisplayName("Deve lançar exceção quando sessão não existe")
-        void deveLancarExcecaoQuandoSessaoNaoExiste() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN))
-                .thenThrow(new RuntimeException("Sessão de caixa não encontrada"));
-
-            assertThrows(RuntimeException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, supervisorOperator.getId(), null)
-            );
-
-            verify(saleRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Deve lançar exceção quando não há venda em andamento")
-        void deveLancarExcecaoQuandoNaoHaVendaEmAndamento() {
-            UUID itemId = UUID.randomUUID();
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
-            when(operatorRepository.findByIdAndCompanyId(supervisorOperator.getId(), COMPANY_ID)).thenReturn(Optional.of(supervisorOperator));
-            when(permissionService.canApplyItemDiscount(supervisorOperator)).thenReturn(true);
-            when(saleRepository.findActiveSaleBySessionId(SESSION_ID)).thenReturn(Optional.empty());
-
-            assertThrows(RuntimeException.class, () ->
-                saleService.applyItemDiscount(SESSION_TOKEN, itemId, BigDecimal.ONE, supervisorOperator.getId(), null)
             );
 
             verify(saleRepository, never()).save(any());

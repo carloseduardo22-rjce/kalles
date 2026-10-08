@@ -5,54 +5,47 @@ import java.util.UUID;
 
 import dev.kalles.product.entity.Product;
 import dev.kalles.sale.entity.Sale;
+import dev.kalles.sale.exception.SaleStateTransitionException;
 
 public abstract class AbstractSaleState implements SaleState {
 
     @Override
     public void addItem(Sale sale, Product product, BigDecimal unitPrice) {
-        throw new IllegalStateException(
-                "Não é possível adicionar itens no estado: " + getDescription());
+        throw new SaleStateTransitionException("adicionar itens", getDescription());
     }
 
     @Override
     public void removeItem(Sale sale, Product product) {
-        throw new IllegalStateException(
-                "Não é possível remover itens no estado: " + getDescription());
+        throw new SaleStateTransitionException("remover itens", getDescription());
     }
 
     @Override
     public void applyItemDiscount(Sale sale, UUID itemId, BigDecimal discountAmount) {
-        throw new IllegalStateException(
-                "Não é possível aplicar desconto no estado: " + getDescription());
+        throw new SaleStateTransitionException("aplicar desconto", getDescription());
     }
 
     @Override
     public void startPayment(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível iniciar pagamento no estado: " + getDescription());
+        throw new SaleStateTransitionException("iniciar pagamento", getDescription());
     }
 
     @Override
     public void finishPayment(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível finalizar pagamento no estado: " + getDescription());
+        throw new SaleStateTransitionException("finalizar pagamento", getDescription());
     }
 
     @Override
     public void cancel(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível cancelar no estado: " + getDescription());
+        throw new SaleStateTransitionException("cancelar", getDescription());
     }
 
     @Override
     public void completeSale(Sale sale) {
-        throw new IllegalStateException(
-                "Não é possível finalizar a venda no estado: " + getDescription());
+        throw new SaleStateTransitionException("finalizar a venda", getDescription());
     }
 
     @Override
     public void applyFidelityDiscount(Sale sale, BigDecimal discount) {
-        throw new IllegalStateException(
-                "Não é possível aplicar desconto de fidelidade no estado: " + getDescription());
+        throw new SaleStateTransitionException("aplicar desconto de fidelidade", getDescription());
     }
 }

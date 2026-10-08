@@ -9,9 +9,10 @@ import dev.kalles.payment.application.port.in.command.MapPaymentTerminalCommand;
 import dev.kalles.payment.application.port.out.PaymentTerminalMappingRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentTerminalMapping;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.payment.exception.TerminalSerialAlreadyMappedException;
+import dev.kalles.shared.exception.ForbiddenOperationException;
+import dev.kalles.shared.exception.NotFoundException;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,12 +28,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Tag("unit")
 class PaymentTerminalMappingServiceTest {
 
     private static final UUID TENANT_ID = UUID.randomUUID();
     private static final UUID COMPANY_ID = UUID.randomUUID();
+
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
     private static final UUID CASH_REGISTER_ID = UUID.randomUUID();
 
     private PaymentTerminalMappingRepository mappingRepository;
@@ -47,16 +52,8 @@ class PaymentTerminalMappingServiceTest {
         companyRepository = mock(CompanyRepository.class);
         service = new PaymentTerminalMappingService(mappingRepository, cashRegisterRepository, companyRepository);
 
-        TenantContextHolder.setTenantId(TENANT_ID);
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
         when(companyRepository.findByIdAndTenantId(COMPANY_ID, TENANT_ID))
                 .thenReturn(Optional.of(new Company(COMPANY_ID, "Matriz", TENANT_ID, null, null, null, null, null, null)));
-    }
-
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-        CompanyContextHolder.clear();
     }
 
     @Test
@@ -113,7 +110,7 @@ class PaymentTerminalMappingServiceTest {
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO,
                 "6N021234"
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(TerminalSerialAlreadyMappedException.class)
                 .hasMessage("Este numero de serie ja esta vinculado a outro caixa desta filial.");
     }
 
@@ -125,8 +122,23 @@ class PaymentTerminalMappingServiceTest {
         assertThatThrownBy(() -> service.execute(new GetPaymentTerminalMappingQuery(
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(NotFoundException.class)
                 .hasMessage("Caixa nao encontrado na filial ativa.");
+    }
+
+    @Test
+    void shouldAnswerNotFoundWhenNoTerminalIsMappedToTheCashRegister() {
+        CashRegister cashRegister = accessibleCashRegister();
+        when(cashRegisterRepository.findByIdAndCompanyId(CASH_REGISTER_ID, COMPANY_ID))
+                .thenReturn(Optional.of(cashRegister));
+        when(mappingRepository.findActiveByCashRegisterIdAndProvider(CASH_REGISTER_ID, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.execute(new GetPaymentTerminalMappingQuery(
+                CASH_REGISTER_ID,
+                PaymentProvider.MERCADO_PAGO
+        ))).isInstanceOf(NotFoundException.class)
+                .hasMessage("Nenhuma maquininha esta vinculada a este caixa.");
     }
 
     @Test
@@ -137,7 +149,7 @@ class PaymentTerminalMappingServiceTest {
                 CASH_REGISTER_ID,
                 PaymentProvider.MERCADO_PAGO,
                 "6N021234"
-        ))).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(ForbiddenOperationException.class)
                 .hasMessage("Filial nao encontrada para o tenant atual.");
 
         verify(cashRegisterRepository, never()).findByIdAndCompanyId(CASH_REGISTER_ID, COMPANY_ID);

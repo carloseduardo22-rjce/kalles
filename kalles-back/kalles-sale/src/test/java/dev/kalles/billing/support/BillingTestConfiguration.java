@@ -4,7 +4,7 @@ import dev.kalles.billing.application.port.out.BillingGateway;
 import dev.kalles.billing.domain.BillingInterval;
 import dev.kalles.billing.domain.BillingProvider;
 import dev.kalles.billing.domain.BillingStatus;
-import dev.kalles.billing.exception.BillingIntegrationException;
+import dev.kalles.billing.exception.BillingWebhookRejectedException;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -91,8 +91,8 @@ public class BillingTestConfiguration {
             this.nextWebhookNotification = nextWebhookNotification;
         }
 
-        public void failNextWebhook(String message) {
-            this.nextWebhookException = new BillingIntegrationException(message);
+        public void rejectNextWebhook() {
+            this.nextWebhookException = new BillingWebhookRejectedException(null);
         }
 
         public void reset() {

@@ -7,6 +7,7 @@ import dev.kalles.billing.domain.BillingProvider;
 import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.domain.BillingSubscription;
 import dev.kalles.billing.domain.BillingWebhookEvent;
+import dev.kalles.billing.exception.BillingWebhookTenantUnresolvedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -127,7 +128,7 @@ public class ProcessBillingWebhookUseCase {
                 .orElseThrow(() -> {
                     log.warn("Webhook de cobranca sem tenant resolvivel: evento={}, tipo={}, cliente={}",
                             notification.eventId(), notification.eventType(), notification.customerId());
-                    return new IllegalStateException("Nao foi possivel resolver o tenant da notificacao Stripe.");
+                    return new BillingWebhookTenantUnresolvedException();
                 });
     }
 

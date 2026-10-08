@@ -3,6 +3,7 @@ package dev.kalles.support.service;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.support.entity.UserEntity;
+import dev.kalles.support.exception.UserEmailAlreadyExistsException;
 import dev.kalles.support.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class UserService {
     public UserEntity create(String email, String name) {
         UUID tenantId = TenantContextHolder.requireTenantId();
         userRepository.findByTenantIdAndEmailIgnoreCase(tenantId, email).ifPresent(existing -> {
-            throw new IllegalArgumentException("A user with this email already exists: " + email);
+            throw new UserEmailAlreadyExistsException(email);
         });
         UserEntity user = new UserEntity();
         user.setTenantId(tenantId);

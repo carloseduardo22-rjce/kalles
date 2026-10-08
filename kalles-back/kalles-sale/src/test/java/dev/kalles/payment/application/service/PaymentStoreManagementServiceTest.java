@@ -6,11 +6,14 @@ import dev.kalles.payment.application.port.in.command.CreatePaymentStoreCommand;
 import dev.kalles.payment.application.port.out.PaymentStoreRepository;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
+import dev.kalles.payment.exception.PaymentStoreReferenceMismatchException;
 import dev.kalles.security.exception.TenantContextRequiredException;
-import dev.kalles.security.context.TenantContextHolder;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.shared.exception.NotFoundException;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +33,9 @@ class PaymentStoreManagementServiceTest {
 
     private static final UUID TENANT_ID = UUID.randomUUID();
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenant(TENANT_ID);
+
     @Mock
     private PaymentProviderPortFactory portFactory;
 
@@ -42,19 +48,13 @@ class PaymentStoreManagementServiceTest {
     @InjectMocks
     private PaymentStoreManagementService service;
 
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-    }
-
     @Test
     void shouldRejectStoreCreationForCompanyFromAnotherTenant() {
         UUID companyId = UUID.randomUUID();
-        TenantContextHolder.setTenantId(TENANT_ID);
 
         when(companyRepository.findByIdAndTenantId(companyId, TENANT_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NotFoundException.class, () ->
                 service.execute(new CreatePaymentStoreCommand(
                         PaymentProvider.MERCADO_PAGO,
                         companyId,
@@ -66,9 +66,28 @@ class PaymentStoreManagementServiceTest {
     }
 
     @Test
+    void shouldRefuseAnotherExternalReferenceForTheCompanyStore() {
+        UUID companyId = UUID.randomUUID();
+
+        when(companyRepository.findByIdAndTenantId(companyId, TENANT_ID))
+                .thenReturn(Optional.of(new Company(companyId, "A", TENANT_ID, null, null, null, null, null, null)));
+        when(paymentStoreRepository.findByCompanyIdAndProvider(companyId, PaymentProvider.MERCADO_PAGO))
+                .thenReturn(Optional.of(new PaymentStore(UUID.randomUUID(), companyId, PaymentProvider.MERCADO_PAGO, "FILIAL-01", "store-1")));
+
+        assertThrows(PaymentStoreReferenceMismatchException.class, () ->
+                service.execute(new CreatePaymentStoreCommand(
+                        PaymentProvider.MERCADO_PAGO,
+                        companyId,
+                        "FILIAL-02",
+                        null
+                )));
+
+        verify(portFactory, never()).store(PaymentProvider.MERCADO_PAGO);
+    }
+
+    @Test
     void shouldRestrictStatusLookupToCurrentTenantStores() {
         UUID companyA = UUID.randomUUID();
-        TenantContextHolder.setTenantId(TENANT_ID);
 
         when(companyRepository.findByTenantId(TENANT_ID))
                 .thenReturn(List.of(new Company(companyA, "A", TENANT_ID, null, null, null, null, null, null)));
@@ -82,7 +101,8 @@ class PaymentStoreManagementServiceTest {
 
     @Test
     void shouldRequireTenantContextForStatusLookup() {
-        assertThrows(TenantContextRequiredException.class, () ->
-                service.findByExternalReference(PaymentProvider.MERCADO_PAGO, "external-ref"));
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(TenantContextRequiredException.class, () ->
+                        service.findByExternalReference(PaymentProvider.MERCADO_PAGO, "external-ref")));
     }
 }

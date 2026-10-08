@@ -11,7 +11,9 @@ import dev.kalles.payment.domain.MerchantProfile;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
 import dev.kalles.payment.domain.PaymentStoreView;
+import dev.kalles.payment.exception.PaymentStoreReferenceMismatchException;
 import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,7 +44,7 @@ public class PaymentStoreManagementService implements
     public PaymentStore execute(CreatePaymentStoreCommand command) {
         UUID tenantId = TenantContextHolder.requireTenantId();
         Company company = companyRepository.findByIdAndTenantId(command.companyId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + command.companyId()));
+                .orElseThrow(() -> new NotFoundException("Company not found: " + command.companyId()));
 
         PaymentStore store = paymentStoreRepository.findByCompanyIdAndProvider(company.getId(), command.provider())
                 .map(existing -> validateExternalReference(existing, command.externalReference()))
@@ -100,7 +102,7 @@ public class PaymentStoreManagementService implements
 
     private PaymentStore validateExternalReference(PaymentStore store, String externalReference) {
         if (!store.externalReference().equals(externalReference)) {
-            throw new IllegalArgumentException("External reference does not match the informed company");
+            throw new PaymentStoreReferenceMismatchException();
         }
         return store;
     }

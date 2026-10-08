@@ -3,6 +3,7 @@ package dev.kalles.client.service;
 import dev.kalles.client.dto.ClientRequest;
 import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
+import dev.kalles.client.exception.ClientCpfAlreadyExistsException;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -44,7 +45,7 @@ public class ClientService {
 
         if (request.cpf() != null && !request.cpf().isBlank()) {
             clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
-                throw new IllegalArgumentException("Já existe um cliente com o CPF informado nesta filial.");
+                throw new ClientCpfAlreadyExistsException();
             });
         }
 
@@ -79,7 +80,7 @@ public class ClientService {
         if (request.cpf() != null && !request.cpf().isBlank()) {
             clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
-                    throw new IllegalArgumentException("Já existe um cliente com o CPF informado nesta filial.");
+                    throw new ClientCpfAlreadyExistsException();
                 }
             });
         }

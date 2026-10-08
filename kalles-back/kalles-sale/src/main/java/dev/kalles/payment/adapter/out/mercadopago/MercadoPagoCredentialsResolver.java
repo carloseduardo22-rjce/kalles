@@ -3,6 +3,7 @@ package dev.kalles.payment.adapter.out.mercadopago;
 import dev.kalles.payment.application.port.out.PaymentAccountRepository;
 import dev.kalles.payment.config.MercadoPagoProperties;
 import dev.kalles.payment.domain.PaymentProvider;
+import dev.kalles.payment.exception.PaymentProviderAccountNotLinkedException;
 import dev.kalles.security.context.TenantContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -49,7 +50,7 @@ public class MercadoPagoCredentialsResolver {
     public String linkedAccessTokenOrThrow() {
         String token = linkedAccessToken();
         if (token == null || token.isBlank()) {
-            throw new MercadoPagoAdapterException("Mercado Pago account is not linked");
+            throw new PaymentProviderAccountNotLinkedException();
         }
         return token;
     }
@@ -57,7 +58,7 @@ public class MercadoPagoCredentialsResolver {
     public String linkedUserIdOrThrow() {
         String userId = linkedUserId();
         if (userId == null || userId.isBlank()) {
-            throw new MercadoPagoAdapterException("Mercado Pago account is not linked");
+            throw new PaymentProviderAccountNotLinkedException();
         }
         return userId;
     }

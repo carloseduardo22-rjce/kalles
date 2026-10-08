@@ -7,6 +7,7 @@ import dev.kalles.billing.domain.BillingInterval;
 import dev.kalles.billing.domain.BillingProvider;
 import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.domain.BillingSubscription;
+import dev.kalles.billing.exception.BillingSubscriptionNotConfiguredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -66,10 +67,10 @@ class CreateBillingPortalSessionUseCaseTest {
         when(billingSubscriptionRepository.findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE))
                 .thenReturn(Optional.empty());
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        BillingSubscriptionNotConfiguredException error = assertThrows(BillingSubscriptionNotConfiguredException.class,
                 () -> useCase.execute(tenantId, "https://app.kalles.dev/account"));
 
-        assertEquals("Nenhuma assinatura Stripe encontrada para este tenant.", error.getMessage());
+        assertEquals("BILLING_SUBSCRIPTION_NOT_CONFIGURED", error.getCode());
     }
 
     @Test
@@ -90,9 +91,9 @@ class CreateBillingPortalSessionUseCaseTest {
         when(billingSubscriptionRepository.findByTenantIdAndProvider(tenantId, BillingProvider.STRIPE))
                 .thenReturn(Optional.of(subscription));
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        BillingSubscriptionNotConfiguredException error = assertThrows(BillingSubscriptionNotConfiguredException.class,
                 () -> useCase.execute(tenantId, "https://app.kalles.dev/account"));
 
-        assertEquals("Nenhum cliente Stripe encontrado para este tenant.", error.getMessage());
+        assertEquals("BILLING_SUBSCRIPTION_NOT_CONFIGURED", error.getCode());
     }
 }

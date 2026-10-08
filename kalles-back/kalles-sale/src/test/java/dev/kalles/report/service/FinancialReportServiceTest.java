@@ -5,13 +5,13 @@ import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.report.dto.ProfitSupplierExpenseReportResponse;
 import dev.kalles.report.service.FinancialReportService;
 import dev.kalles.sale.repository.SaleRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.exception.CompanyContextRequiredException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,6 +32,9 @@ class FinancialReportServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("c7b9be77-2eb2-4a4e-8ae6-0b17f77a1201");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private SaleRepository saleRepository;
 
@@ -40,16 +43,6 @@ class FinancialReportServiceTest {
 
     @InjectMocks
     private FinancialReportService financialReportService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve consolidar vendas, gastos e margem da filial ativa")
@@ -95,12 +88,11 @@ class FinancialReportServiceTest {
     @Test
     @DisplayName("Deve exigir filial ativa no contexto")
     void shouldRequireCompanyContext() {
-        CompanyContextHolder.clear();
-
-        assertThrows(CompanyContextRequiredException.class, () ->
-                financialReportService.getProfitVsSupplierExpenses(
-                        LocalDate.of(2026, 4, 1),
-                        LocalDate.of(2026, 4, 30)
-                ));
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(CompanyContextRequiredException.class, () ->
+                        financialReportService.getProfitVsSupplierExpenses(
+                                LocalDate.of(2026, 4, 1),
+                                LocalDate.of(2026, 4, 30)
+                        )));
     }
 }

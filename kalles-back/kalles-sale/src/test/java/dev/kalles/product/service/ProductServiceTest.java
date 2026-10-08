@@ -6,19 +6,20 @@ import dev.kalles.product.dto.ProductCatalogResponse;
 import dev.kalles.product.dto.ProductRequest;
 import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
+import dev.kalles.product.exception.ProductBarcodeAlreadyExistsException;
+import dev.kalles.product.exception.ProductInternalCodeAlreadyExistsException;
 import dev.kalles.product.repository.CompanyProductReadRepository;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
 import dev.kalles.product.service.ProductService;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.exception.TenantContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -44,6 +45,9 @@ class ProductServiceTest {
     private static final UUID TENANT_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174501");
     private static final UUID COMPANY_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174502");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.tenantAndCompany(TENANT_ID, COMPANY_ID);
+
     @Mock
     private ProductRepository productRepository;
 
@@ -58,18 +62,6 @@ class ProductServiceTest {
 
     @InjectMocks
     private ProductService productService;
-
-    @BeforeEach
-    void setUp() {
-        TenantContextHolder.setTenantId(TENANT_ID);
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-        CompanyContextHolder.clear();
-    }
 
     @Test
     @DisplayName("Deve criar produto dentro do tenant atual")
@@ -136,18 +128,16 @@ class ProductServiceTest {
         when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID))
                 .thenReturn(Optional.of(new Product()));
 
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+        ProductInternalCodeAlreadyExistsException error = assertThrows(ProductInternalCodeAlreadyExistsException.class,
                 () -> productService.create(request));
 
-        assertTrue(error.getMessage().contains("codigo interno"));
+        assertEquals("PRODUCT_INTERNAL_CODE_ALREADY_EXISTS", error.getCode());
         verify(productRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Deve exigir tenant no contexto para criar produto")
-    void shouldRequireTenantContextWhenCreatingProduct() {
-        TenantContextHolder.clear();
-
+    @DisplayName("Deve rejeitar codigo de barras duplicado no mesmo tenant")
+    void shouldRejectDuplicateBarcodeInsideSameTenant() {
         ProductRequest request = new ProductRequest(
                 "Arroz Tipo 1",
                 "ARZ-001",
@@ -157,8 +147,55 @@ class ProductServiceTest {
                 new BigDecimal("24.50")
         );
 
-        assertThrows(TenantContextRequiredException.class,
+        when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID)).thenReturn(Optional.empty());
+        when(productRepository.findByBarcodeAndTenantId("789100000001", TENANT_ID))
+                .thenReturn(Optional.of(new Product()));
+
+        ProductBarcodeAlreadyExistsException error = assertThrows(ProductBarcodeAlreadyExistsException.class,
                 () -> productService.create(request));
+
+        assertEquals("PRODUCT_BARCODE_ALREADY_EXISTS", error.getCode());
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar atualizacao com codigo interno de outro produto")
+    void shouldRejectUpdateWithInternalCodeOfAnotherProduct() {
+        UUID productId = UUID.randomUUID();
+        ProductRequest request = new ProductRequest(
+                "Arroz Tipo 1",
+                "ARZ-001",
+                "789100000001",
+                "Pacote 5kg",
+                new BigDecimal("32.90"),
+                new BigDecimal("24.50")
+        );
+        Product current = new Product();
+        current.setId(productId);
+        Product another = new Product();
+        another.setId(UUID.randomUUID());
+
+        when(productRepository.findByIdAndTenantId(productId, TENANT_ID)).thenReturn(Optional.of(current));
+        when(productRepository.findByInternalCodeAndTenantId("ARZ-001", TENANT_ID)).thenReturn(Optional.of(another));
+
+        assertThrows(ProductInternalCodeAlreadyExistsException.class, () -> productService.update(productId, request));
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve exigir tenant no contexto para criar produto")
+    void shouldRequireTenantContextWhenCreatingProduct() {
+        ProductRequest request = new ProductRequest(
+                "Arroz Tipo 1",
+                "ARZ-001",
+                "789100000001",
+                "Pacote 5kg",
+                new BigDecimal("32.90"),
+                new BigDecimal("24.50")
+        );
+
+        RequestContext.runWithin(RequestContext.empty().withCompany(COMPANY_ID), () ->
+                assertThrows(TenantContextRequiredException.class, () -> productService.create(request)));
     }
 
     @Test

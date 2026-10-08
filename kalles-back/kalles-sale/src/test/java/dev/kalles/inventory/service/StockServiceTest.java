@@ -5,6 +5,7 @@ import dev.kalles.inventory.dto.StockResponse;
 import dev.kalles.inventory.entity.Location;
 import dev.kalles.inventory.entity.Stock;
 import dev.kalles.inventory.entity.Warehouse;
+import dev.kalles.inventory.exception.InsufficientStockException;
 import dev.kalles.inventory.repository.LocationRepository;
 import dev.kalles.inventory.repository.StockEntryRepository;
 import dev.kalles.inventory.repository.StockRepository;
@@ -13,17 +14,15 @@ import dev.kalles.product.entity.CompanyProduct;
 import dev.kalles.product.entity.Product;
 import dev.kalles.product.repository.CompanyProductRepository;
 import dev.kalles.product.repository.ProductRepository;
-import dev.kalles.security.context.CompanyContextHolder;
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +31,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,22 +63,11 @@ class StockServiceTest {
     @InjectMocks
     private StockService stockService;
 
-    private UUID companyId;
-    private UUID tenantId;
+    private final UUID companyId = UUID.randomUUID();
+    private final UUID tenantId = UUID.randomUUID();
 
-    @BeforeEach
-    void setUp() {
-        companyId = UUID.randomUUID();
-        tenantId = UUID.randomUUID();
-        CompanyContextHolder.setCompanyId(companyId);
-        TenantContextHolder.setTenantId(tenantId);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-        TenantContextHolder.clear();
-    }
+    @RegisterExtension
+    final RequestContextExtension requestContext = RequestContextExtension.tenantAndCompany(tenantId, companyId);
 
     private Product buildProduct(UUID id) {
         Product p = new Product();
@@ -315,5 +304,54 @@ class StockServiceTest {
         assertThrows(NotFoundException.class,
                 () -> stockService.getStockByLocation(locationId));
         verifyNoInteractions(stockRepository);
+    }
+
+    @Test
+    @DisplayName("Deve aceitar quantidade dentro do estoque disponivel")
+    void shouldAcceptQuantityWithinAvailableStock() {
+        Product product = buildProduct(UUID.randomUUID());
+        when(stockRepository.sumQuantityByProductId(product.getId(), companyId)).thenReturn(5);
+
+        assertDoesNotThrow(() -> stockService.requireAvailable(product, 5, companyId));
+    }
+
+    @Test
+    @DisplayName("Deve recusar quantidade acima do estoque disponivel")
+    void shouldRejectQuantityAboveAvailableStock() {
+        Product product = buildProduct(UUID.randomUUID());
+        when(stockRepository.sumQuantityByProductId(product.getId(), companyId)).thenReturn(5);
+
+        InsufficientStockException error = assertThrows(InsufficientStockException.class,
+                () -> stockService.requireAvailable(product, 6, companyId));
+        assertEquals("INSUFFICIENT_STOCK", error.getCode());
+    }
+
+    @Test
+    @DisplayName("Deve baixar primeiro da localizacao com mais estoque")
+    void shouldDeductFromTheFullestLocationFirst() {
+        Product product = buildProduct(UUID.randomUUID());
+        Stock smaller = new Stock(UUID.randomUUID(), null, product, buildLocation(UUID.randomUUID()), 3);
+        Stock larger = new Stock(UUID.randomUUID(), null, product, buildLocation(UUID.randomUUID()), 5);
+        when(stockRepository.lockAllByProductId(product.getId(), companyId)).thenReturn(List.of(smaller, larger));
+
+        stockService.deduct(product, 6, companyId);
+
+        assertEquals(0, larger.getQuantity());
+        assertEquals(2, smaller.getQuantity());
+        verify(stockRepository).save(larger);
+        verify(stockRepository).save(smaller);
+    }
+
+    @Test
+    @DisplayName("Deve recusar a baixa quando o estoque bloqueado nao cobre a quantidade")
+    void shouldRejectDeductionWhenLockedStockIsShort() {
+        Product product = buildProduct(UUID.randomUUID());
+        Stock stock = new Stock(UUID.randomUUID(), null, product, buildLocation(UUID.randomUUID()), 3);
+        when(stockRepository.lockAllByProductId(product.getId(), companyId)).thenReturn(List.of(stock));
+
+        assertThrows(InsufficientStockException.class,
+                () -> stockService.deduct(product, 4, companyId));
+        assertEquals(3, stock.getQuantity());
+        verify(stockRepository, never()).save(any());
     }
 }

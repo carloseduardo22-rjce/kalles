@@ -1,8 +1,10 @@
 package dev.kalles.note.adapter.out.crypto;
 
 import dev.kalles.note.application.port.out.CryptoPort;
+import dev.kalles.note.exception.SensitiveContentSecretInvalidException;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -72,7 +74,9 @@ public class AesCryptoAdapter implements CryptoPort {
             byte[] plainText = cipher.doFinal(cipherText);
 
             return new String(plainText, StandardCharsets.UTF_8);
-            
+
+        } catch (AEADBadTagException e) {
+            throw new SensitiveContentSecretInvalidException();
         } catch (Exception e) {
             throw new RuntimeException("Decryption failed. The secret Key might be wrong or the data corrupted.", e);
         }

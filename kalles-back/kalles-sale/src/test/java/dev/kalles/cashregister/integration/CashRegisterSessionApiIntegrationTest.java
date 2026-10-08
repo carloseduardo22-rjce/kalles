@@ -69,7 +69,8 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .when()
                 .post("/api/cash-register-sessions/open")
                 .then()
-                .statusCode(409)
+                .statusCode(422)
+                .body("code", equalTo("PAYMENT_INTEGRATION_NOT_CONFIGURED"))
                 .body("detail", equalTo("Pagamento nao configurado, neste caixa voce apenas podera operar com dinheiro mas nao podera receber pagamentos via pix, vouchers e cartoes de credito."));
     }
 
@@ -188,7 +189,7 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .post("/api/cash-register-sessions/open")
                 .then()
                 .statusCode(409)
-                .body("title", equalTo("Sessão ativa já existe"))
+                .body("code", equalTo("CASH_REGISTER_SESSION_ALREADY_OPEN"))
                 .body("detail", equalTo("O caixa " + CASH_REGISTER_CODE + " já possui uma sessão ativa"));
     }
 
@@ -215,7 +216,7 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .post("/api/cash-register-sessions/open")
                 .then()
                 .statusCode(409)
-                .body("title", equalTo("Operador já está em sessão ativa"))
+                .body("code", equalTo("OPERATOR_ALREADY_IN_SESSION"))
                 .body("detail", equalTo("O operador " + OPERATOR_CODE + " já está vinculado a uma sessão ativa em outro caixa"));
     }
 
@@ -241,7 +242,7 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .post("/api/cash-register-sessions/open")
                 .then()
                 .statusCode(409)
-                .body("title", equalTo("Sessão ativa já existe"))
+                .body("code", equalTo("CASH_REGISTER_SESSION_ALREADY_OPEN"))
                 .body("detail", equalTo("O caixa " + CASH_REGISTER_CODE + " já possui uma sessão ativa"));
     }
 

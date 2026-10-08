@@ -46,7 +46,8 @@ public class AgentController {
     @Operation(summary = "Create agent")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Agent created"),
-        @ApiResponse(responseCode = "400", description = "Invalid data or duplicate employee ID")
+        @ApiResponse(responseCode = "400", description = "Invalid data"),
+        @ApiResponse(responseCode = "409", description = "Employee ID already in use")
     })
     public ResponseEntity<AgentResponse> create(@Valid @RequestBody AgentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -58,7 +59,7 @@ public class AgentController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Agent updated"),
         @ApiResponse(responseCode = "404", description = "Agent not found"),
-        @ApiResponse(responseCode = "400", description = "Employee ID already in use")
+        @ApiResponse(responseCode = "409", description = "Employee ID already in use")
     })
     public ResponseEntity<AgentResponse> update(
             @PathVariable UUID id,

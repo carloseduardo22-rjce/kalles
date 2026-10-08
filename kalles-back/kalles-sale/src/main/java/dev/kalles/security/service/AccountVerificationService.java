@@ -4,6 +4,7 @@ package dev.kalles.security.service;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.AccountVerification;
 import dev.kalles.security.event.VerificationCodeIssued;
+import dev.kalles.security.exception.VerificationCodeRejectedException;
 import dev.kalles.security.repository.AccountVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -52,14 +53,14 @@ public class AccountVerificationService {
     public void verifyCode(Account account, String code) {
         AccountVerification verification = accountVerificationRepository
                 .findFirstByAccountIdAndCodeOrderByCreatedAtDesc(account.getId(), code)
-                .orElseThrow(() -> new IllegalArgumentException("Código inválido ou não encontrado."));
+                .orElseThrow(VerificationCodeRejectedException::invalid);
 
         if (verification.isVerified()) {
-            throw new IllegalArgumentException("Este código já foi utilizado.");
+            throw VerificationCodeRejectedException.alreadyUsed();
         }
 
         if (verification.isExpired()) {
-            throw new IllegalArgumentException("Este código expirou. Por favor, solicite um novo.");
+            throw VerificationCodeRejectedException.expired();
         }
 
         verification.setVerified(true);
@@ -67,13 +68,5 @@ public class AccountVerificationService {
         
         account.setVerified(true);
         // Note: The caller is responsible for saving the Account entity
-    }
-
-    @Transactional
-    public void resendCode(Account account) {
-        if (account.isVerified()) {
-            throw new IllegalArgumentException("A conta já está verificada.");
-        }
-        generateAndSendVerificationCode(account);
     }
 }

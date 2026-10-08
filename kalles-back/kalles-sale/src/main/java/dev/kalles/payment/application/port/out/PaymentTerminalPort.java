@@ -9,5 +9,5 @@ public interface PaymentTerminalPort extends ProviderAwarePort {
 
     List<PaymentTerminal> listTerminals(String storeId, String pointId);
 
-    boolean changeOperationMode(String terminalId, TerminalOperationMode operationMode);
+    void changeOperationMode(String terminalId, TerminalOperationMode operationMode);
 }

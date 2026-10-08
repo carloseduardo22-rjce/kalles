@@ -1,6 +1,7 @@
 package dev.kalles.billing.adapter.out.stripe;
 
 import com.stripe.Stripe;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Invoice;
@@ -13,6 +14,7 @@ import com.stripe.param.SubscriptionRetrieveParams;
 import dev.kalles.billing.domain.BillingInterval;
 import dev.kalles.billing.domain.BillingStatus;
 import dev.kalles.billing.exception.BillingIntegrationException;
+import dev.kalles.billing.exception.BillingWebhookRejectedException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
@@ -128,6 +130,9 @@ public class DefaultStripeSdkClient implements StripeSdkClient {
                         false
                 );
             };
+        } catch (SignatureVerificationException e) {
+            log.warn("Webhook Stripe com assinatura invalida: assinatura={}", signature != null && !signature.isBlank());
+            throw new BillingWebhookRejectedException(e);
         } catch (Exception e) {
             log.warn("Webhook Stripe rejeitado na validacao: assinatura={}", signature != null && !signature.isBlank(), e);
             throw new BillingIntegrationException("Falha ao validar webhook Stripe.", e);

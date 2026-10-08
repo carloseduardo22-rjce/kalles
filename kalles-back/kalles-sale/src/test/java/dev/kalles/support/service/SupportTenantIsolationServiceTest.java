@@ -1,15 +1,15 @@
 package dev.kalles.support.service;
 
-import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.support.mapper.TicketMapper;
 import dev.kalles.support.repository.TicketRepository;
 import dev.kalles.support.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
+import dev.kalles.testsupport.RequestContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,16 +43,14 @@ class SupportTenantIsolationServiceTest {
     @Mock
     private TicketMapper mapper;
 
-    @AfterEach
-    void tearDown() {
-        TenantContextHolder.clear();
-    }
+    private final UUID tenantId = UUID.randomUUID();
+
+    @RegisterExtension
+    final RequestContextExtension requestContext = RequestContextExtension.tenant(tenantId);
 
     @Test
     @DisplayName("usuarios de suporte sao listados somente no tenant atual")
     void shouldListUsersByCurrentTenantOnly() {
-        UUID tenantId = UUID.randomUUID();
-        TenantContextHolder.setTenantId(tenantId);
         when(userRepository.findAllByTenantIdOrderByNameAsc(tenantId)).thenReturn(List.of());
 
         new UserService(userRepository).listAll();
@@ -63,8 +61,6 @@ class SupportTenantIsolationServiceTest {
     @Test
     @DisplayName("tickets de admin sao listados somente no tenant atual")
     void shouldListAdminTicketsByCurrentTenantOnly() {
-        UUID tenantId = UUID.randomUUID();
-        TenantContextHolder.setTenantId(tenantId);
         when(ticketRepository.findAllByTenantIdOrderByCreatedAtDesc(tenantId)).thenReturn(List.of());
 
         new TicketService(ticketRepository, userService, agentService, categoryService, accountRepository, mapper)
@@ -76,8 +72,6 @@ class SupportTenantIsolationServiceTest {
     @Test
     @DisplayName("tickets de cliente sao listados por tenant e email")
     void shouldListCustomerTicketsByTenantAndEmail() {
-        UUID tenantId = UUID.randomUUID();
-        TenantContextHolder.setTenantId(tenantId);
         when(ticketRepository.findAllByTenantIdAndUserEmailIgnoreCaseOrderByCreatedAtDesc(tenantId, "cliente@tenant.local"))
                 .thenReturn(List.of());
 

@@ -46,7 +46,8 @@ public class UserController {
     @Operation(summary = "Create user")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "User created"),
-        @ApiResponse(responseCode = "400", description = "Invalid data or email already registered")
+        @ApiResponse(responseCode = "400", description = "Invalid data"),
+        @ApiResponse(responseCode = "409", description = "Email already registered")
     })
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)

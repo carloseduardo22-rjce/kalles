@@ -9,6 +9,7 @@ import dev.kalles.payment.domain.PaymentPointDescriptor;
 import dev.kalles.payment.domain.PaymentPointView;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentStore;
+import dev.kalles.payment.exception.PaymentStoreNotConfiguredException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -50,7 +51,7 @@ public class MercadoPagoPaymentPointAdapter implements PaymentPointPort {
         }
 
         if (!store.hasProviderStore()) {
-            throw new IllegalStateException("Company does not have a Mercado Pago Store configured.");
+            throw new PaymentStoreNotConfiguredException();
         }
 
         String extId = point.externalReference() != null ? point.externalReference().trim() : "";
@@ -116,7 +117,8 @@ public class MercadoPagoPaymentPointAdapter implements PaymentPointPort {
             );
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                return List.of();
+                throw new MercadoPagoAdapterException("Fail to list MP POS. HTTP Status: "
+                        + response.getStatusCode().value() + " - " + response.getBody());
             }
 
             PointSearchResponse searchResponse = objectMapper.readValue(response.getBody(), PointSearchResponse.class);
@@ -138,8 +140,10 @@ public class MercadoPagoPaymentPointAdapter implements PaymentPointPort {
                             Map.of()
                     ))
                     .toList();
+        } catch (MercadoPagoAdapterException e) {
+            throw e;
         } catch (Exception e) {
-            return List.of();
+            throw new MercadoPagoAdapterException("Fail to list MP POS: " + e.getMessage(), e);
         }
     }
 

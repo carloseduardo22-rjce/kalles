@@ -3,15 +3,16 @@ package dev.kalles.client.service;
 import dev.kalles.client.dto.ClientRequest;
 import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
+import dev.kalles.client.exception.ClientCpfAlreadyExistsException;
 import dev.kalles.client.repository.ClientRepository;
-import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import dev.kalles.testsupport.RequestContextExtension;
+import dev.kalles.security.context.RequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,21 +32,14 @@ class ClientServiceTest {
 
     private static final UUID COMPANY_ID = UUID.fromString("e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f");
 
+    @RegisterExtension
+    static final RequestContextExtension REQUEST_CONTEXT = RequestContextExtension.company(COMPANY_ID);
+
     @Mock
     private ClientRepository clientRepository;
 
     @InjectMocks
     private ClientService clientService;
-
-    @BeforeEach
-    void setUp() {
-        CompanyContextHolder.setCompanyId(COMPANY_ID);
-    }
-
-    @AfterEach
-    void tearDown() {
-        CompanyContextHolder.clear();
-    }
 
     private ClientRequest buildRequest(String cpf) {
         return new ClientRequest("João da Silva", LocalDate.of(1990, 5, 20), 'M',
@@ -94,7 +88,7 @@ class ClientServiceTest {
 
         when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
 
-        assertThrows(IllegalArgumentException.class, () -> clientService.create(buildRequest(cpf)));
+        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
     }
 
@@ -198,7 +192,7 @@ class ClientServiceTest {
         ClientRequest request = new ClientRequest("X", null, null,
                 cpf, null, null, null, null, null, null);
 
-        assertThrows(IllegalArgumentException.class, () -> clientService.update(id, request));
+        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.update(id, request));
         verify(clientRepository, never()).save(any());
     }
 
@@ -236,8 +230,7 @@ class ClientServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando não há company no contexto")
     void shouldThrowWhenCompanyContextIsMissing() {
-        CompanyContextHolder.clear();
-
-        assertThrows(CompanyContextRequiredException.class, () -> clientService.listAll());
+        RequestContext.runWithin(RequestContext.empty(), () ->
+                assertThrows(CompanyContextRequiredException.class, () -> clientService.listAll()));
     }
 }

@@ -2,8 +2,10 @@ package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.dto.CreateCashRegisterRequest;
 import dev.kalles.cashregister.entity.CashRegister;
+import dev.kalles.cashregister.exception.CashRegisterCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.exception.CompanyContextRequiredException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +23,7 @@ public class CashRegisterCommandService {
         UUID companyId = resolveCompanyId(request.companyId());
 
         if (repository.findByCodeAndCompanyId(request.code(), companyId).isPresent()) {
-            throw new IllegalArgumentException("Já existe um caixa com este código nesta filial: " + request.code());
+            throw new CashRegisterCodeAlreadyExistsException(request.code());
         }
 
         CashRegister cashRegister = new CashRegister(request.code(), request.description(), companyId);
@@ -42,6 +44,6 @@ public class CashRegisterCommandService {
         if (requestCompanyId != null) {
             return requestCompanyId;
         }
-        throw new IllegalStateException("Nenhuma filial selecionada no contexto da operação.");
+        throw new CompanyContextRequiredException();
     }
 }
