@@ -2,7 +2,7 @@ package dev.kalles.goal.service;
 
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.GoalStatus;
-import dev.kalles.goal.exception.GoalDomainException;
+import dev.kalles.goal.exception.GoalPeriodOverlapException;
 
 import java.util.List;
 
@@ -18,9 +18,7 @@ public class OverlapValidator {
                 .filter(g -> g.overlaps(incoming))
                 .findFirst()
                 .ifPresent(g -> {
-                    throw new GoalDomainException(
-                            "There is already an active " + incoming.getPeriodicity() + " Goal overlapping the given period"
-                    );
+                    throw new GoalPeriodOverlapException(incoming.getPeriodicity());
                 });
     }
 }

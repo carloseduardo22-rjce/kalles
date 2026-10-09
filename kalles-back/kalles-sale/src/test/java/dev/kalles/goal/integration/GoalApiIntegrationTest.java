@@ -58,7 +58,31 @@ class GoalApiIntegrationTest extends AbstractGoalApiSupport {
                 .when()
                 .post("/api/goals")
                 .then()
-                .statusCode(422);
+                .statusCode(409)
+                .body("code", equalTo("GOAL_PERIOD_OVERLAP"));
+    }
+
+    @Test
+    void shouldRejectChangesToActiveGoal() {
+        AuthContext auth = authenticateTenantAdminWithCsrf();
+        UUID activeGoalId = seedGoal(companyAId, "9000.00", Periodicity.MONTHLY, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30), GoalStatus.ACTIVE).getId();
+
+        Response response = LocalHttpTestClient.put(
+                "http://localhost:" + port + "/api/goals/" + activeGoalId,
+                Map.of(
+                        "Cookie", "kalles_auth_token=" + auth.authCookie() + "; XSRF-TOKEN=" + auth.csrfCookie(),
+                        "X-XSRF-TOKEN", auth.csrfToken(),
+                        "X-Company-ID", companyAId.toString(),
+                        "Content-Type", "application/json"
+                ),
+                """
+                {"targetValue": 12000.00, "periodicity": "MONTHLY", "startDate": "2026-04-01", "endDate": "2026-04-30"}
+                """
+        );
+
+        response.then()
+                .statusCode(409)
+                .body("code", equalTo("GOAL_ACTIVE_NOT_EDITABLE"));
     }
 
     @Test

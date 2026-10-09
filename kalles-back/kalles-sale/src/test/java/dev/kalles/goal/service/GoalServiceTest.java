@@ -5,7 +5,7 @@ import dev.kalles.goal.dto.GoalResponse;
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
-import dev.kalles.goal.exception.GoalDomainException;
+import dev.kalles.goal.exception.GoalPeriodOverlapException;
 import dev.kalles.goal.repository.GoalRepository;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -84,7 +84,7 @@ class GoalServiceTest {
         when(goalRepository.findByCompanyIdAndPeriodicityAndStatus(COMPANY_ID, Periodicity.MONTHLY, GoalStatus.ACTIVE))
                 .thenReturn(List.of(activeGoal));
 
-        assertThrows(GoalDomainException.class, () -> goalService.create(request));
+        assertThrows(GoalPeriodOverlapException.class, () -> goalService.create(request));
         verify(goalRepository, never()).save(any());
     }
 

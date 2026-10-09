@@ -51,7 +51,7 @@ public class GoalController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Meta criada com sucesso"),
         @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-        @ApiResponse(responseCode = "422", description = "Conflito de período com meta ativa existente")
+        @ApiResponse(responseCode = "409", description = "Conflito de período com meta ativa existente")
     })
     public ResponseEntity<GoalResponse> create(@Valid @RequestBody GoalRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(goalService.create(request));
@@ -72,7 +72,7 @@ public class GoalController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Meta atualizada"),
         @ApiResponse(responseCode = "404", description = "Meta não encontrada"),
-        @ApiResponse(responseCode = "422", description = "Meta ativa não pode ser alterada")
+        @ApiResponse(responseCode = "409", description = "Meta ativa não pode ser alterada")
     })
     public ResponseEntity<GoalResponse> update(@PathVariable UUID id, @Valid @RequestBody GoalRequest request) {
         return ResponseEntity.ok(goalService.update(id, request));
@@ -83,7 +83,7 @@ public class GoalController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Meta ativada"),
         @ApiResponse(responseCode = "404", description = "Meta não encontrada"),
-        @ApiResponse(responseCode = "422", description = "Conflito de período com meta ativa existente")
+        @ApiResponse(responseCode = "409", description = "Conflito de período com meta ativa existente")
     })
     public ResponseEntity<GoalResponse> activate(@PathVariable UUID id) {
         return ResponseEntity.ok(goalService.activate(id));

@@ -3,7 +3,7 @@ package dev.kalles.goal.steps;
 import dev.kalles.goal.entity.Goal;
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
-import dev.kalles.goal.exception.GoalDomainException;
+import dev.kalles.goal.exception.GoalPeriodOverlapException;
 import dev.kalles.goal.service.GoalAssessmentResult;
 import dev.kalles.goal.service.GoalAssessmentService;
 import dev.kalles.goal.service.OverlapValidator;
@@ -97,7 +97,7 @@ public class BillingGoalSteps {
             OverlapValidator.validate(registeredGoals, goal);
             registeredGoals.add(goal);
             createdGoal = goal;
-        } catch (GoalDomainException e) {
+        } catch (GoalPeriodOverlapException e) {
             capturedException = e;
         }
     }

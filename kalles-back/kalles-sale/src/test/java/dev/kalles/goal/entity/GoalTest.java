@@ -2,7 +2,7 @@ package dev.kalles.goal.entity;
 
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
-import dev.kalles.goal.exception.GoalDomainException;
+import dev.kalles.goal.exception.ActiveGoalNotEditableException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ class GoalTest {
                     LocalDate.of(2026, 3, 1),
                     LocalDate.of(2026, 3, 31)
             ))
-                    .isInstanceOf(GoalDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Target value is required");
         }
 
@@ -65,7 +65,7 @@ class GoalTest {
                     LocalDate.of(2026, 3, 1),
                     LocalDate.of(2026, 3, 31)
             ))
-                    .isInstanceOf(GoalDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Target value must be positive");
         }
 
@@ -79,7 +79,7 @@ class GoalTest {
                     LocalDate.of(2026, 3, 31),
                     LocalDate.of(2026, 3, 1)
             ))
-                    .isInstanceOf(GoalDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("End date must be after start date");
         }
     }
@@ -101,7 +101,7 @@ class GoalTest {
             goal.activate();
 
             assertThatThrownBy(() -> goal.changeTargetValue(new BigDecimal("120000.00")))
-                    .isInstanceOf(GoalDomainException.class)
+                    .isInstanceOf(ActiveGoalNotEditableException.class)
                     .hasMessage("Active goal cannot have its target value changed");
         }
 
@@ -121,7 +121,7 @@ class GoalTest {
                     LocalDate.of(2026, 3, 1),
                     LocalDate.of(2026, 4, 30)
             ))
-                    .isInstanceOf(GoalDomainException.class)
+                    .isInstanceOf(ActiveGoalNotEditableException.class)
                     .hasMessage("Active goal cannot have its dates changed");
         }
     }

@@ -19,14 +19,18 @@ public final class LocalHttpTestClient {
     }
 
     public static Response get(String url, Map<String, String> headers) {
-        return send(url, "GET", headers);
+        return send(url, "GET", headers, null);
     }
 
     public static Response delete(String url, Map<String, String> headers) {
-        return send(url, "DELETE", headers);
+        return send(url, "DELETE", headers, null);
     }
 
-    private static Response send(String url, String method, Map<String, String> headers) {
+    public static Response put(String url, Map<String, String> headers, String body) {
+        return send(url, "PUT", headers, body);
+    }
+
+    private static Response send(String url, String method, Map<String, String> headers, String body) {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -34,6 +38,8 @@ public final class LocalHttpTestClient {
 
             if ("DELETE".equalsIgnoreCase(method)) {
                 requestBuilder.DELETE();
+            } else if ("PUT".equalsIgnoreCase(method)) {
+                requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(body));
             } else {
                 requestBuilder.GET();
             }

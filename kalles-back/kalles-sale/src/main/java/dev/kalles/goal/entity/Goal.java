@@ -2,7 +2,7 @@ package dev.kalles.goal.entity;
 
 import dev.kalles.goal.enums.GoalStatus;
 import dev.kalles.goal.enums.Periodicity;
-import dev.kalles.goal.exception.GoalDomainException;
+import dev.kalles.goal.exception.ActiveGoalNotEditableException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -56,16 +56,16 @@ public class Goal {
     public static Goal create(UUID companyId, BigDecimal targetValue, Periodicity periodicity,
                                LocalDate startDate, LocalDate endDate) {
         if (companyId == null) {
-            throw new GoalDomainException("Company ID is required");
+            throw new IllegalArgumentException("Company ID is required");
         }
         if (targetValue == null) {
-            throw new GoalDomainException("Target value is required");
+            throw new IllegalArgumentException("Target value is required");
         }
         if (targetValue.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new GoalDomainException("Target value must be positive");
+            throw new IllegalArgumentException("Target value must be positive");
         }
         if (endDate.isBefore(startDate)) {
-            throw new GoalDomainException("End date must be after start date");
+            throw new IllegalArgumentException("End date must be after start date");
         }
         Goal goal = new Goal();
         goal.companyId = companyId;
@@ -87,14 +87,14 @@ public class Goal {
 
     public void changeTargetValue(BigDecimal newValue) {
         if (this.status == GoalStatus.ACTIVE) {
-            throw new GoalDomainException("Active goal cannot have its target value changed");
+            throw new ActiveGoalNotEditableException("Active goal cannot have its target value changed");
         }
         this.targetValue = newValue;
     }
 
     public void changePeriod(LocalDate newStartDate, LocalDate newEndDate) {
         if (this.status == GoalStatus.ACTIVE) {
-            throw new GoalDomainException("Active goal cannot have its dates changed");
+            throw new ActiveGoalNotEditableException("Active goal cannot have its dates changed");
         }
         this.startDate = newStartDate;
         this.endDate = newEndDate;
