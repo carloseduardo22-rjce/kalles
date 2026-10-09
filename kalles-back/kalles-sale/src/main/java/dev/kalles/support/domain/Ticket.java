@@ -1,7 +1,10 @@
 package dev.kalles.support.domain;
 
 import dev.kalles.support.exception.InvalidStateTransitionException;
-import dev.kalles.support.exception.TicketDomainException;
+import dev.kalles.support.exception.LatestMessagePendingEditException;
+import dev.kalles.support.exception.MessageNotEditableException;
+import dev.kalles.support.exception.NoMessageToEditException;
+import dev.kalles.support.exception.TicketNotAssignedException;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -152,7 +155,7 @@ public class Ticket {
                 return;
             }
         }
-        throw new TicketDomainException("Latest interaction could not be updated");
+        throw new IllegalStateException("Latest interaction could not be updated");
     }
 
     void applyState(TicketState newState) {
@@ -168,10 +171,10 @@ public class Ticket {
     void editLatestConversationMessage(String content, InteractionType expectedType) {
         requireNonBlank(content, "Message content is required");
         Interaction latest = latestConversationInteraction()
-                .orElseThrow(() -> new TicketDomainException("There is no message available to edit"));
+                .orElseThrow(NoMessageToEditException::new);
 
         if (latest.getType() != expectedType) {
-            throw new TicketDomainException("Only the latest message from the same author can be edited");
+            throw new MessageNotEditableException();
         }
 
         replaceInteraction(Interaction.reconstitute(
@@ -200,14 +203,14 @@ public class Ticket {
         return new InvalidStateTransitionException(message);
     }
 
-    TicketDomainException agentReplyRequiresAssignment() {
-        return new TicketDomainException("The ticket must be assigned before an agent can reply");
+    TicketNotAssignedException agentReplyRequiresAssignment() {
+        return new TicketNotAssignedException();
     }
 
     private void ensureCanAppendConversationMessage(InteractionType type) {
         latestConversationInteraction().ifPresent(latest -> {
             if (latest.getType() == type) {
-                throw new TicketDomainException("You must edit your latest message before sending another one");
+                throw new LatestMessagePendingEditException();
             }
         });
     }
@@ -220,13 +223,13 @@ public class Ticket {
 
     private static void requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new TicketDomainException(message);
+            throw new IllegalArgumentException(message);
         }
     }
 
     private static void requireNonNull(Object value, String message) {
         if (value == null) {
-            throw new TicketDomainException(message);
+            throw new IllegalArgumentException(message);
         }
     }
 

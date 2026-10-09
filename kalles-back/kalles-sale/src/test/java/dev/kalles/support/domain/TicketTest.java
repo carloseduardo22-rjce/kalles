@@ -1,7 +1,10 @@
 package dev.kalles.support.domain;
 
 import dev.kalles.support.exception.InvalidStateTransitionException;
-import dev.kalles.support.exception.TicketDomainException;
+import dev.kalles.support.exception.LatestMessagePendingEditException;
+import dev.kalles.support.exception.MessageNotEditableException;
+import dev.kalles.support.exception.NoMessageToEditException;
+import dev.kalles.support.exception.TicketNotAssignedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -55,7 +58,7 @@ class TicketTest {
         @DisplayName("Should reject opening a ticket without a title")
         void shouldRejectNullTitle() {
             assertThatThrownBy(() -> Ticket.open(null, "Description", user, bugCategory))
-                    .isInstanceOf(TicketDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Ticket title is required");
         }
 
@@ -63,7 +66,7 @@ class TicketTest {
         @DisplayName("Should reject opening a ticket with a blank title")
         void shouldRejectBlankTitle() {
             assertThatThrownBy(() -> Ticket.open("   ", "Description", user, bugCategory))
-                    .isInstanceOf(TicketDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Ticket title is required");
         }
 
@@ -71,7 +74,7 @@ class TicketTest {
         @DisplayName("Should reject opening a ticket without a description")
         void shouldRejectNullDescription() {
             assertThatThrownBy(() -> Ticket.open("Title", null, user, bugCategory))
-                    .isInstanceOf(TicketDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Ticket description is required");
         }
 
@@ -79,7 +82,7 @@ class TicketTest {
         @DisplayName("Should reject opening a ticket without a category")
         void shouldRejectNullCategory() {
             assertThatThrownBy(() -> Ticket.open("Title", "Description", user, null))
-                    .isInstanceOf(TicketDomainException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Ticket category is required");
         }
 
@@ -170,6 +173,51 @@ class TicketTest {
             assertThatThrownBy(() -> resolvedTicket.assign(agent))
                     .isInstanceOf(InvalidStateTransitionException.class)
                     .hasMessage("Invalid state transition: the ticket has already been resolved");
+        }
+    }
+
+    @Nested
+    @DisplayName("Conversation Rules")
+    class ConversationRules {
+
+        private Ticket ticket;
+
+        @BeforeEach
+        void setUp() {
+            ticket = Ticket.open("Error 500 in PDV", "Detailed error description", user, bugCategory);
+        }
+
+        @Test
+        @DisplayName("Should reject an agent reply on an unassigned ticket")
+        void shouldRejectAgentReplyOnUnassignedTicket() {
+            assertThatThrownBy(() -> ticket.addAgentMessage("Looking into it", false))
+                    .isInstanceOf(TicketNotAssignedException.class);
+        }
+
+        @Test
+        @DisplayName("Should reject a second message before the latest one is edited")
+        void shouldRejectSecondMessageFromSameAuthor() {
+            ticket.addCustomerMessage("First message");
+
+            assertThatThrownBy(() -> ticket.addCustomerMessage("Second message"))
+                    .isInstanceOf(LatestMessagePendingEditException.class);
+        }
+
+        @Test
+        @DisplayName("Should reject editing when there is no message")
+        void shouldRejectEditingWithoutMessages() {
+            assertThatThrownBy(() -> ticket.editLastCustomerMessage("Edited"))
+                    .isInstanceOf(NoMessageToEditException.class);
+        }
+
+        @Test
+        @DisplayName("Should reject editing a message from another author")
+        void shouldRejectEditingAnotherAuthorsMessage() {
+            ticket.assign(agent);
+            ticket.addCustomerMessage("Customer message");
+
+            assertThatThrownBy(() -> ticket.editLastAgentMessage("Edited"))
+                    .isInstanceOf(MessageNotEditableException.class);
         }
     }
 }

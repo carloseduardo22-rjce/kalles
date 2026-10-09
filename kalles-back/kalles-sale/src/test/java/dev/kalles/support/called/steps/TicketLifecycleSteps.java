@@ -8,7 +8,6 @@ import dev.kalles.support.domain.Priority;
 import dev.kalles.support.domain.Ticket;
 import dev.kalles.support.domain.TicketStatus;
 import dev.kalles.support.domain.User;
-import dev.kalles.support.exception.TicketDomainException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -68,7 +67,7 @@ public class TicketLifecycleSteps {
         Category category = categories.get(categoryKey(data.get("categoria"), data.get("subcategoria")));
         try {
             lastCreatedTicket = Ticket.open(data.get("titulo"), data.get("descricao"), user, category);
-        } catch (TicketDomainException e) {
+        } catch (IllegalArgumentException e) {
             lastException = e;
         }
     }
@@ -120,7 +119,7 @@ public class TicketLifecycleSteps {
         User user = users.get(email);
         try {
             lastCreatedTicket = Ticket.open("Valid title for the test", "Valid description for the test", user, null);
-        } catch (TicketDomainException e) {
+        } catch (IllegalArgumentException e) {
             lastException = e;
         }
     }
@@ -238,7 +237,7 @@ public class TicketLifecycleSteps {
         Category category = categories.values().iterator().next();
         try {
             lastCreatedTicket = Ticket.open(title, description, user, category);
-        } catch (TicketDomainException e) {
+        } catch (IllegalArgumentException e) {
             lastException = e;
         }
     }

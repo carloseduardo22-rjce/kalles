@@ -1,12 +1,10 @@
 package dev.kalles.support.exception;
 
-/**
- * Thrown by the State Pattern when a requested state transition
- * is not permitted from the current Ticket status.
- */
-public class InvalidStateTransitionException extends TicketDomainException {
+import dev.kalles.shared.exception.ConflictException;
+
+public class InvalidStateTransitionException extends ConflictException {
 
     public InvalidStateTransitionException(String message) {
-        super(message);
+        super("SUPPORT_TICKET_INVALID_TRANSITION", message);
     }
 }
