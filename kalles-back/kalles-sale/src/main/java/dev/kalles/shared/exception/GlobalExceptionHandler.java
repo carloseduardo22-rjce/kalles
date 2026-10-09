@@ -92,16 +92,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ProblemDetail handleIllegalState(IllegalStateException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-            HttpStatus.CONFLICT,
-            ex.getMessage()
-        );
-        problem.setTitle("Operação inválida para o estado atual");
-        return problem;
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(

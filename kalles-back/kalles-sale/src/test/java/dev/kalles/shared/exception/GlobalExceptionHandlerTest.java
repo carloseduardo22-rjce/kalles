@@ -28,6 +28,14 @@ class GlobalExceptionHandlerTest {
         assertThat(problem.getProperties()).containsEntry("code", "SAMPLE_RULE");
     }
 
+    @Test
+    void shouldMapIllegalStateToHttp500WithoutExposingItsMessage() {
+        ProblemDetail problem = handler.handleUnexpected(new IllegalStateException("detalhe interno"));
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        assertThat(problem.getDetail()).doesNotContain("detalhe interno");
+    }
+
     private static final class SampleConflict extends ConflictException {
         SampleConflict() {
             super("SAMPLE_CONFLICT", "conflito de teste");
