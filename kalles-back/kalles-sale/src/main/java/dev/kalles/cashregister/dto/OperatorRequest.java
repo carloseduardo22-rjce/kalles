@@ -15,7 +15,7 @@ public record OperatorRequest(
 
     @Schema(description = "Código de login único do operador", example = "joao.silva")
     @NotBlank @Size(max = 255)
-    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "CÃ³digo deve conter apenas letras, nÃºmeros, ponto, underscore ou hÃ­fen")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Código deve conter apenas letras, números, ponto, underscore ou hífen")
     String code,
 
     @Schema(description = "Nível de permissão: BASIC, SUPERVISOR, MANAGER ou ADMIN")

@@ -28,7 +28,7 @@ public record GoalRequest(
     @Schema(description = "Data de fim do período", example = "2026-03-31")
     LocalDate endDate
 ) {
-    @AssertTrue(message = "A data de fim deve ser igual ou posterior Ã  data de inÃ­cio")
+    @AssertTrue(message = "A data de fim deve ser igual ou posterior à data de início")
     public boolean isDateRangeValid() {
         return startDate == null || endDate == null || !endDate.isBefore(startDate);
     }

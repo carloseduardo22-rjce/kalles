@@ -17,7 +17,7 @@ public record ClientRequest(
     String name,
 
     @Schema(description = "Data de nascimento", example = "1990-05-20")
-    @PastOrPresent(message = "Data de nascimento nÃ£o pode estar no futuro")
+    @PastOrPresent(message = "Data de nascimento não pode estar no futuro")
     LocalDate birthDate,
 
     @Schema(description = "Gênero: M (Masculino), F (Feminino), O (Outro)", example = "M")
