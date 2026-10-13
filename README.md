@@ -177,14 +177,42 @@ Sobe PostgreSQL em `localhost:5432` e pgAdmin em `localhost:8081`.
 
 ### 2. Backend
 
-A aplicação sobe apenas com `TENANT_CREDENTIALS_SECRET` definida — as demais variáveis têm default e desabilitam a integração correspondente quando ausentes (veja [variáveis de ambiente](#variáveis-de-ambiente)):
+A aplicação só sobe com três segredos definidos: `API_TOKEN_SECRET`, `TENANT_CREDENTIALS_SECRET` e `PAYMENT_OAUTH_STATE_SECRET`. Sem qualquer um deles a subida falha com `Could not resolve placeholder`. As demais variáveis têm default e desabilitam a integração correspondente quando ausentes (veja [variáveis de ambiente](#variáveis-de-ambiente)).
+
+Para desenvolvimento, qualquer valor serve; fora dele, gere valores aleatórios (por exemplo `openssl rand -base64 32`):
 
 ```bash
 cd kalles-back
-TENANT_CREDENTIALS_SECRET=dev-secret ./mvnw spring-boot:run -pl kalles-sale
+export API_TOKEN_SECRET=dev-api-token-secret
+export TENANT_CREDENTIALS_SECRET=dev-tenant-credentials-secret
+export PAYMENT_OAUTH_STATE_SECRET=dev-payment-oauth-state-secret
+./mvnw spring-boot:run -pl kalles-sale
 ```
 
-Como alternativa às variáveis, crie `kalles-sale/src/main/resources/application-local.yml` (ignorado pelo git) e ative o profile:
+No PowerShell:
+
+```powershell
+cd kalles-back
+$env:API_TOKEN_SECRET = "dev-api-token-secret"
+$env:TENANT_CREDENTIALS_SECRET = "dev-tenant-credentials-secret"
+$env:PAYMENT_OAUTH_STATE_SECRET = "dev-payment-oauth-state-secret"
+.\mvnw.cmd spring-boot:run -pl kalles-sale
+```
+
+Como alternativa às variáveis, crie `kalles-sale/src/main/resources/application-local.yml` (ignorado pelo git) com os três segredos e ative o profile:
+
+```yaml
+api:
+  security:
+    token:
+      secret: dev-api-token-secret
+security:
+  encryption:
+    tenant-credentials-secret: dev-tenant-credentials-secret
+payment:
+  oauth:
+    state-secret: dev-payment-oauth-state-secret
+```
 
 ```bash
 SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run -pl kalles-sale
@@ -214,7 +242,9 @@ Nenhum segredo é versionado. O backend lê de variáveis de ambiente ou de `app
 
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
-| `TENANT_CREDENTIALS_SECRET` | ✅ | Chave de cifragem das credenciais de gateway por tenant. **Única sem default** — sem ela a aplicação não sobe |
+| `API_TOKEN_SECRET` | ✅ | Chave de assinatura dos tokens de acesso (JWT). Sem default — sem ela a aplicação não sobe |
+| `TENANT_CREDENTIALS_SECRET` | ✅ | Chave de cifragem das credenciais de gateway por tenant. Sem default — sem ela a aplicação não sobe |
+| `PAYMENT_OAUTH_STATE_SECRET` | ✅ | Chave de assinatura do `state` no OAuth dos gateways de pagamento. Sem default — sem ela a aplicação não sobe |
 | `MAIL_USERNAME` | | Conta SMTP para e-mails transacionais |
 | `MAIL_PASSWORD` | | Senha de app da conta SMTP |
 | `APP_SECURE_COOKIES` | | `true` em produção (exige HTTPS). Padrão: `false` |
