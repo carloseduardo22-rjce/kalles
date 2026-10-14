@@ -1,6 +1,8 @@
 package dev.kalles.security.exception;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -12,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 
 @Component
 public class ProblemResponseWriter {
+
+    private static final Logger log = LoggerFactory.getLogger(ProblemResponseWriter.class);
 
     private final ObjectMapper objectMapper;
 
@@ -32,6 +36,8 @@ public class ProblemResponseWriter {
             String detail,
             String path
     ) throws IOException {
+        log.warn("{} {} on {}: {}", status.value(), code, path == null ? "-" : path, detail);
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setTitle(title);
         problem.setProperty("code", code);

@@ -15,6 +15,7 @@ import dev.kalles.security.repository.PosDeviceSessionRepository;
 import dev.kalles.security.support.AbstractSecurityApiContainerSupport;
 import dev.kalles.testsupport.CsrfTestClient;
 import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -303,6 +304,26 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .statusCode(403);
 
         assertThat(posDeviceSessionRepository.count()).isZero();
+    }
+
+    @Test
+    void shouldAnswerProtectedRouteWithoutSessionWithUnauthorizedProblem() {
+        LocalHttpTestClient.get("http://localhost:" + port + "/api/auth/me", Map.of())
+                .then()
+                .statusCode(401)
+                .contentType("application/problem+json")
+                .body("code", equalTo("AUTHENTICATION_REQUIRED"))
+                .body("path", equalTo("/api/auth/me"));
+    }
+
+    @Test
+    void shouldAnswerProtectedRouteWithInvalidTokenWithUnauthorizedProblem() {
+        LocalHttpTestClient.get(
+                        "http://localhost:" + port + "/api/auth/me",
+                        Map.of("Cookie", "kalles_auth_token=token-invalido"))
+                .then()
+                .statusCode(401)
+                .body("code", equalTo("AUTHENTICATION_REQUIRED"));
     }
 
     @Test

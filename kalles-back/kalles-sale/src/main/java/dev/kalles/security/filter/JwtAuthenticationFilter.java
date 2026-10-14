@@ -105,24 +105,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (companyId != null && !companyId.trim().isEmpty()) {
                     UUID tokenCompanyId = UUID.fromString(companyId);
                     if (headerCompanyId != null && !headerCompanyId.isBlank()) {
-                        UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
+                        UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, request, response);
                         if (requestedCompanyId == null) {
                             return Optional.empty();
                         }
                         if (!tokenCompanyId.equals(requestedCompanyId)) {
-                            sendCompanyContextForbidden(response, "Company header conflicts with authenticated company");
+                            sendCompanyContextForbidden(request, response, "Company header conflicts with authenticated company");
                             return Optional.empty();
                         }
                     }
                     context = context.withCompany(tokenCompanyId);
                 } else if (headerCompanyId != null && !headerCompanyId.trim().isEmpty()) {
-                    UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, response);
+                    UUID requestedCompanyId = parseCompanyHeader(headerCompanyId, request, response);
                     if (requestedCompanyId == null) {
                         return Optional.empty();
                     }
 
                     if (!companyRepository.existsByIdAndTenantId(requestedCompanyId, tenantUuid)) {
-                        sendCompanyContextForbidden(response, "Requested company is not accessible for authenticated tenant");
+                        sendCompanyContextForbidden(request, response, "Requested company is not accessible for authenticated tenant");
                         return Optional.empty();
                     }
                     context = context.withCompany(requestedCompanyId);
@@ -137,7 +137,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (isAuthenticated()
                 && requiresCompanyContext(request)
                 && context.companyId() == null) {
-            writeProblem(response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
+            writeProblem(request, response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_REQUIRED",
                     "Contexto de filial obrigatorio",
                     "Esta rota exige uma filial ativa. Envie X-Company-ID com uma filial acessivel para o tenant autenticado.");
             return Optional.empty();
@@ -157,25 +157,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private UUID parseCompanyHeader(String headerCompanyId, HttpServletResponse response) throws IOException {
+    private UUID parseCompanyHeader(String headerCompanyId, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         try {
             return UUID.fromString(headerCompanyId);
         } catch (IllegalArgumentException ex) {
-            writeProblem(response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_INVALID",
+            writeProblem(request, response, HttpStatus.BAD_REQUEST, "COMPANY_CONTEXT_INVALID",
                     "Header de filial invalido", "O header X-Company-ID deve conter um UUID valido.");
             return null;
         }
     }
 
-    private void sendCompanyContextForbidden(HttpServletResponse response, String message) throws IOException {
+    private void sendCompanyContextForbidden(HttpServletRequest request, HttpServletResponse response, String message)
+            throws IOException {
         response.setHeader(COMPANY_CONTEXT_ERROR_HEADER, "true");
-        writeProblem(response, HttpStatus.FORBIDDEN, "COMPANY_CONTEXT_DENIED",
+        writeProblem(request, response, HttpStatus.FORBIDDEN, "COMPANY_CONTEXT_DENIED",
                 "Contexto de filial negado", message);
     }
 
-    private void writeProblem(HttpServletResponse response, HttpStatus status, String code, String title, String detail)
-            throws IOException {
-        problemResponseWriter.write(response, status, code, title, detail);
+    private void writeProblem(HttpServletRequest request,
+                              HttpServletResponse response,
+                              HttpStatus status,
+                              String code,
+                              String title,
+                              String detail) throws IOException {
+        problemResponseWriter.write(response, status, code, title, detail, request.getRequestURI());
     }
 
     private boolean isAuthenticated() {
