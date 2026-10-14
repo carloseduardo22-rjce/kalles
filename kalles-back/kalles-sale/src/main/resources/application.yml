@@ -37,6 +37,10 @@ spring:
           timeout: ${MAIL_READ_TIMEOUT_MS:5000}
           writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
 
+logging:
+  level:
+    org.springframework.web.cors.DefaultCorsProcessor: debug
+
 management:
   endpoints:
     web:
@@ -61,6 +65,9 @@ api:
 security:
   encryption:
     tenant-credentials-secret: ${TENANT_CREDENTIALS_SECRET}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 
 app:
   security:

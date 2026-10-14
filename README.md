@@ -234,6 +234,8 @@ npm run dev
 
 Aplicação em `http://localhost:3000`. As chamadas a `/api/*` são reescritas para o backend em `:8080` (veja `next.config.mjs`).
 
+O backend só aceita requisições da origem configurada em `CORS_ALLOWED_ORIGINS` (padrão `http://localhost:3000`). Se o front subir em outra porta — o Next usa a `3001` quando a `3000` está ocupada —, inclua a origem na variável (`CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001`). Origens recusadas aparecem no log do backend como `Reject: '<origem>' origin is not allowed`.
+
 ---
 
 ## Variáveis de ambiente
@@ -247,6 +249,7 @@ Nenhum segredo é versionado. O backend lê de variáveis de ambiente ou de `app
 | `PAYMENT_OAUTH_STATE_SECRET` | ✅ | Chave de assinatura do `state` no OAuth dos gateways de pagamento. Sem default — sem ela a aplicação não sobe |
 | `MAIL_USERNAME` | | Conta SMTP para e-mails transacionais |
 | `MAIL_PASSWORD` | | Senha de app da conta SMTP |
+| `CORS_ALLOWED_ORIGINS` | | Origens aceitas pelo backend, separadas por vírgula. Padrão: `http://localhost:3000` |
 | `APP_SECURE_COOKIES` | | `true` em produção (exige HTTPS). Padrão: `false` |
 | `STRIPE_SECRET_KEY` | | Cobrança de assinatura |
 | `STRIPE_PUBLISHABLE_KEY` | | Chave pública Stripe (frontend) |

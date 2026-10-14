@@ -33,6 +33,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.blankOrNullString;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = KallesSaleApplication.class)
@@ -302,6 +303,34 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .statusCode(403);
 
         assertThat(posDeviceSessionRepository.count()).isZero();
+    }
+
+    @Test
+    void shouldAcceptEveryConfiguredOrigin() {
+        for (String origin : new String[] {"http://localhost:3000", "http://localhost:3001"}) {
+            RestAssured.given()
+                    .header(HttpHeaders.ORIGIN, origin)
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("email", "admin@sistema.local", "password", "123456"))
+                    .when()
+                    .post("/api/auth/login")
+                    .then()
+                    .statusCode(200)
+                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+        }
+    }
+
+    @Test
+    void shouldRejectOriginOutsideTheConfiguredList() {
+        RestAssured.given()
+                .header(HttpHeaders.ORIGIN, "http://localhost:4000")
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "admin@sistema.local", "password", "123456"))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(403)
+                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, nullValue());
     }
 
     @Test

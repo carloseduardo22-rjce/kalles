@@ -31,6 +31,6 @@ public abstract class AbstractSecurityApiContainerSupport {
 
         registry.add("api.security.token.secret", () -> "security-spec-test-secret");
         registry.add("api.security.token.expiration", () -> "12");
-        registry.add("cors.allowed-origin", () -> "http://localhost:3000");
+        registry.add("cors.allowed-origins", () -> "http://localhost:3000,http://localhost:3001");
     }
 }

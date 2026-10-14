@@ -32,7 +32,7 @@ class FlywaySchemaValidationTest {
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
 
         registry.add("api.security.token.secret", () -> "schema-validation-test-secret");
-        registry.add("cors.allowed-origin", () -> "http://localhost:3000");
+        registry.add("cors.allowed-origins", () -> "http://localhost:3000");
     }
 
     @Test
