@@ -1,12 +1,14 @@
 package dev.kalles.security.exception;
 
 import dev.kalles.security.service.InvalidRefreshTokenException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @Order(0)
 @RestControllerAdvice
 public class SecurityExceptionHandler {
@@ -50,6 +52,18 @@ public class SecurityExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Muitas tentativas");
+        return problem;
+    }
+
+    @ExceptionHandler(VerificationEmailUnavailableException.class)
+    public ProblemDetail handleVerificationEmailUnavailable(VerificationEmailUnavailableException ex) {
+        log.warn("Codigo de verificacao nao enviado: spring.mail.username e spring.mail.password nao configurados");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            ex.getMessage()
+        );
+        problem.setTitle("Envio de e-mail indisponivel");
+        problem.setProperty("code", VerificationEmailUnavailableException.CODE);
         return problem;
     }
 }

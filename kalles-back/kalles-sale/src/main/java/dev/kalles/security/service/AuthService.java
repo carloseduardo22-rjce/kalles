@@ -60,6 +60,8 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
+        accountVerificationService.assertCodeDeliveryAvailable();
+
         // Create Tenant first
         UUID tenantId = UUID.randomUUID();
         Tenant newTenant = new Tenant(
@@ -110,6 +112,7 @@ public class AuthService {
     @Transactional
     public void resendVerificationCode(String email, String tenantId) {
         authenticationProtectionService.assertResendAllowed(email, tenantId);
+        accountVerificationService.assertCodeDeliveryAvailable();
         resolveAccountOptional(email, tenantId)
                 .filter(account -> !account.isVerified())
                 .ifPresent(accountVerificationService::generateAndSendVerificationCode);

@@ -222,7 +222,9 @@ SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run -pl kalles-sale
 
 API em `http://localhost:8080`. Swagger em `http://localhost:8080/swagger-ui.html`.
 
-O Flyway aplica as migrations automaticamente na subida.
+O Flyway aplica as migrations automaticamente na subida, junto com os dados de exemplo (`db/seed`).
+
+O cadastro de conta envia um código de verificação por e-mail e por isso exige `MAIL_USERNAME` e `MAIL_PASSWORD` (SMTP do Gmail). Sem elas, `/api/auth/register` e `/api/auth/resend-code` respondem `503` com `code` `VERIFICATION_EMAIL_UNAVAILABLE`, sem criar a conta. Para explorar o sistema localmente sem SMTP, entre com a conta de exemplo `admin@sistema.local` / `123456`.
 
 ### 3. Frontend
 
@@ -247,7 +249,7 @@ Nenhum segredo é versionado. O backend lê de variáveis de ambiente ou de `app
 | `API_TOKEN_SECRET` | ✅ | Chave de assinatura dos tokens de acesso (JWT). Sem default — sem ela a aplicação não sobe |
 | `TENANT_CREDENTIALS_SECRET` | ✅ | Chave de cifragem das credenciais de gateway por tenant. Sem default — sem ela a aplicação não sobe |
 | `PAYMENT_OAUTH_STATE_SECRET` | ✅ | Chave de assinatura do `state` no OAuth dos gateways de pagamento. Sem default — sem ela a aplicação não sobe |
-| `MAIL_USERNAME` | | Conta SMTP para e-mails transacionais |
+| `MAIL_USERNAME` | | Conta SMTP para e-mails transacionais. Sem ela, o cadastro de conta fica indisponível |
 | `MAIL_PASSWORD` | | Senha de app da conta SMTP |
 | `CORS_ALLOWED_ORIGINS` | | Origens aceitas pelo backend, separadas por vírgula. Padrão: `http://localhost:3000` |
 | `APP_SECURE_COOKIES` | | `true` em produção (exige HTTPS). Padrão: `false` |

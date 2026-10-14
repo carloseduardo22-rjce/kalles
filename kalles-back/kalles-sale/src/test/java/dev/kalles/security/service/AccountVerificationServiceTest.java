@@ -1,9 +1,11 @@
 package dev.kalles.security.service;
 
+import dev.kalles.email.application.port.in.SendEmailUseCase;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.AccountVerification;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.VerificationCodeRejectedException;
+import dev.kalles.security.exception.VerificationEmailUnavailableException;
 import dev.kalles.security.repository.AccountVerificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,15 +35,34 @@ class AccountVerificationServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private SendEmailUseCase sendEmailUseCase;
+
     private AccountVerificationService service;
 
     private Account account;
 
     @BeforeEach
     void setUp() {
-        service = new AccountVerificationService(accountVerificationRepository, eventPublisher);
+        service = new AccountVerificationService(accountVerificationRepository, eventPublisher, sendEmailUseCase);
         account = new Account(UUID.randomUUID(), "Conta", "conta@kalles.local", "encoded", AccountRole.ADMIN);
         account.setId(UUID.randomUUID());
+    }
+
+    @Test
+    @DisplayName("deve recusar quando o envio de e-mail nao esta configurado")
+    void shouldRefuseWhenEmailDeliveryIsNotConfigured() {
+        when(sendEmailUseCase.isAvailable()).thenReturn(false);
+
+        assertThrows(VerificationEmailUnavailableException.class, service::assertCodeDeliveryAvailable);
+    }
+
+    @Test
+    @DisplayName("deve aceitar quando o envio de e-mail esta configurado")
+    void shouldAcceptWhenEmailDeliveryIsConfigured() {
+        when(sendEmailUseCase.isAvailable()).thenReturn(true);
+
+        service.assertCodeDeliveryAvailable();
     }
 
     @Test

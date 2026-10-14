@@ -1,10 +1,12 @@
 
 package dev.kalles.security.service;
 
+import dev.kalles.email.application.port.in.SendEmailUseCase;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.entity.AccountVerification;
 import dev.kalles.security.event.VerificationCodeIssued;
 import dev.kalles.security.exception.VerificationCodeRejectedException;
+import dev.kalles.security.exception.VerificationEmailUnavailableException;
 import dev.kalles.security.repository.AccountVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,9 +22,16 @@ public class AccountVerificationService {
 
     private final AccountVerificationRepository accountVerificationRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final SendEmailUseCase sendEmailUseCase;
 
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 15;
+
+    public void assertCodeDeliveryAvailable() {
+        if (!sendEmailUseCase.isAvailable()) {
+            throw new VerificationEmailUnavailableException();
+        }
+    }
 
     @Transactional
     public void generateAndSendVerificationCode(Account account) {

@@ -30,6 +30,11 @@ class VerificationCodeEmailNotifierIntegrationTest extends AbstractSecurityApiCo
         public void sendEmail(EmailData emailData) {
             sent.add(emailData);
         }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
     }
 
     @TestConfiguration

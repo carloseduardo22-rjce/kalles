@@ -19,4 +19,9 @@ public class EmailService implements SendEmailUseCase {
         String htmlBody = templateEnginePort.processTemplate(emailData.templateName(), emailData.variables());
         emailSenderPort.sendHtmlEmail(emailData.to(), emailData.subject(), htmlBody);
     }
+
+    @Override
+    public boolean isAvailable() {
+        return emailSenderPort.isConfigured();
+    }
 }

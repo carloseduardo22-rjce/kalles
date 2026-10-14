@@ -2,11 +2,13 @@ package dev.kalles.security.service;
 
 import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.dto.LoginRequest;
+import dev.kalles.security.dto.RegisterRequest;
 import dev.kalles.security.dto.VerifyCodeRequest;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.exception.InvalidCredentialsException;
 import dev.kalles.security.exception.VerificationCodeRejectedException;
+import dev.kalles.security.exception.VerificationEmailUnavailableException;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.shared.exception.ForbiddenOperationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +26,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -217,6 +220,32 @@ class AuthServiceTest {
 
         assertEquals("VERIFICATION_CODE_INVALID", exception.getCode());
         verify(accountVerificationService, never()).verifyCode(any(), any());
+    }
+
+    @Test
+    @DisplayName("deve recusar o cadastro sem gravar nada quando o envio de e-mail nao esta configurado")
+    void shouldRefuseRegistrationBeforeSavingWhenEmailDeliveryIsUnavailable() {
+        doThrow(new VerificationEmailUnavailableException())
+                .when(accountVerificationService).assertCodeDeliveryAvailable();
+
+        assertThrows(VerificationEmailUnavailableException.class, () -> authService.register(
+                new RegisterRequest("Conta", "Loja", "conta@kalles.local", "Senha@12345")));
+
+        verify(tenantRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+        verify(accountVerificationService, never()).generateAndSendVerificationCode(any());
+    }
+
+    @Test
+    @DisplayName("deve recusar o reenvio quando o envio de e-mail nao esta configurado")
+    void shouldRefuseResendWhenEmailDeliveryIsUnavailable() {
+        doThrow(new VerificationEmailUnavailableException())
+                .when(accountVerificationService).assertCodeDeliveryAvailable();
+
+        assertThrows(VerificationEmailUnavailableException.class,
+                () -> authService.resendVerificationCode("conta@kalles.local", null));
+
+        verify(accountVerificationService, never()).generateAndSendVerificationCode(any());
     }
 
     @Test

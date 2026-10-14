@@ -4,4 +4,6 @@ import dev.kalles.email.domain.EmailData;
 
 public interface SendEmailUseCase {
     void sendEmail(EmailData emailData);
+
+    boolean isAvailable();
 }
