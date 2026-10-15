@@ -61,13 +61,33 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+const PUBLIC_PATHS = ["/login", "/register", "/verify"];
+
+function redirectToLogin(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const onPublicPage = PUBLIC_PATHS.some((path) =>
+    window.location.pathname.startsWith(path),
+  );
+  if (!onPublicPage) {
+    window.location.replace("/login");
+  }
+}
+
 async function tryRefreshSession(): Promise<boolean> {
   if (!refreshInFlight) {
     refreshInFlight = fetch(buildUrl("/api/auth/refresh"), {
       method: "POST",
       credentials: "include",
     })
-      .then((response) => response.ok)
+      .then((response) => {
+        if (response.status === 401) {
+          redirectToLogin();
+        }
+        return response.ok;
+      })
       .catch(() => false)
       .finally(() => {
         refreshInFlight = null;
