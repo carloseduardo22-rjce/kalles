@@ -116,7 +116,9 @@ class RefreshTokenFlowIntegrationTest extends AbstractSecurityApiContainerSuppor
                 .post("/api/auth/refresh");
 
         response.then().statusCode(401);
-        assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).isNull();
+        assertThat(response.getHeaders().getValues(HttpHeaders.SET_COOKIE))
+                .anySatisfy(cookie -> assertThat(cookie).startsWith("kalles_auth_token=;").contains("Max-Age=0"))
+                .anySatisfy(cookie -> assertThat(cookie).startsWith("kalles_refresh_token=;").contains("Max-Age=0"));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package dev.kalles.security.exception;
 
-import dev.kalles.security.service.InvalidRefreshTokenException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -12,16 +11,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Order(0)
 @RestControllerAdvice
 public class SecurityExceptionHandler {
-
-    @ExceptionHandler(InvalidRefreshTokenException.class)
-    public ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-            HttpStatus.UNAUTHORIZED,
-            ex.getMessage()
-        );
-        problem.setTitle("Sessão expirada");
-        return problem;
-    }
 
     @ExceptionHandler(CompanyContextRequiredException.class)
     public ProblemDetail handleCompanyContextRequired(CompanyContextRequiredException ex) {

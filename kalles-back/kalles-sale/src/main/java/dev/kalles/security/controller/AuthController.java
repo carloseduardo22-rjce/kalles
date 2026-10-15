@@ -9,16 +9,19 @@ import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.filter.JwtAuthenticationFilter;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.service.AuthService;
+import dev.kalles.security.service.InvalidRefreshTokenException;
 import dev.kalles.security.service.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -107,25 +110,29 @@ public class AuthController {
             @CookieValue(value = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
         authService.logout(refreshToken);
 
-        ResponseCookie authCookie = ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(secureCookies)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
-
-        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(secureCookies)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
-
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, authCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(JwtAuthenticationFilter.AUTH_COOKIE_NAME).toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(REFRESH_COOKIE_NAME).toString())
+                .build();
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Sessão expirada");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(JwtAuthenticationFilter.AUTH_COOKIE_NAME).toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(REFRESH_COOKIE_NAME).toString())
+                .body(problem);
+    }
+
+    private ResponseCookie expiredCookie(String name) {
+        return ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
                 .build();
     }
 
