@@ -29,7 +29,6 @@ import type { ProductSearchHandle } from "@/features/sales/components/product-se
 import {
   getSessionScopedItem,
   removeSessionScopedItem,
-  setSessionScopedItem,
 } from "@/shared/utils/session-storage";
 
 const STORAGE_KEY = "kalles:active-session";
@@ -178,41 +177,18 @@ export default function PdvPage() {
         // ignore parse error
       }
 
-      // Validate against backend: find any open session
-      try {
-        const [registers, operators] = await Promise.all([
-          cashRegisterService.listCashRegisters(),
-          cashRegisterService.listOperators(),
-        ]);
-        const openRegisters = registers.filter(
-          (r) => r.hasActiveSession && r.activeSessionId != null,
+      if (stored) {
+        const sessionId = stored.sessionId;
+        const registers = await cashRegisterService
+          .listCashRegisters()
+          .catch(() => null);
+        const stillOpen = registers?.some(
+          (r) => r.hasActiveSession && r.activeSessionId === sessionId,
         );
-        const openRegister =
-          openRegisters.find((r) => r.paymentIntegrationConfigured) ||
-          openRegisters[0];
-        if (openRegister && openRegister.activeSessionId) {
-          // Only sync if stored session is missing or stale (different ID)
-          if (!stored || stored.sessionId !== openRegister.activeSessionId || !stored.cashRegisterId) {
-            const operator = operators.find(
-              (o) => o.name === openRegister.activeOperatorName,
-            );
-            const synced: ActiveSession = {
-              sessionId: openRegister.activeSessionId,
-              cashRegisterId: openRegister.cashRegisterId,
-              operatorId: operator?.id ?? "",
-              cashRegisterCode: openRegister.code,
-              operatorName: openRegister.activeOperatorName ?? "",
-              initialAmount: openRegister.initialAmount ?? 0,
-              openedAt: openRegister.openedAt ?? new Date().toISOString(),
-              cashOnlyOperation:
-                openRegister.activeSessionCashOnlyOperation ?? false,
-            };
-            setSessionScopedItem(STORAGE_KEY, JSON.stringify(synced));
-            stored = synced;
-          }
+        if (registers && !stillOpen) {
+          removeSessionScopedItem(STORAGE_KEY);
+          stored = null;
         }
-      } catch {
-        // Backend unavailable — fall back to whatever is in localStorage
       }
 
       if (!stored) {
