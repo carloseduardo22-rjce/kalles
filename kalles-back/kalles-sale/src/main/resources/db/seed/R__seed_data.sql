@@ -226,9 +226,8 @@ INSERT INTO client (name, birth_date, gender, cpf, code_country, cellphone, rg, 
 ON CONFLICT (cpf, company_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
--- 8. SESSÃO DE CAIXA ABERTA
---    CAIXA-01 com João Silva, R$100 iniciais, status OPEN.
---    Permite entrar direto no PDV sem precisar abrir o caixa via UI.
+-- 8. SESSÃO DE CAIXA ENCERRADA
+--    CAIXA-01 com João Silva, R$100 iniciais, status CLOSED.
 -- ---------------------------------------------------------------
 INSERT INTO cash_register_sessions (id, cash_register_id, operator_id, initial_amount, opened_at, closed_at, status)
 SELECT
@@ -236,9 +235,9 @@ SELECT
   cr.id,
   op.id,
   100.00,
-  NOW(),
-  NULL,
-  'OPEN'
+  '2026-03-09 08:00:00',
+  '2026-03-09 18:00:00',
+  'CLOSED'
 FROM cash_registers cr, operators op
 WHERE cr.code = 'CAIXA-01'
   AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
@@ -348,8 +347,7 @@ LEFT JOIN client c ON c.cpf = v.cpf
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
--- 13. VENDAS — SESSÃO ABERTA (b0000000-...001)
---     Permite que a tela de Relatórios mostre dados do turno atual.
+-- 13. VENDAS — SESSÃO b0000000-...001
 --
 --   Venda E | Gabriela Martins | COMPLETED | desconto fidelidade R$20,00
 --           | subtotal=20,20 | total=0,20 | pago em dinheiro
@@ -448,7 +446,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------
--- 16. SEGUNDA SESSÃO ABERTA — CAIXA-03
+-- 16. SESSÃO ENCERRADA — CAIXA-03
 --     Lucas Oliveira (OP-004), R$80 de fundo inicial.
 -- ---------------------------------------------------------------
 INSERT INTO cash_register_sessions (id, cash_register_id, operator_id, initial_amount, opened_at, closed_at, status)
@@ -457,9 +455,9 @@ SELECT
   cr.id,
   op.id,
   80.00,
-  NOW() - INTERVAL '3 hours',
-  NULL,
-  'OPEN'
+  '2026-03-09 09:00:00',
+  '2026-03-09 17:00:00',
+  'CLOSED'
 FROM cash_registers cr, operators op
 WHERE cr.code = 'CAIXA-03'
   AND cr.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
