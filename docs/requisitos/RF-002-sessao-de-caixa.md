@@ -2,7 +2,7 @@
 
 | Versão | Estado | Data |
 |---|---|---|
-| 1.0 | Rascunho | 2026-10-16 |
+| 1.0 | Aprovado | 2026-10-19 |
 
 ## História de usuário
 
@@ -19,18 +19,23 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 
 ## Regras de negócio
 
-- **RN-002.1** Caixa é um dispositivo pareado: um navegador ou máquina vinculado a um cadastro de caixa da loja pelo administrador.
-- **RN-002.2** O pareamento é feito pelo administrador: ele gera um código de pareamento para um caixa e o código é informado no dispositivo. O código vale por tempo limitado e uma única vez.
+- **RN-002.1** Caixa é um dispositivo pareado: um navegador ou máquina vinculado a um cadastro de caixa da loja pelo gerente ou administrador.
+- **RN-002.2** O pareamento é feito pelo gerente ou administrador: ele gera um código de pareamento para um caixa e o código é informado no dispositivo. O código vale por 10 minutos e uma única vez.
+- **RN-002.2a** Depois de pareado, o dispositivo continua autorizado sem prazo, até o pareamento ser revogado ou substituído.
 - **RN-002.3** Um caixa tem no máximo um dispositivo pareado ativo. Parear de novo revoga o pareamento anterior.
-- **RN-002.4** O administrador pode revogar o pareamento de um caixa a qualquer momento; o dispositivo deixa de poder abrir ou operar sessão.
+- **RN-002.4** O gerente ou administrador pode revogar o pareamento de um caixa a qualquer momento; o dispositivo deixa de poder abrir ou operar sessão.
 - **RN-002.5** Sessão de caixa só é aberta e operada no dispositivo pareado com aquele caixa.
 - **RN-002.6** O operador da sessão é sempre a pessoa autenticada no dispositivo. Ninguém abre sessão em nome de outra pessoa.
-- **RN-002.7** Podem abrir sessão contas com papel de operador e o administrador. O administrador opera em nome próprio, com as mesmas regras do operador.
+- **RN-002.7** Podem abrir sessão contas com perfil Operador, Supervisor, Gerente ou Administrador (perfis definidos no RF-003). Quem não é Operador opera em nome próprio, com as mesmas regras do operador.
+- **RN-002.7a** Todo operador de caixa é uma conta de acesso; o código do operador passa a ser a matrícula dessa conta. Cadastro de operador sem conta não abre sessão.
 - **RN-002.8** Um caixa tem no máximo uma sessão aberta, e uma pessoa tem no máximo uma sessão aberta.
 - **RN-002.9** A abertura registra o fundo de troco informado (valor maior ou igual a zero).
 - **RN-002.10** O fechamento é feito por conferência cega: o operador informa o valor contado em dinheiro sem ver o valor esperado; o sistema calcula e registra a diferença.
-- **RN-002.11** Se a diferença, em valor absoluto, passar da tolerância configurada pela loja, o fechamento exige liberação de supervisor (RF-003).
-- **RN-002.12** A tela de Caixas da administração acompanha os caixas e as sessões (situação, operador, abertura, dispositivo pareado); ela não abre sessão.
+- **RN-002.11** Se a diferença, em valor absoluto, passar da tolerância configurada pela loja, o fechamento exige liberação de supervisor (RF-003). A tolerância é configurada por loja; loja nova começa com R$ 0,00.
+- **RN-002.12** A tela de Caixas da administração acompanha os caixas e as sessões (situação, operador, abertura, dispositivo pareado, conferência pendente); ela não abre sessão.
+- **RN-002.13** Uma sessão deixada aberta pode ser encerrada pela tela de Caixas por quem tem permissão de encerramento administrativo (Gerente e Administrador, por padrão), com liberação por PIN (RF-003). O encerramento libera o caixa para nova abertura e fica registrado como encerramento administrativo, com quem encerrou e quando.
+- **RN-002.14** No encerramento administrativo, o valor contado pode ser informado na hora ou depois. Enquanto não for informado, a sessão fica com **conferência pendente** e a diferença não é calculada; o sistema nunca assume o valor contado igual ao esperado.
+- **RN-002.15** A conferência pendente é concluída na tela de Caixas por quem tem permissão de encerramento administrativo, informando o valor contado; a diferença é calculada e registrada nesse momento.
 
 ## Critérios de aceitação
 
@@ -48,12 +53,17 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 - **CA-002.12** (RN-002.10, RN-002.11) Dado um fechamento com diferença dentro da tolerância, quando o operador confirma, então a sessão é fechada sem liberação e a diferença fica registrada.
 - **CA-002.13** (RN-002.11) Dado um fechamento com diferença acima da tolerância, quando o operador confirma, então o sistema pede liberação de supervisor antes de fechar.
 - **CA-002.14** (RN-002.12) Dado um administrador na tela de Caixas, então ele vê cada caixa com situação, operador da sessão aberta e dispositivo pareado, e não há ação de abrir sessão.
+- **CA-002.15** (RN-002.2a) Dado um dispositivo pareado há mais de 7 dias, sem revogação, quando o operador abre sessão nele, então a abertura é aceita.
+- **CA-002.16** (RN-002.7a) Dado um cadastro de operador sem conta vinculada, quando se tenta abrir sessão em nome dele, então a abertura não é possível.
+- **CA-002.17** (RN-002.13) Dado um caixa com sessão aberta e um gerente na tela de Caixas, quando ele encerra a sessão com PIN válido sem informar o valor contado, então a sessão é encerrada como administrativa com conferência pendente e o caixa pode ser aberto de novo.
+- **CA-002.18** (RN-002.14) Dado um encerramento administrativo sem valor contado, então a sessão não mostra diferença de caixa e aparece como conferência pendente.
+- **CA-002.19** (RN-002.15) Dado uma sessão com conferência pendente, quando o gerente informa o valor contado, então a diferença é calculada, registrada, e a pendência deixa de aparecer.
+- **CA-002.20** (RN-002.13) Dado um operador na tela de Caixas, quando ele tenta encerrar a sessão de outra pessoa, então o encerramento é recusado.
 
 ## Fora de escopo
 
 - Sangria e suprimento (retirada e reforço de dinheiro durante a sessão).
 - Identificação do dispositivo por certificado ou instalação nativa.
-- Fechamento forçado de sessão abandonada pela administração.
 
 ## Dependências
 
@@ -63,18 +73,22 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 
 - **D-002.1** (2026-10-16) Caixa é dispositivo pareado, aproveitando o pareamento que já existe no back-end.
 - **D-002.2** (2026-10-16) O operador da sessão é a pessoa autenticada; o cadastro de operador passa a ser ligado a uma conta.
-- **D-002.3** (2026-10-16) O administrador pode operar o caixa em nome próprio, num dispositivo pareado.
+- **D-002.3** (2026-10-16) Quem não é Operador pode operar o caixa em nome próprio, num dispositivo pareado.
 - **D-002.4** (2026-10-16) Fechamento com conferência cega; supervisor só é chamado quando a diferença passa da tolerância.
+- **D-002.5** (2026-10-19) Tolerância configurável por loja, com padrão R$ 0,00. Não há valor de mercado: é política de cada empresa.
+- **D-002.6** (2026-10-19) Código de pareamento de 10 minutos e uso único; dispositivo autorizado sem prazo até revogação ou substituição. O uso único é mais rígido do que o Square, que permite reaproveitar o código no mesmo aparelho.
+- **D-002.7** (2026-10-19) Todo operador é uma conta; o código do operador vira matrícula.
+- **D-002.8** (2026-10-19) Sessão abandonada: encerramento administrativo com conferência pendente, combinando o encerramento pela retaguarda (Lightspeed, NCR Voyix, Enfore) com a pendência visível até a conferência (TOTVS, Alterdata). Rejeitado o modelo que assume valor contado igual ao esperado, porque esconde a quebra de caixa.
 
-## Decisões em aberto
+## Referências de mercado
 
-1. **Tolerância padrão** de diferença no fechamento (sugestão: R$ 0,00 até a loja configurar outro valor).
-2. **Validade do código de pareamento** (sugestão: 10 minutos) e **duração da credencial do dispositivo** depois de pareado (hoje 7 dias; sugestão: sem prazo, até ser revogada ou substituída).
-3. **Cadastros de operador existentes**: como ligar cada `Operator` a uma conta (criar conta para cada um ou exigir vínculo manual).
-4. **Sessão abandonada**: se o operador sai sem fechar, quem fecha e como (hoje fora de escopo; confirmar).
+- Conferência cega: [Alterdata Spice — Conferência Cega de Caixa](https://ajuda.alterdata.com.br/spicebase/spice-simples-conferencia-cega-de-caixa-340001450.html), [Alterdata Bimer — modelo operacional](https://ajuda.alterdata.com.br/bimerconfc/modelo-operacional-da-conferencia-cega-de-caixa).
+- Pareamento: [Square — Set up device codes](https://squareup.com/help/article/8339), [Square Terminal API Quickstart](https://developer.squareup.com/docs/terminal-api/quickstart), [Square — Manage Devices by Location](https://square.com/help/ca/en/article/5586-manage-devices-by-location).
+- Sessão abandonada: [Lightspeed — Opening & Closing Troubleshooting](https://product-info.lightspeedhq.com/opening-closing-troubleshooting-guide/), [NCR Voyix — Starting and ending a shift](https://docs.ncrvoyix.com/restaurant/silver-essentials/using/starting_and_ending_a_shift), [Enfore — Force Close Device Business Day](https://care-kb.enfore.com/hc/en/articles/10340562835357.html), [TOTVS — Abertura de Caixa com Conferência Pendente](https://tdn.totvs.com/download/attachments/46079061/LOJA-FRT_BT_Abertura%20de%20Caixa%20com%20Conf%20Pendente_BRA_TFWKGT.pdf?api=v2), [Alterdata — Abertura de Caixa](https://ajuda.alterdata.com.br/isxpu/abertura-de-caixa-227601760.html), [Odoo — pos_manager_close_session](https://apps.odoo.com/apps/modules/19.0/pos_manager_close_session).
 
 ## Histórico
 
 | Versão | Data | Mudança |
 |---|---|---|
 | 1.0 | 2026-10-16 | Rascunho do levantamento |
+| 1.0 | 2026-10-19 | Pontos em aberto decididos e requisito aprovado, com referências de mercado |
