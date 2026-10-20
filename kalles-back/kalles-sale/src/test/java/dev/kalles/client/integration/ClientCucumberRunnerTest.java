@@ -10,7 +10,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/client/gestao_clientes_multi_filial.feature")
+@SelectClasspathResource("features/client")
 @ConfigurationParameter(
         key = GLUE_PROPERTY_NAME,
         value = "dev.kalles.client.steps"
