@@ -16,6 +16,7 @@ Todo requisito novo do Kalles segue este ciclo, do levantamento à entrega. Corr
 - Requisito: `RF-001`, `RF-002`…
 - Regra de negócio: `RN-001.1`, `RN-001.2`… (requisito.regra)
 - Critério de aceitação: `CA-001.1`, `CA-001.2`…
+- Decisão: `D-001.1`, `D-001.2`…
 - A feature leva a tag `@RF-001`; cada cenário leva a tag do critério que verifica (`@CA-001.3`).
 - O título do PR começa pelo identificador: `RF-001 Cadastro de cliente pessoa jurídica`.
 
@@ -48,6 +49,8 @@ As decisões tomadas aqui são registradas na seção **Decisões** do documento
 ### 3. Especificação executável
 
 Os critérios de aceitação viram cenários `.feature` **antes** da implementação. Os cenários falham até o código existir.
+
+Critério de interface, que depende da tela, é verificado no teste manual de aceitação e fica sem cenário.
 
 ### 4. Implementação
 
@@ -84,7 +87,7 @@ Um requisito só sai de `Rascunho` para `Aprovado` quando:
 
 Um requisito só passa para `Entregue` quando:
 
-- [ ] cada critério de aceitação tem um cenário `.feature` passando;
+- [ ] cada critério de aceitação tem um cenário `.feature` passando, exceto os de interface;
 - [ ] a suíte completa está verde;
 - [ ] o teste manual de aceitação pela interface foi feito;
 - [ ] README e documentação afetados foram atualizados;
