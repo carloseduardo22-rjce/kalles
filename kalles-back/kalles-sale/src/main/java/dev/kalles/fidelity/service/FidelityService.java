@@ -1,12 +1,14 @@
 package dev.kalles.fidelity.service;
 
 import dev.kalles.client.entity.Client;
+import dev.kalles.client.entity.PersonType;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.fidelity.dto.FidelityResponse;
 import dev.kalles.fidelity.entity.Fidelity;
 import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.exception.ClientAlreadyInFidelityException;
 import dev.kalles.fidelity.exception.FidelityPolicyNotConfiguredException;
+import dev.kalles.fidelity.exception.LegalEntityNotEligibleForFidelityException;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -33,10 +35,13 @@ public class FidelityService {
             throw new ClientAlreadyInFidelityException();
         }
         UUID companyId = CompanyContextHolder.requireCompanyId();
-        FidelityPolicy policy = fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(companyId)
-                .orElseThrow(() -> new FidelityPolicyNotConfiguredException());
         Client client = clientRepository.findByIdAndCompanyId(clientId, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado com o id: " + clientId));
+        if (client.getPersonType() == PersonType.JURIDICA) {
+            throw new LegalEntityNotEligibleForFidelityException();
+        }
+        FidelityPolicy policy = fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(companyId)
+                .orElseThrow(() -> new FidelityPolicyNotConfiguredException());
         Fidelity fidelity = new Fidelity();
         fidelity.setClient(client);
         fidelity.setPolicy(policy);
