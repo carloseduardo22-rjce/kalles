@@ -52,7 +52,8 @@ public class ClientController {
     @Operation(summary = "Cadastrar cliente", description = "Registra um novo cliente no sistema.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Cliente cadastrado com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Dados inválidos ou CPF já cadastrado")
+        @ApiResponse(responseCode = "400", description = "Dados inválidos para o tipo de pessoa"),
+        @ApiResponse(responseCode = "409", description = "Documento já cadastrado nesta filial")
     })
     public ResponseEntity<ClientResponse> create(@Valid @RequestBody ClientRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(clientService.create(request));
@@ -73,7 +74,9 @@ public class ClientController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Cliente atualizado"),
         @ApiResponse(responseCode = "404", description = "Cliente não encontrado"),
-        @ApiResponse(responseCode = "400", description = "CPF já cadastrado para outro cliente")
+        @ApiResponse(responseCode = "400", description = "Dados inválidos para o tipo de pessoa"),
+        @ApiResponse(responseCode = "409", description = "Documento já cadastrado para outro cliente"),
+        @ApiResponse(responseCode = "422", description = "Tentativa de mudar o tipo de pessoa")
     })
     public ResponseEntity<ClientResponse> update(@PathVariable UUID id, @Valid @RequestBody ClientRequest request) {
         return ResponseEntity.ok(clientService.update(id, request));

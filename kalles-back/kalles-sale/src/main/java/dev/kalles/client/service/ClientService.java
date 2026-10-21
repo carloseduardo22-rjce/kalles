@@ -3,7 +3,8 @@ package dev.kalles.client.service;
 import dev.kalles.client.dto.ClientRequest;
 import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
-import dev.kalles.client.exception.ClientCpfAlreadyExistsException;
+import dev.kalles.client.exception.ClientDocumentAlreadyExistsException;
+import dev.kalles.client.exception.ClientPersonTypeImmutableException;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.shared.exception.NotFoundException;
@@ -42,25 +43,12 @@ public class ClientService {
     @Transactional
     public ClientResponse create(ClientRequest request) {
         UUID companyId = CompanyContextHolder.requireCompanyId();
-
-        if (request.cpf() != null && !request.cpf().isBlank()) {
-            clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
-                throw new ClientCpfAlreadyExistsException();
-            });
-        }
+        assertDocumentAvailable(request.document(), companyId, null);
 
         Client client = new Client();
         client.setCompanyId(companyId);
-        client.setName(request.name());
-        client.setCpf(request.cpf());
-        client.setGender(request.gender());
-        client.setCodeCountry(request.codeCountry());
-        client.setCellphone(request.cellphone());
-        client.setBirthDate(request.birthDate());
-        client.setRg(request.rg());
-        client.setNameFather(request.nameFather());
-        client.setNameMother(request.nameMother());
-        client.setObservations(request.observations());
+        client.setPersonType(request.personType());
+        apply(client, request);
         return ClientResponse.from(clientRepository.save(client));
     }
 
@@ -77,24 +65,12 @@ public class ClientService {
         Client client = clientRepository.findByIdAndCompanyId(id, companyId)
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
 
-        if (request.cpf() != null && !request.cpf().isBlank()) {
-            clientRepository.findByCpfAndCompanyId(request.cpf(), companyId).ifPresent(existing -> {
-                if (!existing.getId().equals(id)) {
-                    throw new ClientCpfAlreadyExistsException();
-                }
-            });
+        if (client.getPersonType() != request.personType()) {
+            throw new ClientPersonTypeImmutableException();
         }
+        assertDocumentAvailable(request.document(), companyId, id);
 
-        client.setName(request.name());
-        client.setCpf(request.cpf());
-        client.setGender(request.gender());
-        client.setCodeCountry(request.codeCountry());
-        client.setCellphone(request.cellphone());
-        client.setBirthDate(request.birthDate());
-        client.setRg(request.rg());
-        client.setNameFather(request.nameFather());
-        client.setNameMother(request.nameMother());
-        client.setObservations(request.observations());
+        apply(client, request);
         return ClientResponse.from(clientRepository.save(client));
     }
 
@@ -103,5 +79,28 @@ public class ClientService {
         Client client = clientRepository.findByIdAndCompanyId(id, CompanyContextHolder.requireCompanyId())
                 .orElseThrow(() -> new NotFoundException("Cliente não encontrado: " + id));
         clientRepository.delete(client);
+    }
+
+    private void assertDocumentAvailable(String document, UUID companyId, UUID currentId) {
+        clientRepository.findByDocumentAndCompanyId(document, companyId)
+                .filter(existing -> !existing.getId().equals(currentId))
+                .ifPresent(existing -> {
+                    throw new ClientDocumentAlreadyExistsException();
+                });
+    }
+
+    private void apply(Client client, ClientRequest request) {
+        client.setDocument(request.document());
+        client.setName(request.name());
+        client.setTradeName(request.tradeName());
+        client.setStateRegistration(request.stateRegistration());
+        client.setGender(request.gender());
+        client.setCodeCountry(request.codeCountry());
+        client.setCellphone(request.cellphone());
+        client.setBirthDate(request.birthDate());
+        client.setRg(request.rg());
+        client.setNameFather(request.nameFather());
+        client.setNameMother(request.nameMother());
+        client.setObservations(request.observations());
     }
 }

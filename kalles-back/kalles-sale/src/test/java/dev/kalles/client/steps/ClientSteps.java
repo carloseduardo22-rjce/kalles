@@ -48,7 +48,8 @@ public class ClientSteps extends ClientCucumberSpringConfiguration {
                         "name", "Maria Souza",
                         "birthDate", "1990-05-20",
                         "gender", "F",
-                        "cpf", "52998224725",
+                        "personType", "FISICA",
+                        "document", "52998224725",
                         "codeCountry", "+55",
                         "cellphone", "11999999999"
                 ))
@@ -190,7 +191,7 @@ public class ClientSteps extends ClientCucumberSpringConfiguration {
 
     @Entao("o cliente criado deve retornar o CPF {string}")
     public void thenCreatedClientShouldReturnCpf(String cpf) {
-        assertThat(response.jsonPath().getString("cpf")).isEqualTo(cpf);
+        assertThat(response.jsonPath().getString("document")).isEqualTo(cpf);
     }
 
     @Entao("a resposta deve informar que a filial ativa e obrigatoria para clients")

@@ -54,7 +54,7 @@ public abstract class AbstractClientApiSupport extends AbstractCompanyContextApi
         Client client = new Client();
         client.setCompanyId(companyId);
         client.setName(name);
-        client.setCpf(cpf);
+        client.setDocument(cpf);
         client.setBirthDate(LocalDate.of(1990, 5, 20));
         client.setGender('F');
         client.setCodeCountry("55");

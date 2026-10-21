@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,10 +21,10 @@ import lombok.Setter;
 @Entity
 @Table(
     indexes = {
-        @Index(name = "idx_client_cpf", columnList = "cpf"),
+        @Index(name = "idx_client_document", columnList = "document"),
         @Index(name = "idx_client_company_id", columnList = "company_id")
     },
-    uniqueConstraints = @UniqueConstraint(name = "uk_client_cpf_company", columnNames = {"cpf", "company_id"}),
+    uniqueConstraints = @UniqueConstraint(name = "uk_client_document_company", columnNames = {"document", "company_id"}),
     comment = "Clientes cadastrados na loja"
 )
 @Getter
@@ -38,17 +40,27 @@ public class Client {
     @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "person_type", nullable = false, length = 8)
+    private PersonType personType = PersonType.FISICA;
+
     @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(name = "trade_name", length = 100)
+    private String tradeName;
+
+    @Column(nullable = false, length = 14)
+    private String document;
+
+    @Column(name = "state_registration", length = 14)
+    private String stateRegistration;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
     @Column(length = 1)
     private Character gender;
-
-    @Column(length = 14)
-    private String cpf;
 
     @Column(name = "code_country", length = 5)
     private String codeCountry;
@@ -68,4 +80,3 @@ public class Client {
     @Column(columnDefinition = "TEXT")
     private String observations;
 }
-

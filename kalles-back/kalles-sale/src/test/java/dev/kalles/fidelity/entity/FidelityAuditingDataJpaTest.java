@@ -80,6 +80,7 @@ class FidelityAuditingDataJpaTest extends AbstractDataJpaTest {
         Client client = new Client();
         client.setCompanyId(COMPANY_ID);
         client.setName("Cliente da auditoria");
+        client.setDocument("52998224725");
         entityManager().persist(client);
 
         Fidelity fidelity = new Fidelity();
