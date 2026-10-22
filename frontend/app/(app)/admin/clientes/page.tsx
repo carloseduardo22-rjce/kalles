@@ -41,15 +41,19 @@ import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { clientService } from "@/features/admin/services/client.service";
 import { fidelityService } from "@/features/admin/services/fidelity.service";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type {
   ClientRequest,
   ClientResponse,
   FidelityResponse,
+  PersonType,
 } from "@/features/admin/types";
 import {
+  alphanumericUpperCase,
   formatBrazilianCellphone,
-  formatCpf,
+  formatDocument,
   isValidBrazilianCellphone,
+  isValidCnpj,
   isValidCpf,
   normalizeClientRequest,
   onlyDigits,
@@ -67,29 +71,50 @@ function ClientForm({
   isPending: boolean;
   onCancel: () => void;
 }) {
+  const isEditing = !!defaultValues;
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ClientRequest>({
     defaultValues: defaultValues
       ? {
           ...defaultValues,
-          cpf: formatCpf(defaultValues.cpf),
+          document: formatDocument(
+            defaultValues.personType ?? "FISICA",
+            defaultValues.document,
+          ),
           cellphone: formatBrazilianCellphone(defaultValues.cellphone),
         }
-      : {},
+      : { personType: "FISICA" },
   });
+
+  const personType = watch("personType");
+  const isLegalEntity = personType === "JURIDICA";
+  const nameLabel = isLegalEntity ? "Razão social" : "Nome";
+  const documentLabel = isLegalEntity ? "CNPJ" : "CPF";
 
   const nameField = register("name", {
-    required: "Nome é obrigatório",
+    required: `${nameLabel} é obrigatório`,
     validate: (value) =>
-      value.trim().length >= 3 || "Nome deve ter ao menos 3 caracteres",
+      value.trim().length >= 3 ||
+      `${nameLabel} deve ter ao menos 3 caracteres`,
   });
 
-  const cpfField = register("cpf", {
-    required: "CPF é obrigatório",
-    validate: (value) => isValidCpf(value) || "CPF inválido",
+  const documentField = register("document", {
+    required: `${documentLabel} é obrigatório`,
+    validate: (value) =>
+      (isLegalEntity ? isValidCnpj(value) : isValidCpf(value)) ||
+      `${documentLabel} inválido`,
+  });
+
+  const stateRegistrationField = register("stateRegistration", {
+    validate: (value) =>
+      !value ||
+      /^(ISENTO|\d{2,14})$/.test(alphanumericUpperCase(value)) ||
+      "Use somente números ou ISENTO",
   });
 
   const cellphoneField = register("cellphone", {
@@ -105,41 +130,100 @@ function ClientForm({
       className="space-y-4"
     >
       <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label>Tipo de pessoa *</Label>
+          <RadioGroup
+            value={personType}
+            onValueChange={(value) => {
+              setValue("personType", value as PersonType);
+              setValue("document", "");
+            }}
+            disabled={isEditing}
+            className="grid grid-cols-2 gap-2"
+          >
+            <label className="flex items-center gap-2 rounded-md border p-2.5 text-sm">
+              <RadioGroupItem value="FISICA" id="person-type-fisica" />
+              Pessoa física
+            </label>
+            <label className="flex items-center gap-2 rounded-md border p-2.5 text-sm">
+              <RadioGroupItem value="JURIDICA" id="person-type-juridica" />
+              Pessoa jurídica
+            </label>
+          </RadioGroup>
+          {isEditing && (
+            <p className="text-xs text-muted-foreground">
+              O tipo não muda depois do cadastro.
+            </p>
+          )}
+        </div>
+
         <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="name">Nome *</Label>
-          <Input id="name" {...nameField} placeholder="Nome completo" />
+          <Label htmlFor="name">{nameLabel} *</Label>
+          <Input
+            id="name"
+            {...nameField}
+            placeholder={isLegalEntity ? "Razão social da empresa" : "Nome completo"}
+          />
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
         </div>
 
+        {isLegalEntity && (
+          <div className="col-span-2 space-y-1.5">
+            <Label htmlFor="tradeName">Nome fantasia</Label>
+            <Input
+              id="tradeName"
+              {...register("tradeName")}
+              placeholder="Nome pelo qual a empresa é conhecida"
+            />
+          </div>
+        )}
+
         <div className="space-y-1.5">
-          <Label htmlFor="cpf">CPF *</Label>
+          <Label htmlFor="document">{documentLabel} *</Label>
           <Input
-            id="cpf"
-            inputMode="numeric"
-            maxLength={14}
-            {...cpfField}
+            id="document"
+            inputMode={isLegalEntity ? "text" : "numeric"}
+            maxLength={isLegalEntity ? 18 : 14}
+            {...documentField}
             onChange={(event) => {
-              event.target.value = formatCpf(event.target.value);
-              cpfField.onChange(event);
+              event.target.value = formatDocument(personType, event.target.value);
+              documentField.onChange(event);
             }}
-            placeholder="000.000.000-00"
+            placeholder={isLegalEntity ? "00.000.000/0000-00" : "000.000.000-00"}
           />
-          {errors.cpf && (
-            <p className="text-xs text-destructive">{errors.cpf.message}</p>
+          {errors.document && (
+            <p className="text-xs text-destructive">{errors.document.message}</p>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="birthDate">Data de Nascimento</Label>
-          <Input
-            id="birthDate"
-            type="date"
-            max={new Date().toISOString().split("T")[0]}
-            {...register("birthDate")}
-          />
-        </div>
+        {isLegalEntity ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="stateRegistration">Inscrição estadual</Label>
+            <Input
+              id="stateRegistration"
+              maxLength={14}
+              {...stateRegistrationField}
+              placeholder="Somente números ou ISENTO"
+            />
+            {errors.stateRegistration && (
+              <p className="text-xs text-destructive">
+                {errors.stateRegistration.message}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor="birthDate">Data de Nascimento</Label>
+            <Input
+              id="birthDate"
+              type="date"
+              max={new Date().toISOString().split("T")[0]}
+              {...register("birthDate")}
+            />
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="cellphone">Celular</Label>
@@ -161,32 +245,36 @@ function ClientForm({
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="rg">RG</Label>
-          <Input
-            id="rg"
-            {...register("rg")}
-            placeholder="Documento de identidade"
-          />
-        </div>
+        {!isLegalEntity && (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="rg">RG</Label>
+              <Input
+                id="rg"
+                {...register("rg")}
+                placeholder="Documento de identidade"
+              />
+            </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="nameFather">Nome do Pai</Label>
-          <Input
-            id="nameFather"
-            {...register("nameFather")}
-            placeholder="Nome do pai"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nameFather">Nome do Pai</Label>
+              <Input
+                id="nameFather"
+                {...register("nameFather")}
+                placeholder="Nome do pai"
+              />
+            </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="nameMother">Nome da Mãe</Label>
-          <Input
-            id="nameMother"
-            {...register("nameMother")}
-            placeholder="Nome da mãe"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nameMother">Nome da Mãe</Label>
+              <Input
+                id="nameMother"
+                {...register("nameMother")}
+                placeholder="Nome da mãe"
+              />
+            </div>
+          </>
+        )}
 
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="observations">Observações</Label>
@@ -304,9 +392,11 @@ export default function ClientesPage() {
     ? clients.filter((c) => {
         const q = search.toLowerCase();
         const digits = onlyDigits(search);
+        const documentQuery = alphanumericUpperCase(search);
         return (
           c.name.toLowerCase().includes(q) ||
-          (!!digits && onlyDigits(c.cpf).includes(digits)) ||
+          (c.tradeName?.toLowerCase().includes(q) ?? false) ||
+          (!!documentQuery && c.document.includes(documentQuery)) ||
           (!!digits && onlyDigits(c.cellphone).includes(digits))
         );
       })
@@ -354,7 +444,7 @@ export default function ClientesPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, CPF ou celular..."
+            placeholder="Buscar por nome, CPF/CNPJ ou celular..."
             className="bg-background pl-9"
           />
         </div>
@@ -415,8 +505,8 @@ export default function ClientesPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Nome
                 </th>
-                <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  CPF
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  CPF/CNPJ
                 </th>
                 <th className="w-36 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Celular
@@ -433,9 +523,14 @@ export default function ClientesPage() {
                   key={client.id}
                   className={`border-t transition-colors hover:bg-accent ${i % 2 !== 0 ? "bg-muted/20" : ""}`}
                 >
-                  <td className="px-4 py-3 font-medium">{client.name}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{client.tradeName ?? client.name}</p>
+                    {client.tradeName && (
+                      <p className="text-xs text-muted-foreground">{client.name}</p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {formatCpf(client.cpf)}
+                    {formatDocument(client.personType, client.document)}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {client.cellphone ? (
@@ -446,6 +541,16 @@ export default function ClientesPage() {
                   </td>
                   <td className="px-4 py-3">
                     {(() => {
+                      if (client.personType === "JURIDICA") {
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-normal opacity-60"
+                          >
+                            Não participa
+                          </Badge>
+                        );
+                      }
                       if (!fidelityMap.has(client.id)) {
                         return (
                           <span className="text-xs text-muted-foreground opacity-40">
