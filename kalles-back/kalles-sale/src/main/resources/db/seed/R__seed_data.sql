@@ -212,18 +212,22 @@ ON CONFLICT (product_id, location_id) DO NOTHING;
 -- ---------------------------------------------------------------
 -- 7. CLIENTES
 -- ---------------------------------------------------------------
-INSERT INTO client (name, birth_date, gender, cpf, code_country, cellphone, rg, name_father, name_mother, observations, company_id) VALUES
-  ('Ana Paula Souza',    '1992-03-15', 'F', '529.982.247-25', '+55', '11991110001', '12345678', 'Carlos Souza',    'Marta Souza',    NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Bruno Ferreira',     '1985-07-22', 'M', '153.509.460-56', '+55', '21992220002', '23456789', 'Luiz Ferreira',   'Rosa Ferreira',  'Cliente VIP',                       'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Carla Mendes',       '1998-11-05', 'F', '046.270.070-54', '+55', '31993330003', '34567890', NULL,              'Sônia Mendes',   NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Diego Lima',         '1990-01-30', 'M', '168.995.350-09', '+55', '41994440004', '45678901', 'Paulo Lima',      'Clara Lima',     NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Fernanda Castro',    '2000-08-18', 'F', '942.836.530-06', '+55', '51995550005', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Gabriela Martins',   '1995-04-10', 'F', '871.504.977-73', '+55', '61996660006', '56789012', 'Roberto Martins', 'Lúcia Martins',  'Preferência: produtos naturais',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Henrique Barbosa',   '1980-12-20', 'M', '023.845.231-40', '+55', '71997770007', '67890123', 'Sérgio Barbosa',  'Vera Barbosa',   'Cliente desde 2020',               'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Juliana Peixoto',    '1993-06-03', 'F', '470.645.218-07', '+55', '81998880008', '78901234', NULL,              'Beatriz Peixoto',NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Marcos Teixeira',    '1975-09-14', 'M', '862.073.580-01', '+55', '19999990009', '89012345', 'André Teixeira',  'Fátima Teixeira','Empresário — compras mensais',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
-  ('Natália Rodrigues',  '2002-02-28', 'F', '674.594.981-49', '+55', '27900010010', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
-ON CONFLICT (cpf, company_id) DO NOTHING;
+INSERT INTO client (name, birth_date, gender, document, code_country, cellphone, rg, name_father, name_mother, observations, company_id) VALUES
+  ('Ana Paula Souza',    '1992-03-15', 'F', '52998224725', '+55', '11991110001', '12345678', 'Carlos Souza',    'Marta Souza',    NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Bruno Ferreira',     '1985-07-22', 'M', '15350946056', '+55', '21992220002', '23456789', 'Luiz Ferreira',   'Rosa Ferreira',  'Cliente VIP',                       'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Carla Mendes',       '1998-11-05', 'F', '04627007054', '+55', '31993330003', '34567890', NULL,              'Sônia Mendes',   NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Diego Lima',         '1990-01-30', 'M', '16899535009', '+55', '41994440004', '45678901', 'Paulo Lima',      'Clara Lima',     NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Fernanda Castro',    '2000-08-18', 'F', '94283653006', '+55', '51995550005', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Gabriela Martins',   '1995-04-10', 'F', '87150497773', '+55', '61996660006', '56789012', 'Roberto Martins', 'Lúcia Martins',  'Preferência: produtos naturais',    'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Henrique Barbosa',   '1980-12-20', 'M', '02384523140', '+55', '71997770007', '67890123', 'Sérgio Barbosa',  'Vera Barbosa',   'Cliente desde 2020',               'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Juliana Peixoto',    '1993-06-03', 'F', '47064521807', '+55', '81998880008', '78901234', NULL,              'Beatriz Peixoto',NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Marcos Teixeira',    '1975-09-14', 'M', '86207358001', '+55', '19999990009', '89012345', 'André Teixeira',  'Fátima Teixeira','Empresário — compras mensais',      'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'),
+  ('Natália Rodrigues',  '2002-02-28', 'F', '67459498149', '+55', '27900010010', NULL,        NULL,             NULL,             NULL,                                'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
+ON CONFLICT (document, company_id) DO NOTHING;
+
+INSERT INTO client (person_type, name, trade_name, document, state_registration, code_country, cellphone, company_id) VALUES
+  ('JURIDICA', 'Aurora Distribuidora de Alimentos Ltda', 'Aurora Alimentos', '12ABC34501DE35', 'ISENTO', '+55', '11988880011', 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f')
+ON CONFLICT (document, company_id) DO NOTHING;
 
 -- ---------------------------------------------------------------
 -- 8. SESSÃO DE CAIXA ENCERRADA
@@ -276,13 +280,13 @@ SELECT
   'a1b2c3d4-0002-0002-0002-000000000002'::uuid,
   c.id
 FROM (VALUES
-  ('529.982.247-25',  70,  0.00, '2026-01-15'),
-  ('153.509.460-56',   0, 20.00, '2026-01-20'),
-  ('046.270.070-54',  35,  0.00, '2026-02-01'),
-  ('871.504.977-73',   0, 20.00, '2026-02-10'),
-  ('023.845.231-40',  10,  0.00, '2026-03-01')
-) AS v(cpf, pts, disc, enrolled)
-JOIN client c ON c.cpf = v.cpf
+  ('52998224725',  70,  0.00, '2026-01-15'),
+  ('15350946056',   0, 20.00, '2026-01-20'),
+  ('04627007054',  35,  0.00, '2026-02-01'),
+  ('87150497773',   0, 20.00, '2026-02-10'),
+  ('02384523140',  10,  0.00, '2026-03-01')
+) AS v(document, pts, disc, enrolled)
+JOIN client c ON c.document = v.document
             AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (client_id) DO NOTHING;
 
@@ -337,12 +341,12 @@ SELECT
   0,
   'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
-  ('c1000000-0000-0000-0000-000000000001', 'COMPLETED', '153.509.460-56', 24.00, 4.00,  0.00, 20.00),
-  ('c1000000-0000-0000-0000-000000000002', 'COMPLETED', '529.982.247-25', 16.50, 16.50, 0.00,  0.00),
+  ('c1000000-0000-0000-0000-000000000001', 'COMPLETED', '15350946056', 24.00, 4.00,  0.00, 20.00),
+  ('c1000000-0000-0000-0000-000000000002', 'COMPLETED', '52998224725', 16.50, 16.50, 0.00,  0.00),
   ('c1000000-0000-0000-0000-000000000003', 'COMPLETED', NULL,             33.40, 33.40, 0.00,  0.00),
   ('c1000000-0000-0000-0000-000000000004', 'CANCELED',  NULL,              6.90,  6.90, 6.90,  0.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
-LEFT JOIN client c ON c.cpf = v.cpf
+LEFT JOIN client c ON c.document = v.cpf
                   AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
@@ -373,11 +377,11 @@ SELECT
   0,
   'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
-  ('c1000000-0000-0000-0000-000000000005', 'COMPLETED', '871.504.977-73', 20.20, 0.20,  0.00, 20.00),
+  ('c1000000-0000-0000-0000-000000000005', 'COMPLETED', '87150497773', 20.20, 0.20,  0.00, 20.00),
   ('c1000000-0000-0000-0000-000000000006', 'COMPLETED', NULL,             36.40, 36.40, 0.00,  0.00),
   ('c1000000-0000-0000-0000-000000000007', 'CANCELED',  NULL,              4.50,  4.50, 4.50,  0.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due, fid_disc)
-LEFT JOIN client c ON c.cpf = v.cpf
+LEFT JOIN client c ON c.document = v.cpf
                   AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
@@ -490,12 +494,12 @@ SELECT
   0,
   'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
-  ('c1000000-0000-0000-0000-000000000008', '168.995.350-09', 22.90, 22.90),
+  ('c1000000-0000-0000-0000-000000000008', '16899535009', 22.90, 22.90),
   ('c1000000-0000-0000-0000-000000000009', NULL,             14.00, 14.00),
-  ('c1000000-0000-0000-0000-000000000010', '674.594.981-49', 12.90, 12.90),
-  ('c1000000-0000-0000-0000-000000000011', '046.270.070-54',  8.90,  8.90)
+  ('c1000000-0000-0000-0000-000000000010', '67459498149', 12.90, 12.90),
+  ('c1000000-0000-0000-0000-000000000011', '04627007054',  8.90,  8.90)
 ) AS v(sale_id, cpf, subtotal, total)
-LEFT JOIN client c ON c.cpf = v.cpf
+LEFT JOIN client c ON c.document = v.cpf
                   AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 
@@ -524,11 +528,11 @@ SELECT
   'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 FROM (VALUES
   ('c1000000-0000-0000-0000-000000000012', 'COMPLETED', NULL,             33.40, 33.40, 0.00),
-  ('c1000000-0000-0000-0000-000000000013', 'COMPLETED', '862.073.580-01', 15.00, 15.00, 0.00),
+  ('c1000000-0000-0000-0000-000000000013', 'COMPLETED', '86207358001', 15.00, 15.00, 0.00),
   ('c1000000-0000-0000-0000-000000000014', 'COMPLETED', NULL,             13.40, 13.40, 0.00),
   ('c1000000-0000-0000-0000-000000000015', 'CANCELED',  NULL,              7.00,  7.00, 7.00)
 ) AS v(sale_id, state, cpf, subtotal, total, amount_due)
-LEFT JOIN client c ON c.cpf = v.cpf
+LEFT JOIN client c ON c.document = v.cpf
                   AND c.company_id = 'e28a38a0-2f22-4a00-9e6b-67e9f3b5c65f'::uuid
 ON CONFLICT (id) DO NOTHING;
 

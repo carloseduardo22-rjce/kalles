@@ -81,7 +81,9 @@ export function FidelityPdvPanel({
     setErrMsg(null);
     try {
       const clients = await clientService.listAll();
-      const found = clients.find((c) => normalizeCpf(c.cpf) === normalized);
+      const found = clients.find(
+        (c) => c.personType === "FISICA" && c.document === normalized,
+      );
       if (!found) {
         setStatus("not_found");
         return;

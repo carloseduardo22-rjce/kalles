@@ -1,6 +1,7 @@
 package dev.kalles.fidelity.service;
 
 import dev.kalles.client.entity.Client;
+import dev.kalles.client.entity.PersonType;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.fidelity.dto.FidelityResponse;
 import dev.kalles.fidelity.entity.Fidelity;
@@ -8,6 +9,7 @@ import dev.kalles.fidelity.entity.FidelityPolicy;
 import dev.kalles.fidelity.enums.FidelityDiscountType;
 import dev.kalles.fidelity.exception.ClientAlreadyInFidelityException;
 import dev.kalles.fidelity.exception.FidelityPolicyNotConfiguredException;
+import dev.kalles.fidelity.exception.LegalEntityNotEligibleForFidelityException;
 import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.fidelity.repository.FidelityRepository;
 import dev.kalles.fidelity.service.FidelityService;
@@ -126,6 +128,7 @@ class FidelityServiceTest {
         @DisplayName("Deve lançar exceção quando não existe política ativa")
         void shouldThrowWhenNoActivePolicyExists() {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
             when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.empty());
 
             FidelityPolicyNotConfiguredException error =
@@ -138,10 +141,23 @@ class FidelityServiceTest {
         @DisplayName("Deve lançar exceção quando cliente não existe")
         void shouldThrowNotFoundWhenClientDoesNotExist() {
             when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
-            when(fidelityPolicyRepository.findFirstByCompanyIdAndActiveTrue(COMPANY_ID)).thenReturn(Optional.of(activePolicy));
             when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> fidelityService.enrollClient(clientId));
+        }
+
+        @Test
+        @DisplayName("Deve recusar cliente pessoa jurídica sem consultar a política")
+        void shouldRejectLegalEntityClient() {
+            client.setPersonType(PersonType.JURIDICA);
+            when(fidelityRepository.existsByClientId(clientId)).thenReturn(false);
+            when(clientRepository.findByIdAndCompanyId(clientId, COMPANY_ID)).thenReturn(Optional.of(client));
+
+            LegalEntityNotEligibleForFidelityException error =
+                    assertThrows(LegalEntityNotEligibleForFidelityException.class, () -> fidelityService.enrollClient(clientId));
+            assertEquals("LEGAL_ENTITY_NOT_ELIGIBLE_FOR_FIDELITY", error.getCode());
+            verifyNoInteractions(fidelityPolicyRepository);
+            verify(fidelityRepository, never()).save(any());
         }
     }
 

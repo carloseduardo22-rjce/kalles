@@ -153,7 +153,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
         Client client = new Client();
         client.setCompanyId(companyId);
         client.setName("Cliente Fidelidade");
-        client.setCpf(CLIENT_CPF);
+        client.setDocument(CLIENT_CPF);
         client.setBirthDate(LocalDate.of(1990, 1, 1));
         client.setCellphone("11999999999");
         seededClient = clientRepository.save(client);

@@ -3,7 +3,9 @@ package dev.kalles.client.service;
 import dev.kalles.client.dto.ClientRequest;
 import dev.kalles.client.dto.ClientResponse;
 import dev.kalles.client.entity.Client;
-import dev.kalles.client.exception.ClientCpfAlreadyExistsException;
+import dev.kalles.client.entity.PersonType;
+import dev.kalles.client.exception.ClientDocumentAlreadyExistsException;
+import dev.kalles.client.exception.ClientPersonTypeImmutableException;
 import dev.kalles.client.repository.ClientRepository;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
@@ -42,8 +44,17 @@ class ClientServiceTest {
     private ClientService clientService;
 
     private ClientRequest buildRequest(String cpf) {
-        return new ClientRequest("João da Silva", LocalDate.of(1990, 5, 20), 'M',
-                cpf, "+55", "11999999999", "1234567", "Pai Teste", "Mãe Teste", null);
+        return naturalPersonRequest("João da Silva", cpf);
+    }
+
+    private ClientRequest naturalPersonRequest(String name, String cpf) {
+        return new ClientRequest(PersonType.FISICA, cpf, name, null, null, LocalDate.of(1990, 5, 20), 'M',
+                "+55", "11999999999", "1234567", "Pai Teste", "Mãe Teste", null);
+    }
+
+    private ClientRequest legalEntityRequest(String cnpj) {
+        return new ClientRequest(PersonType.JURIDICA, cnpj, "Aurora Distribuidora Ltda", "Aurora Alimentos", "isento",
+                null, null, "+55", "11999999999", null, null, null, null);
     }
 
     private Client buildClient(UUID id, String cpf) {
@@ -53,7 +64,7 @@ class ClientServiceTest {
         c.setName("João da Silva");
         c.setBirthDate(LocalDate.of(1990, 5, 20));
         c.setGender('M');
-        c.setCpf(cpf);
+        c.setDocument(cpf);
         c.setCodeCountry("+55");
         c.setCellphone("11999999999");
         return c;
@@ -68,7 +79,7 @@ class ClientServiceTest {
         String normalizedCpf = "52998224725";
         Client saved = buildClient(id, cpf);
 
-        when(clientRepository.findByCpfAndCompanyId(normalizedCpf, COMPANY_ID)).thenReturn(Optional.empty());
+        when(clientRepository.findByDocumentAndCompanyId(normalizedCpf, COMPANY_ID)).thenReturn(Optional.empty());
         when(clientRepository.save(any(Client.class))).thenReturn(saved);
 
         ClientResponse response = clientService.create(buildRequest(cpf));
@@ -76,7 +87,7 @@ class ClientServiceTest {
         assertNotNull(response);
         assertEquals(id, response.id());
         assertEquals("João da Silva", response.name());
-        verify(clientRepository).findByCpfAndCompanyId(normalizedCpf, COMPANY_ID);
+        verify(clientRepository).findByDocumentAndCompanyId(normalizedCpf, COMPANY_ID);
         verify(clientRepository).save(any(Client.class));
     }
 
@@ -86,37 +97,24 @@ class ClientServiceTest {
         String cpf = "529.982.247-25";
         Client existing = buildClient(UUID.randomUUID(), cpf);
 
-        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByDocumentAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
 
-        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.create(buildRequest(cpf)));
+        assertThrows(ClientDocumentAlreadyExistsException.class, () -> clientService.create(buildRequest(cpf)));
         verify(clientRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Deve criar cliente com CPF nulo sem consultar o repositório")
-    void shouldCreateClientWithNullCpfWithoutCheckingRepository() {
-        Client saved = buildClient(UUID.randomUUID(), null);
-        when(clientRepository.save(any(Client.class))).thenReturn(saved);
+    @DisplayName("Deve criar cliente pessoa jurídica com tipo, nome fantasia e inscrição estadual")
+    void shouldCreateLegalEntityClient() {
+        when(clientRepository.findByDocumentAndCompanyId("12ABC34501DE35", COMPANY_ID)).thenReturn(Optional.empty());
+        when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ClientRequest request = new ClientRequest("João da Silva", null, null,
-                null, null, null, null, null, null, null);
+        ClientResponse response = clientService.create(legalEntityRequest("12.abc.345/01de-35"));
 
-        assertDoesNotThrow(() -> clientService.create(request));
-        verify(clientRepository, never()).findByCpfAndCompanyId(any(), any());
-        verify(clientRepository).save(any());
-    }
-
-    @Test
-    @DisplayName("Deve criar cliente com CPF em branco sem consultar o repositório")
-    void shouldCreateClientWithBlankCpfWithoutCheckingRepository() {
-        Client saved = buildClient(UUID.randomUUID(), "");
-        when(clientRepository.save(any(Client.class))).thenReturn(saved);
-
-        ClientRequest request = new ClientRequest("João da Silva", null, null,
-                "", null, null, null, null, null, null);
-
-        assertDoesNotThrow(() -> clientService.create(request));
-        verify(clientRepository, never()).findByCpfAndCompanyId(any(), any());
+        assertEquals(PersonType.JURIDICA, response.personType());
+        assertEquals("12ABC34501DE35", response.document());
+        assertEquals("Aurora Alimentos", response.tradeName());
+        assertEquals("ISENTO", response.stateRegistration());
     }
 
     @Test
@@ -166,11 +164,10 @@ class ClientServiceTest {
         updated.setName("Nome Atualizado");
 
         when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
+        when(clientRepository.findByDocumentAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(existing));
         when(clientRepository.save(any(Client.class))).thenReturn(updated);
 
-        ClientRequest request = new ClientRequest("Nome Atualizado", null, null,
-                cpf, null, null, null, null, null, null);
+        ClientRequest request = naturalPersonRequest("Nome Atualizado", cpf);
         ClientResponse response = clientService.update(id, request);
 
         assertEquals("Nome Atualizado", response.name());
@@ -187,12 +184,22 @@ class ClientServiceTest {
         Client other = buildClient(otherId, cpf);
 
         when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(existing));
-        when(clientRepository.findByCpfAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(other));
+        when(clientRepository.findByDocumentAndCompanyId("52998224725", COMPANY_ID)).thenReturn(Optional.of(other));
 
-        ClientRequest request = new ClientRequest("X", null, null,
-                cpf, null, null, null, null, null, null);
+        ClientRequest request = naturalPersonRequest("Xavier", cpf);
 
-        assertThrows(ClientCpfAlreadyExistsException.class, () -> clientService.update(id, request));
+        assertThrows(ClientDocumentAlreadyExistsException.class, () -> clientService.update(id, request));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve recusar a troca do tipo de pessoa na atualização")
+    void shouldRejectPersonTypeChangeOnUpdate() {
+        UUID id = UUID.randomUUID();
+        when(clientRepository.findByIdAndCompanyId(id, COMPANY_ID)).thenReturn(Optional.of(buildClient(id, "52998224725")));
+
+        assertThrows(ClientPersonTypeImmutableException.class,
+                () -> clientService.update(id, legalEntityRequest("11222333000181")));
         verify(clientRepository, never()).save(any());
     }
 

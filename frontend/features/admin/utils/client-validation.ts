@@ -1,7 +1,11 @@
-import type { ClientRequest } from "@/features/admin/types";
+import type { ClientRequest, PersonType } from "@/features/admin/types";
 
 const NON_DIGITS_REGEX = /\D/g;
+const NON_ALPHANUMERIC_REGEX = /[^0-9A-Za-z]/g;
 const BRAZILIAN_MOBILE_REGEX = /^[1-9]{2}9\d{8}$/;
+const CNPJ_REGEX = /^[0-9A-Z]{12}\d{2}$/;
+const CNPJ_FIRST_WEIGHTS = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const CNPJ_SECOND_WEIGHTS = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
 function trimToNull(value?: string | null): string | null {
   const normalized = value?.trim();
@@ -22,6 +26,51 @@ export function formatCpf(value?: string | null): string {
   }
 
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+export function alphanumericUpperCase(value?: string | null): string {
+  return (value ?? "").replace(NON_ALPHANUMERIC_REGEX, "").toUpperCase();
+}
+
+export function formatCnpj(value?: string | null): string {
+  const chars = alphanumericUpperCase(value).slice(0, 14);
+
+  if (chars.length <= 2) return chars;
+  if (chars.length <= 5) return `${chars.slice(0, 2)}.${chars.slice(2)}`;
+  if (chars.length <= 8) {
+    return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5)}`;
+  }
+  if (chars.length <= 12) {
+    return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8)}`;
+  }
+
+  return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8, 12)}-${chars.slice(12)}`;
+}
+
+export function formatDocument(personType: PersonType, document?: string | null): string {
+  return personType === "JURIDICA" ? formatCnpj(document) : formatCpf(document);
+}
+
+function cnpjCheckDigit(base: string, weights: number[]): number {
+  const sum = weights.reduce(
+    (total, weight, index) => total + (base.charCodeAt(index) - 48) * weight,
+    0,
+  );
+  const remainder = sum % 11;
+  return remainder < 2 ? 0 : 11 - remainder;
+}
+
+export function isValidCnpj(value?: string | null): boolean {
+  const cnpj = alphanumericUpperCase(value);
+
+  if (!CNPJ_REGEX.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) {
+    return false;
+  }
+
+  const first = cnpjCheckDigit(cnpj.slice(0, 12), CNPJ_FIRST_WEIGHTS);
+  const second = cnpjCheckDigit(cnpj.slice(0, 13), CNPJ_SECOND_WEIGHTS);
+
+  return first === Number(cnpj[12]) && second === Number(cnpj[13]);
 }
 
 export function formatBrazilianCellphone(value?: string | null): string {
@@ -67,18 +116,37 @@ export function isValidBrazilianCellphone(value?: string | null): boolean {
 
 export function normalizeClientRequest(data: ClientRequest): ClientRequest {
   const cellphone = onlyDigits(data.cellphone).slice(0, 11);
-
-  return {
-    ...data,
+  const shared = {
+    personType: data.personType,
     name: data.name.trim(),
-    birthDate: trimToNull(data.birthDate),
-    gender: trimToNull(data.gender),
-    cpf: onlyDigits(data.cpf).slice(0, 11),
     codeCountry: cellphone ? "+55" : null,
     cellphone: cellphone || null,
+    observations: trimToNull(data.observations),
+  };
+
+  if (data.personType === "JURIDICA") {
+    return {
+      ...shared,
+      document: alphanumericUpperCase(data.document).slice(0, 14),
+      tradeName: trimToNull(data.tradeName),
+      stateRegistration: alphanumericUpperCase(data.stateRegistration) || null,
+      birthDate: null,
+      gender: null,
+      rg: null,
+      nameFather: null,
+      nameMother: null,
+    };
+  }
+
+  return {
+    ...shared,
+    document: onlyDigits(data.document).slice(0, 11),
+    tradeName: null,
+    stateRegistration: null,
+    birthDate: trimToNull(data.birthDate),
+    gender: trimToNull(data.gender),
     rg: trimToNull(data.rg),
     nameFather: trimToNull(data.nameFather),
     nameMother: trimToNull(data.nameMother),
-    observations: trimToNull(data.observations),
   };
 }

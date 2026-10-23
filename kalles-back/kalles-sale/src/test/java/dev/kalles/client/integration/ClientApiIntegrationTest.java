@@ -31,7 +31,8 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                         "name", "Maria Souza",
                         "birthDate", "1990-05-20",
                         "gender", "F",
-                        "cpf", "52998224725",
+                        "personType", "FISICA",
+                        "document", "52998224725",
                         "codeCountry", "+55",
                         "cellphone", "11999999999"
                 ))
@@ -40,7 +41,7 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                 .then()
                 .statusCode(201)
                 .body("name", equalTo("Maria Souza"))
-                .body("cpf", equalTo("52998224725"));
+                .body("document", equalTo("52998224725"));
     }
 
     @Test
@@ -53,7 +54,8 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                         "name", "Maria Nova",
                         "birthDate", "1990-05-20",
                         "gender", "F",
-                        "cpf", "52998224725",
+                        "personType", "FISICA",
+                        "document", "52998224725",
                         "codeCountry", "+55",
                         "cellphone", "11999999999"
                 ))
@@ -61,8 +63,8 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                 .post("/api/clients")
                 .then()
                 .statusCode(409)
-                .body("code", equalTo("CLIENT_CPF_ALREADY_EXISTS"))
-                .body("detail", equalTo("Já existe um cliente com o CPF informado nesta filial."));
+                .body("code", equalTo("CLIENT_DOCUMENT_ALREADY_EXISTS"))
+                .body("detail", equalTo("Já existe um cliente com o documento informado nesta filial."));
     }
 
     @Test
@@ -75,7 +77,8 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                         "name", "Maria Loja A",
                         "birthDate", "1990-05-20",
                         "gender", "F",
-                        "cpf", "52998224725",
+                        "personType", "FISICA",
+                        "document", "52998224725",
                         "codeCountry", "+55",
                         "cellphone", "11999999999"
                 ))
@@ -83,7 +86,7 @@ class ClientApiIntegrationTest extends AbstractClientApiSupport {
                 .post("/api/clients")
                 .then()
                 .statusCode(201)
-                .body("cpf", equalTo("52998224725"));
+                .body("document", equalTo("52998224725"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package dev.kalles.client.support;
 
 import dev.kalles.client.entity.Client;
 import dev.kalles.client.repository.ClientRepository;
+import dev.kalles.fidelity.repository.FidelityPolicyRepository;
 import dev.kalles.security.support.AbstractCompanyContextApiSupport;
 import dev.kalles.testsupport.CsrfTestClient;
 import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
@@ -9,6 +10,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -19,6 +21,12 @@ public abstract class AbstractClientApiSupport extends AbstractCompanyContextApi
 
     @Autowired
     protected ClientRepository clientRepository;
+
+    @Autowired
+    protected FidelityPolicyRepository fidelityPolicyRepository;
+
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
 
     protected void resetClientScenario() {
         resetScenarioData();
@@ -46,7 +54,7 @@ public abstract class AbstractClientApiSupport extends AbstractCompanyContextApi
         Client client = new Client();
         client.setCompanyId(companyId);
         client.setName(name);
-        client.setCpf(cpf);
+        client.setDocument(cpf);
         client.setBirthDate(LocalDate.of(1990, 5, 20));
         client.setGender('F');
         client.setCodeCountry("55");

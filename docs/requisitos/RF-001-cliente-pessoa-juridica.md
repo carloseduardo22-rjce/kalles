@@ -2,7 +2,7 @@
 
 | Versão | Estado | Data |
 |---|---|---|
-| 1.0 | Aprovado | 2026-10-16 |
+| 1.0 | Em desenvolvimento | 2026-10-20 |
 
 ## História de usuário
 
@@ -55,9 +55,27 @@ Como administrador da loja, quero cadastrar clientes pessoa jurídica (empresas)
 - **D-001.1** (2026-10-16) Uma única entidade `Client` com `personType` e `document`. Venda e fidelidade continuam referenciando o mesmo cliente; os clientes existentes migram como pessoa física com o CPF atual em `document`.
 - **D-001.2** (2026-10-16) Pessoa jurídica fica fora do programa de fidelidade nesta versão. Fidelidade por pontos é mecanismo de retenção do consumidor final; para empresa, quem compra é um funcionário, e pontos acumulados pela empresa abririam espaço para resgate indevido.
 - **D-001.3** (2026-10-16) Listagem mostra o nome fantasia, com a razão social abaixo.
+- **D-001.4** (2026-10-20) O campo `name` guarda o nome da pessoa física ou a razão social da pessoa jurídica. Venda, fidelidade e listagem continuam lendo `name`; o nome fantasia fica num campo próprio.
+- **D-001.5** (2026-10-20) Banco: a coluna `cpf` passa a se chamar `document`, sem pontuação e obrigatória; entram `person_type` (padrão `FISICA`, restrito a `FISICA` e `JURIDICA`), `trade_name` e `state_registration`; a unicidade passa a ser `uk_client_document_company (document, company_id)`.
+- **D-001.6** (2026-10-20) Contrato de `/api/clients`, nos mesmos endpoints:
+
+  | Campo | Pessoa física | Pessoa jurídica |
+  |---|---|---|
+  | `personType` | `FISICA` (obrigatório) | `JURIDICA` (obrigatório) |
+  | `document` | CPF (obrigatório) | CNPJ numérico ou alfanumérico (obrigatório) |
+  | `name` | nome, 3 a 100 caracteres | razão social, 3 a 100 caracteres |
+  | `tradeName` | não aceito | opcional, até 100 caracteres |
+  | `stateRegistration` | não aceito | opcional, dígitos ou `ISENTO` |
+  | `birthDate`, `gender`, `rg`, `nameFather`, `nameMother` | como antes | não aceitos |
+  | `codeCountry`, `cellphone`, `observations` | como antes | como antes |
+
+  A resposta troca `cpf` por `document` e inclui `personType`, `tradeName` e `stateRegistration`. Códigos de erro: `CLIENT_DOCUMENT_ALREADY_EXISTS` (409, substitui `CLIENT_CPF_ALREADY_EXISTS`), `CLIENT_PERSON_TYPE_IMMUTABLE` (422) e `LEGAL_ENTITY_NOT_ELIGIBLE_FOR_FIDELITY` (422).
+- **D-001.7** (2026-10-20) A validação por tipo usa grupos do Bean Validation escolhidos pelo `personType` (`@GroupSequenceProvider`), com `@CPF` para pessoa física e `@CNPJ(format = ALPHANUMERIC)` do Hibernate Validator para pessoa jurídica, que já calcula o dígito verificador do CNPJ alfanumérico pela regra da Receita Federal. O documento é normalizado para letras maiúsculas e sem pontuação antes da validação.
+- **D-001.8** (2026-10-20) Os critérios de interface (CA-001.10 e CA-001.12) são verificados no teste manual de aceitação; os demais têm cenário Cucumber.
 
 ## Histórico
 
 | Versão | Data | Mudança |
 |---|---|---|
 | 1.0 | 2026-10-16 | Levantamento concluído e aprovado |
+| 1.0 | 2026-10-20 | Análise e modelagem registradas; requisito em desenvolvimento |

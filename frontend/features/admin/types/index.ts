@@ -1,10 +1,15 @@
 // Clients
 
+export type PersonType = "FISICA" | "JURIDICA";
+
 export interface ClientRequest {
+  personType: PersonType;
+  document: string;
   name: string;
+  tradeName?: string | null;
+  stateRegistration?: string | null;
   birthDate?: string | null;
   gender?: string | null;
-  cpf: string;
   codeCountry?: string | null;
   cellphone?: string | null;
   rg?: string | null;
@@ -15,10 +20,13 @@ export interface ClientRequest {
 
 export interface ClientResponse {
   id: string;
+  personType: PersonType;
+  document: string;
   name: string;
+  tradeName: string | null;
+  stateRegistration: string | null;
   birthDate: string | null;
   gender: string | null;
-  cpf: string;
   codeCountry: string | null;
   cellphone: string | null;
   rg: string | null;

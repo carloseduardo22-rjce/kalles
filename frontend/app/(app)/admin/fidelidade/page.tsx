@@ -54,6 +54,7 @@ import type {
   ClientResponse,
 } from "@/features/admin/types";
 import { normalizeFidelityPolicyRequest } from "@/features/admin/utils/form-normalization";
+import { formatCpf, onlyDigits } from "@/features/admin/utils/client-validation";
 const enrollmentChartConfig = {
   enrolled: { label: "Inscritos", color: "#10b981" },
   notEnrolled: {
@@ -242,7 +243,7 @@ function ClientFidelityRow({
     <tr className="border-t transition-colors hover:bg-accent">
       <td className="px-4 py-3 font-medium">{client.name}</td>
       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-        {client.cpf}
+        {formatCpf(client.document)}
       </td>
       <td className="px-4 py-3">
         {isLoading ? (
@@ -330,7 +331,10 @@ export default function FidelidadePage() {
     isFetching: clientsFetching,
   } = useQuery({
     queryKey: ["admin-clients-fidelity"],
-    queryFn: () => clientService.listAll(),
+    queryFn: async () =>
+      (await clientService.listAll()).filter(
+        (client) => client.personType === "FISICA",
+      ),
   });
 
   // ── Fidelity overview (enrollment stats for chart) ──
@@ -406,7 +410,8 @@ export default function FidelidadePage() {
     (c) =>
       !clientSearch ||
       c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      c.cpf.includes(clientSearch),
+      (!!onlyDigits(clientSearch) &&
+        c.document.includes(onlyDigits(clientSearch))),
   );
 
   return (
