@@ -2,7 +2,7 @@
 
 | Versão | Estado | Data |
 |---|---|---|
-| 1.0 | Em desenvolvimento | 2026-10-20 |
+| 1.0 | Entregue | 2026-10-23 |
 
 ## História de usuário
 
@@ -79,3 +79,4 @@ Como administrador da loja, quero cadastrar clientes pessoa jurídica (empresas)
 |---|---|---|
 | 1.0 | 2026-10-16 | Levantamento concluído e aprovado |
 | 1.0 | 2026-10-20 | Análise e modelagem registradas; requisito em desenvolvimento |
+| 1.0 | 2026-10-23 | Entregue: PR #9 integrado em develop, aceitação manual aprovada |

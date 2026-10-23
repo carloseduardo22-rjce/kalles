@@ -50,7 +50,7 @@ Emissão de documento fiscal eletrônico com ambiente de homologação e produç
 Acúmulo de pontos por venda e conversão em desconto, com política configurável por empresa.
 
 ### Gestão e relatórios
-Cadastro de produtos, clientes, operadores, caixas, depósitos e metas. Relatórios de vendas com exportação para Excel. Painel de assinatura via **Stripe**.
+Cadastro de produtos, clientes (pessoa física e jurídica, com CNPJ alfanumérico), operadores, caixas, depósitos e metas. Relatórios de vendas com exportação para Excel. Painel de assinatura via **Stripe**.
 
 ### Suporte
 Sistema de tickets interno com histórico por empresa.
