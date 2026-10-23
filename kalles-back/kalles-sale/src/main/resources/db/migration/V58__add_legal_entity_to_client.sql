@@ -1,3 +1,26 @@
+DO $$
+DECLARE
+    missing    INTEGER;
+    duplicated INTEGER;
+BEGIN
+    SELECT count(*) INTO missing
+    FROM client
+    WHERE coalesce(regexp_replace(cpf, '[^0-9]', '', 'g'), '') = '';
+
+    SELECT count(*) INTO duplicated
+    FROM (
+        SELECT 1
+        FROM client
+        WHERE cpf IS NOT NULL
+        GROUP BY company_id, regexp_replace(cpf, '[^0-9]', '', 'g')
+        HAVING count(*) > 1
+    ) d;
+
+    IF missing > 0 OR duplicated > 0 THEN
+        RAISE EXCEPTION 'V58: % client(s) without CPF and % CPF(s) duplicated per company once punctuation is removed; fix them before migrating', missing, duplicated;
+    END IF;
+END $$;
+
 ALTER TABLE client RENAME COLUMN cpf TO document;
 UPDATE client SET document = regexp_replace(document, '[^0-9]', '', 'g');
 ALTER TABLE client ALTER COLUMN document SET NOT NULL;
