@@ -22,6 +22,7 @@ import { useSession } from "@/features/cash-register/hooks/use-session";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 import { CompanySwitcher } from "@/components/company-switcher";
+import { LogoutButton } from "@/components/logout-button";
 import type { ActiveSession } from "@/features/cash-register/types";
 import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
@@ -376,6 +377,9 @@ export default function PdvPage() {
                 error={sessionError}
                 initialAmount={sessionData.initialAmount}
                 onConfirm={handleCloseSessionWithPayload}
+              />
+              <LogoutButton
+                warning={`A sessão do caixa ${sessionData.cashRegisterCode} continua aberta em seu nome. Feche o caixa antes de sair para registrar a contagem.`}
               />
             </>
           ) : (

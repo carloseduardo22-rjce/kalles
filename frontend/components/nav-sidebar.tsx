@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 import { useCompany } from "@/shared/contexts/company-context";
 import { CompanySwitcher } from "@/components/company-switcher";
+import { LogoutButton } from "@/components/logout-button";
 import { UserCircle } from "lucide-react";
 import {
   Tooltip,
@@ -481,7 +482,7 @@ function SidebarInner() {
       </nav>
 
       {/* Conta e Perfil */}
-      <div className="border-t p-3">
+      <div className="flex items-center gap-1 border-t p-3">
         <Link
           href="/admin/perfil"
           className={cn(
@@ -499,6 +500,7 @@ function SidebarInner() {
             </span>
           </div>
         </Link>
+        <LogoutButton className="shrink-0 px-2" />
       </div>
 
       {/* Footer */}

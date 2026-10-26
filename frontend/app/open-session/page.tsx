@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { CompanySwitcher } from "@/components/company-switcher";
+import { LogoutButton } from "@/components/logout-button";
 import { OpenSessionForm } from "@/features/cash-register/components/open-session-form";
 import { useSession } from "@/features/cash-register/hooks/use-session";
 
@@ -26,8 +27,11 @@ export default function OpenSessionPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-md px-4 pt-6">
-        <CompanySwitcher />
+      <div className="mx-auto flex w-full max-w-md items-center gap-2 px-4 pt-6">
+        <div className="flex-1">
+          <CompanySwitcher />
+        </div>
+        <LogoutButton />
       </div>
       <OpenSessionForm
         onSuccess={handleSuccess}

@@ -10,3 +10,14 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
 }
+
+export type AccountRole = "ADMIN" | "OPERATOR";
+
+export interface AuthMeResponse {
+  accountId: string;
+  tenantId: string;
+  companyId: string | null;
+  email: string;
+  name: string;
+  role: AccountRole;
+}

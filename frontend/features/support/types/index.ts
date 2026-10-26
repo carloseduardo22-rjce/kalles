@@ -1,3 +1,5 @@
+export type { AccountRole, AuthMeResponse } from "@/shared/types";
+
 export type TicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
@@ -11,8 +13,6 @@ export type InteractionType =
   | "CUSTOMER_MESSAGE"
   | "AGENT_MESSAGE"
   | "INTERNAL_NOTE";
-
-export type AccountRole = "ADMIN" | "OPERATOR";
 
 export interface OpenTicketRequest {
   title: string;
@@ -77,13 +77,4 @@ export interface TicketResponse {
   category: { name: string; subcategory: string; defaultPriority: Priority };
   sla: SlaResponse;
   interactions: InteractionResponse[];
-}
-
-export interface AuthMeResponse {
-  accountId: string;
-  tenantId: string;
-  companyId: string | null;
-  email: string;
-  name: string;
-  role: AccountRole;
 }
