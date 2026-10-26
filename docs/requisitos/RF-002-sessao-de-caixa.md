@@ -2,7 +2,7 @@
 
 | Versão | Estado | Data |
 |---|---|---|
-| 1.0 | Aprovado | 2026-10-19 |
+| 1.0 | Em desenvolvimento | 2026-10-26 |
 
 ## História de usuário
 
@@ -80,10 +80,29 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 - **D-002.7** (2026-10-19) Todo operador é uma conta; o código do operador vira matrícula.
 - **D-002.8** (2026-10-19) Sessão abandonada: encerramento administrativo com conferência pendente, combinando o encerramento pela retaguarda (Lightspeed, NCR Voyix, Enfore) com a pendência visível até a conferência (TOTVS, Alterdata). Rejeitado o modelo que assume valor contado igual ao esperado, porque esconde a quebra de caixa.
 
+- **D-002.9** (2026-10-26) A entrega é dividida em duas partes. A parte 1 cobre o pareamento (CA-002.1 a CA-002.6 e CA-002.15). A abertura em nome da conta autenticada (RN-002.6, RN-002.7 e RN-002.7a; CA-002.7, CA-002.8 e CA-002.16), o fechamento por conferência cega e o encerramento administrativo ficam para a parte 2: o sistema ainda não cria contas de operador, só a conta administradora de quem assina. Até a parte 2, a abertura continua informando o código do operador.
+- **D-002.10** (2026-10-26) O código de pareamento é separado da credencial do dispositivo. O código tem 8 caracteres de um alfabeto sem caracteres ambíguos (letras sem `I` e `O`, dígitos de 2 a 9), vale 10 minutos e uma única vez, e o banco guarda só o hash SHA-256. Ao usar o código, o dispositivo recebe uma credencial própria, um valor aleatório de 256 bits no cookie `kalles_pos_token` (`HttpOnly`, `SameSite=Strict`), também guardada só como hash. O cookie dura 400 dias, o limite recomendado pelo rfc6265bis e aplicado pelo Chrome, e é renovado a cada abertura de sessão; um caixa em uso não perde o pareamento (RN-002.2a).
+- **D-002.11** (2026-10-26) O pareamento é conferido a cada requisição pelo cookie do dispositivo, e não mais no login: o `posId` sai do token de acesso e do refresh token. A revogação vale na hora (CA-002.4 e CA-002.5), e o administrador pode abrir e operar sessão num dispositivo pareado. O login do operador deixa de exigir pareamento; quem recusa é a operação do caixa. A conferência de "operar" fica no ponto por onde toda venda resolve a sessão de caixa.
+- **D-002.12** (2026-10-26) A migration apaga os pareamentos existentes. A credencial antiga era o próprio código de 7 dias, guardado em texto puro; os dispositivos precisam ser pareados de novo.
+- **D-002.13** (2026-10-26) Gerar código e revogar pareamento é permitido ao perfil Administrador, o único perfil de gestão até o RF-003.
+- **D-002.14** (2026-10-26) Contrato da API da parte 1:
+
+  | Método e rota | Perfil | Sucesso | Erro |
+  |---|---|---|---|
+  | `POST /api/cash-registers/{id}/pairing-code` | Administrador | 201 `{code, expiresAt}` | 404 `CASH_REGISTER_NOT_FOUND` |
+  | `POST /api/pos/setup` `{pairingCode}` | público | 200 `{cashRegisterId, cashRegisterCode}` e o cookie do dispositivo | 422 `PAIRING_CODE_INVALID`, igual para código inexistente, usado ou vencido |
+  | `GET /api/pos/device` | autenticado | 200 `{cashRegisterId, cashRegisterCode}` | 404 `DEVICE_NOT_PAIRED` |
+  | `DELETE /api/cash-registers/{id}/pairing` | Administrador | 204 | 404 `CASH_REGISTER_NOT_FOUND` |
+  | `GET /api/cash-registers` | Administrador | cada caixa ganha `pairedAt`, nulo quando não pareado | — |
+
+  Abrir sessão ou operar venda num caixa que não está pareado com o dispositivo da requisição responde 403 `DEVICE_NOT_PAIRED`. A rota `POST /api/pos/admin/generate-token` deixa de existir.
+- **D-002.15** (2026-10-26) Banco: `pos_device_session` troca `token` e `expires_at` por `token_hash` (único) e `revoked_at`, ganha chave estrangeira para o caixa e um índice único parcial em `pos_id` para pareamentos ativos (RN-002.3); a nova tabela `pos_pairing_code` guarda `company_id`, `cash_register_id`, `code_hash` (único), `expires_at`, `used_at` e `created_at`; `refresh_token_session` perde `pos_id`.
+
 ## Referências de mercado
 
 - Conferência cega: [Alterdata Spice — Conferência Cega de Caixa](https://ajuda.alterdata.com.br/spicebase/spice-simples-conferencia-cega-de-caixa-340001450.html), [Alterdata Bimer — modelo operacional](https://ajuda.alterdata.com.br/bimerconfc/modelo-operacional-da-conferencia-cega-de-caixa).
 - Pareamento: [Square — Set up device codes](https://squareup.com/help/article/8339), [Square Terminal API Quickstart](https://developer.squareup.com/docs/terminal-api/quickstart), [Square — Manage Devices by Location](https://square.com/help/ca/en/article/5586-manage-devices-by-location).
+- Validade do cookie do dispositivo: [Chrome — Cookie Expires and Max-Age attributes now have upper limit](https://developer.chrome.com/blog/cookie-max-age-expires).
 - Sessão abandonada: [Lightspeed — Opening & Closing Troubleshooting](https://product-info.lightspeedhq.com/opening-closing-troubleshooting-guide/), [NCR Voyix — Starting and ending a shift](https://docs.ncrvoyix.com/restaurant/silver-essentials/using/starting_and_ending_a_shift), [Enfore — Force Close Device Business Day](https://care-kb.enfore.com/hc/en/articles/10340562835357.html), [TOTVS — Abertura de Caixa com Conferência Pendente](https://tdn.totvs.com/download/attachments/46079061/LOJA-FRT_BT_Abertura%20de%20Caixa%20com%20Conf%20Pendente_BRA_TFWKGT.pdf?api=v2), [Alterdata — Abertura de Caixa](https://ajuda.alterdata.com.br/isxpu/abertura-de-caixa-227601760.html), [Odoo — pos_manager_close_session](https://apps.odoo.com/apps/modules/19.0/pos_manager_close_session).
 
 ## Histórico
@@ -92,3 +111,4 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 |---|---|---|
 | 1.0 | 2026-10-16 | Rascunho do levantamento |
 | 1.0 | 2026-10-19 | Pontos em aberto decididos e requisito aprovado, com referências de mercado |
+| 1.0 | 2026-10-26 | Parte 1 (pareamento) modelada; requisito em desenvolvimento |
