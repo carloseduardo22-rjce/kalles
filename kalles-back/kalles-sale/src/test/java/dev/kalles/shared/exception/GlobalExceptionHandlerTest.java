@@ -36,6 +36,24 @@ class GlobalExceptionHandlerTest {
         assertThat(problem.getDetail()).doesNotContain("detalhe interno");
     }
 
+    @Test
+    void shouldExposeTheCodeOfNotFoundAndForbiddenProblems() {
+        ProblemDetail notFound = handler.handleNotFound(new NotFoundException("SAMPLE_MISSING", "faltou"));
+        ProblemDetail forbidden = handler.handleForbidden(new ForbiddenOperationException("SAMPLE_DENIED", "negado"));
+
+        assertThat(notFound.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(notFound.getProperties()).containsEntry("code", "SAMPLE_MISSING");
+        assertThat(forbidden.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(forbidden.getProperties()).containsEntry("code", "SAMPLE_DENIED");
+    }
+
+    @Test
+    void shouldOmitTheCodeWhenTheProblemHasNone() {
+        ProblemDetail problem = handler.handleForbidden(new ForbiddenOperationException("negado"));
+
+        assertThat(problem.getProperties()).isNull();
+    }
+
     private static final class SampleConflict extends ConflictException {
         SampleConflict() {
             super("SAMPLE_CONFLICT", "conflito de teste");

@@ -5,6 +5,6 @@ import dev.kalles.shared.exception.NotFoundException;
 public class CashRegisterNotFoundException extends NotFoundException {
 
     public CashRegisterNotFoundException(String code) {
-        super("Caixa não encontrado: " + code);
+        super("CASH_REGISTER_NOT_FOUND", "Caixa não encontrado: " + code);
     }
 }
