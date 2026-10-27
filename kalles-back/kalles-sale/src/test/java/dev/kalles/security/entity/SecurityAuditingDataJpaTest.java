@@ -1,12 +1,12 @@
 package dev.kalles.security.entity;
 
+import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.testsupport.AbstractDataJpaTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,8 +49,9 @@ class SecurityAuditingDataJpaTest extends AbstractDataJpaTest {
     @Test
     @DisplayName("a sessao de POS gravada tem createdAt")
     void shouldFillTheCreatedAtOfThePersistedPosDeviceSession() {
-        PosDeviceSession session = new PosDeviceSession(
-                COMPANY_ID, UUID.randomUUID(), "token-de-auditoria", LocalDateTime.now().plusDays(7));
+        CashRegister cashRegister = new CashRegister("CAIXA-AUD", "Caixa de auditoria", COMPANY_ID);
+        entityManager().persist(cashRegister);
+        PosDeviceSession session = new PosDeviceSession(COMPANY_ID, cashRegister.getId(), "hash-de-auditoria");
         entityManager().persist(session);
         detach();
 

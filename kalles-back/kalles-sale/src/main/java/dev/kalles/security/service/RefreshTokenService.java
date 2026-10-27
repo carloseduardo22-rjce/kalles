@@ -9,13 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
@@ -25,19 +19,16 @@ public class RefreshTokenService {
     private final RefreshTokenSessionRepository refreshTokenSessionRepository;
     private final AccountRepository accountRepository;
 
-    private final SecureRandom secureRandom = new SecureRandom();
-
     @Value("${api.security.refresh-token.expiration-days:30}")
     private Integer refreshTokenExpirationDays;
 
     @Transactional
-    public String issue(Account account, UUID posId) {
-        String rawToken = generateRawToken();
+    public String issue(Account account) {
+        String rawToken = OpaqueTokens.generate();
 
         RefreshTokenSession session = new RefreshTokenSession();
         session.setAccountId(account.getId());
-        session.setPosId(posId);
-        session.setTokenHash(hash(rawToken));
+        session.setTokenHash(OpaqueTokens.sha256Hex(rawToken));
         session.setExpiresAt(LocalDateTime.now().plusDays(refreshTokenExpirationDays));
 
         refreshTokenSessionRepository.save(session);
@@ -48,7 +39,7 @@ public class RefreshTokenService {
     public String rotate(String currentRefreshToken) {
         RefreshTokenPrincipal principal = validate(currentRefreshToken);
         revoke(currentRefreshToken);
-        return issue(principal.account(), principal.posId());
+        return issue(principal.account());
     }
 
     @Transactional
@@ -57,7 +48,7 @@ public class RefreshTokenService {
             throw new InvalidRefreshTokenException("Refresh token ausente ou inválido.");
         }
 
-        RefreshTokenSession session = refreshTokenSessionRepository.findByTokenHash(hash(rawRefreshToken))
+        RefreshTokenSession session = refreshTokenSessionRepository.findByTokenHash(OpaqueTokens.sha256Hex(rawRefreshToken))
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token ausente ou inválido."));
 
         if (!session.isActiveAt(LocalDateTime.now())) {
@@ -70,7 +61,7 @@ public class RefreshTokenService {
         session.setLastUsedAt(LocalDateTime.now());
         refreshTokenSessionRepository.save(session);
 
-        return new RefreshTokenPrincipal(account, session.getPosId());
+        return new RefreshTokenPrincipal(account);
     }
 
     @Transactional
@@ -79,7 +70,7 @@ public class RefreshTokenService {
             return;
         }
 
-        refreshTokenSessionRepository.findByTokenHash(hash(rawRefreshToken))
+        refreshTokenSessionRepository.findByTokenHash(OpaqueTokens.sha256Hex(rawRefreshToken))
                 .ifPresent(session -> {
                     session.setRevokedAt(LocalDateTime.now());
                     refreshTokenSessionRepository.save(session);
@@ -92,22 +83,6 @@ public class RefreshTokenService {
                 refreshTokenSessionRepository.findAllByAccountIdAndRevokedAtIsNullAndExpiresAtAfter(accountId, LocalDateTime.now())) {
             session.setRevokedAt(LocalDateTime.now());
             refreshTokenSessionRepository.save(session);
-        }
-    }
-
-    private String generateRawToken() {
-        byte[] bytes = new byte[32];
-        secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String hash(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashedBytes = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashedBytes);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 não está disponível no ambiente.", exception);
         }
     }
 }

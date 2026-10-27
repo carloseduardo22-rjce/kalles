@@ -3,8 +3,10 @@ package dev.kalles.security.filter;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.security.context.RequestContext;
+import dev.kalles.security.controller.PosDeviceCookie;
 import dev.kalles.security.exception.ProblemResponseWriter;
 import dev.kalles.security.service.JwtService;
+import dev.kalles.security.service.PosPairingService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -34,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CompanyRepository companyRepository;
     private final ProblemResponseWriter problemResponseWriter;
+    private final PosPairingService posPairingService;
     public static final String AUTH_COOKIE_NAME = "kalles_auth_token";
     public static final String COMPANY_HEADER_NAME = "x-company-id";
     public static final String COMPANY_CONTEXT_ERROR_HEADER = "X-Kalles-Company-Context-Error";
@@ -92,7 +95,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var role = decodedJWT.getClaim("role").asString();
 
                 var companyId = decodedJWT.getClaim("companyId").asString();
-                var posId = decodedJWT.getClaim("posId").asString();
                 UUID tenantUuid = UUID.fromString(tenantId);
 
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
@@ -128,8 +130,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     context = context.withCompany(requestedCompanyId);
                 }
 
-                if (posId != null && !posId.trim().isEmpty()) {
-                    context = context.withPos(UUID.fromString(posId));
+                Optional<UUID> pairedCashRegister =
+                        posPairingService.findPairedCashRegister(readCookie(request, PosDeviceCookie.NAME));
+                if (pairedCashRegister.isPresent()) {
+                    context = context.withPos(pairedCashRegister.get());
                 }
             }
         }
@@ -147,9 +151,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String recoverToken(HttpServletRequest request) {
+        return readCookie(request, AUTH_COOKIE_NAME);
+    }
+
+    private String readCookie(HttpServletRequest request, String name) {
         if (request.getCookies() != null) {
             return Arrays.stream(request.getCookies())
-                    .filter(c -> AUTH_COOKIE_NAME.equals(c.getName()))
+                    .filter(c -> name.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
                     .orElse(null);

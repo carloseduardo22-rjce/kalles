@@ -8,7 +8,9 @@ import dev.kalles.security.context.PosContextHolder;
 import dev.kalles.security.context.RequestContext;
 import dev.kalles.security.context.TenantContextHolder;
 import dev.kalles.security.exception.ProblemResponseWriter;
+import dev.kalles.security.controller.PosDeviceCookie;
 import dev.kalles.security.service.JwtService;
+import dev.kalles.security.service.PosPairingService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -27,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -47,6 +50,9 @@ class JwtAuthenticationFilterTest {
     @Mock
     private CompanyRepository companyRepository;
 
+    @Mock
+    private PosPairingService posPairingService;
+
     private JwtAuthenticationFilter filter;
 
     @BeforeEach
@@ -54,7 +60,8 @@ class JwtAuthenticationFilterTest {
         filter = new JwtAuthenticationFilter(
                 jwtService,
                 companyRepository,
-                new ProblemResponseWriter(JsonMapper.builder().build())
+                new ProblemResponseWriter(JsonMapper.builder().build()),
+                posPairingService
         );
     }
 
@@ -69,13 +76,18 @@ class JwtAuthenticationFilterTest {
         UUID tenantId = UUID.randomUUID();
         UUID companyId = UUID.randomUUID();
         UUID posId = UUID.randomUUID();
-        DecodedJWT decodedJWT = decodedToken(tenantId, companyId, posId);
+        DecodedJWT decodedJWT = decodedToken(tenantId, companyId);
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
+        when(posPairingService.findPairedCashRegister("token-do-dispositivo")).thenReturn(Optional.of(posId));
 
         AtomicReference<RequestContext> contextSeenByChain = new AtomicReference<>();
         FilterChain capturingChain = (req, res) -> contextSeenByChain.set(RequestContext.current());
 
-        filter.doFilter(authenticatedRequest("/api/sales"), new MockHttpServletResponse(), capturingChain);
+        MockHttpServletRequest request = authenticatedRequest("/api/sales");
+        request.setCookies(
+                new Cookie(JwtAuthenticationFilter.AUTH_COOKIE_NAME, TOKEN),
+                new Cookie(PosDeviceCookie.NAME, "token-do-dispositivo"));
+        filter.doFilter(request, new MockHttpServletResponse(), capturingChain);
 
         assertEquals(new RequestContext(tenantId, companyId, posId), contextSeenByChain.get());
         assertContextIsClear();
@@ -84,7 +96,7 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("deve limpar o contexto quando o header de filial nao e um uuid")
     void shouldClearContextWhenCompanyHeaderIsNotAUuid() throws ServletException, IOException {
-        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), UUID.randomUUID(), null);
+        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), UUID.randomUUID());
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
 
         MockHttpServletRequest request = authenticatedRequest("/api/sales");
@@ -100,7 +112,7 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("deve limpar o contexto quando o header de filial conflita com o token")
     void shouldClearContextWhenCompanyHeaderConflictsWithToken() throws ServletException, IOException {
-        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), UUID.randomUUID(), null);
+        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), UUID.randomUUID());
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
 
         MockHttpServletRequest request = authenticatedRequest("/api/sales");
@@ -116,7 +128,7 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("deve limpar o contexto quando a rota exige filial e o token nao traz nenhuma")
     void shouldClearContextWhenRouteRequiresCompanyAndTokenHasNone() throws ServletException, IOException {
-        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), null, null);
+        DecodedJWT decodedJWT = decodedToken(UUID.randomUUID(), null);
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
 
         MockHttpServletRequest request = authenticatedRequest("/api/sales");
@@ -132,7 +144,7 @@ class JwtAuthenticationFilterTest {
     @DisplayName("nao deve vazar o tenant para a requisicao seguinte na mesma thread")
     void shouldNotLeakTenantIntoNextRequestOnSameThread() throws ServletException, IOException {
         UUID tenantId = UUID.randomUUID();
-        DecodedJWT decodedJWT = decodedToken(tenantId, UUID.randomUUID(), null);
+        DecodedJWT decodedJWT = decodedToken(tenantId, UUID.randomUUID());
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
 
         MockHttpServletRequest rejected = authenticatedRequest("/api/sales");
@@ -164,18 +176,16 @@ class JwtAuthenticationFilterTest {
         return request;
     }
 
-    private DecodedJWT decodedToken(UUID tenantId, UUID companyId, UUID posId) {
+    private DecodedJWT decodedToken(UUID tenantId, UUID companyId) {
         Claim tenantClaim = claim(tenantId);
         Claim roleClaim = claim("ADMIN");
         Claim companyClaim = claim(companyId);
-        Claim posClaim = claim(posId);
 
         DecodedJWT decodedJWT = mock(DecodedJWT.class);
         when(decodedJWT.getSubject()).thenReturn("usuario@kalles.local");
         when(decodedJWT.getClaim("tenantId")).thenReturn(tenantClaim);
         when(decodedJWT.getClaim("role")).thenReturn(roleClaim);
         when(decodedJWT.getClaim("companyId")).thenReturn(companyClaim);
-        when(decodedJWT.getClaim("posId")).thenReturn(posClaim);
         return decodedJWT;
     }
 

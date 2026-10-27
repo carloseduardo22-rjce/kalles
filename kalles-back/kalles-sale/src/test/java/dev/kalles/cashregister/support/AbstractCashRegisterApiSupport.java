@@ -20,10 +20,12 @@ import dev.kalles.security.entity.PosDeviceSession;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
 import dev.kalles.security.repository.PosDeviceSessionRepository;
+import dev.kalles.security.service.OpaqueTokens;
 import dev.kalles.security.support.AbstractSecurityApiContainerSupport;
 import dev.kalles.testsupport.CsrfTestClient;
 import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
 import io.restassured.RestAssured;
+import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +33,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
@@ -80,6 +81,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
 
     protected UUID companyId;
     protected UUID cashRegisterId;
+    protected String deviceToken;
 
     protected void resetScenarioData() {
         RestAssured.reset();
@@ -87,6 +89,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         RestAssured.port = port;
 
         databaseCleaner().clean();
+        deviceToken = null;
 
         tenantRepository.save(new Tenant(TENANT_ID, "Tenant teste caixa"));
         companyId = companyRepository.save(new Company(
@@ -137,11 +140,13 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     }
 
     protected AuthContext authenticateOperator() {
-        String pairingToken = seedPairingToken();
+        deviceToken = seedPairedDevice();
+        RestAssured.requestSpecification = new RequestSpecBuilder()
+                .addCookie("kalles_pos_token", deviceToken)
+                .build();
 
         Response loginResponse = RestAssured.given()
                 .contentType(ContentType.JSON)
-                .cookie("kalles_pos_token", pairingToken)
                 .body(Map.of(
                         "email", OPERATOR_EMAIL,
                         "password", DEFAULT_PASSWORD
@@ -162,17 +167,19 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         );
     }
 
-    protected String seedPairingToken() {
-        String token = "pairing-token-" + cashRegisterId;
-        PosDeviceSession session = new PosDeviceSession();
-        session.setCompanyId(companyId);
-        session.setPosId(cashRegisterId);
-        session.setToken(token);
-        session.setCreatedAt(LocalDateTime.now());
-        session.setExpiresAt(LocalDateTime.now().plusDays(30));
-        session.setActive(true);
-        posDeviceSessionRepository.save(session);
+    protected String seedPairedDevice() {
+        String token = OpaqueTokens.generate();
+        posDeviceSessionRepository.save(new PosDeviceSession(companyId, cashRegisterId, OpaqueTokens.sha256Hex(token)));
         return token;
+    }
+
+    protected void pairDeviceWith(UUID targetCashRegisterId) {
+        posDeviceSessionRepository.deleteAll();
+        posDeviceSessionRepository.save(new PosDeviceSession(companyId, targetCashRegisterId, OpaqueTokens.sha256Hex(deviceToken)));
+    }
+
+    protected String deviceCookie() {
+        return deviceToken == null ? "" : "; kalles_pos_token=" + deviceToken;
     }
 
     protected UUID seedCompany(String name) {

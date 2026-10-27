@@ -51,9 +51,6 @@ class AuthServiceTest {
     private AccountVerificationService accountVerificationService;
 
     @Mock
-    private PosDeviceAuthorizationService posDeviceAuthorizationService;
-
-    @Mock
     private RefreshTokenService refreshTokenService;
 
     @Mock
@@ -69,53 +66,43 @@ class AuthServiceTest {
                 passwordEncoder,
                 jwtService,
                 accountVerificationService,
-                posDeviceAuthorizationService,
                 refreshTokenService,
                 authenticationProtectionService
         );
     }
 
     @Test
-    @DisplayName("deve autenticar admin sem posToken")
-    void shouldAuthenticateAdminWithoutPosToken() {
+    @DisplayName("deve autenticar admin")
+    void shouldAuthenticateAdmin() {
         Account account = account(AccountRole.ADMIN, UUID.randomUUID());
         LoginRequest request = new LoginRequest(account.getEmail(), "123456");
 
         when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
         when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
-        when(posDeviceAuthorizationService.resolveAuthorizedPosId(account, null)).thenReturn(null);
-        when(jwtService.generateToken(account, null)).thenReturn("jwt-admin");
-        when(refreshTokenService.issue(account, null)).thenReturn("refresh-admin");
+        when(jwtService.generateToken(account)).thenReturn("jwt-admin");
+        when(refreshTokenService.issue(account)).thenReturn("refresh-admin");
 
-        AuthTokens tokens = authService.authenticate(request, null);
+        AuthTokens tokens = authService.authenticate(request);
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());
-        verify(posDeviceAuthorizationService).resolveAuthorizedPosId(account, null);
-        verify(jwtService).generateToken(account, null);
-        verify(refreshTokenService).issue(account, null);
     }
 
     @Test
-    @DisplayName("deve autenticar operador com posId resolvido do dispositivo")
-    void shouldAuthenticateOperatorWithResolvedPosId() {
-        UUID posId = UUID.randomUUID();
+    @DisplayName("deve autenticar operador sem exigir dispositivo pareado")
+    void shouldAuthenticateOperatorWithoutPairedDevice() {
         Account account = account(AccountRole.OPERATOR, UUID.randomUUID());
         LoginRequest request = new LoginRequest(account.getEmail(), "123456");
 
         when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
         when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
-        when(posDeviceAuthorizationService.resolveAuthorizedPosId(account, "token-pos")).thenReturn(posId);
-        when(jwtService.generateToken(account, posId)).thenReturn("jwt-operator");
-        when(refreshTokenService.issue(account, posId)).thenReturn("refresh-operator");
+        when(jwtService.generateToken(account)).thenReturn("jwt-operator");
+        when(refreshTokenService.issue(account)).thenReturn("refresh-operator");
 
-        AuthTokens tokens = authService.authenticate(request, "token-pos");
+        AuthTokens tokens = authService.authenticate(request);
 
         assertEquals("jwt-operator", tokens.accessToken());
         assertEquals("refresh-operator", tokens.refreshToken());
-        verify(posDeviceAuthorizationService).resolveAuthorizedPosId(account, "token-pos");
-        verify(jwtService).generateToken(account, posId);
-        verify(refreshTokenService).issue(account, posId);
     }
 
     @Test
@@ -128,7 +115,7 @@ class AuthServiceTest {
 
         when(accountRepository.findAllByEmailIgnoreCase(tenantA.getEmail())).thenReturn(List.of(tenantA, tenantB));
 
-        assertThrows(IllegalArgumentException.class, () -> authService.authenticate(request, null));
+        assertThrows(IllegalArgumentException.class, () -> authService.authenticate(request));
     }
 
     @Test
@@ -140,11 +127,10 @@ class AuthServiceTest {
         when(accountRepository.findByTenantIdAndEmailIgnoreCase(account.getTenantId(), account.getEmail()))
                 .thenReturn(Optional.of(account));
         when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
-        when(posDeviceAuthorizationService.resolveAuthorizedPosId(account, null)).thenReturn(null);
-        when(jwtService.generateToken(account, null)).thenReturn("jwt-admin");
-        when(refreshTokenService.issue(account, null)).thenReturn("refresh-admin");
+        when(jwtService.generateToken(account)).thenReturn("jwt-admin");
+        when(refreshTokenService.issue(account)).thenReturn("refresh-admin");
 
-        AuthTokens tokens = authService.authenticate(request, null);
+        AuthTokens tokens = authService.authenticate(request);
 
         assertEquals("jwt-admin", tokens.accessToken());
         assertEquals("refresh-admin", tokens.refreshToken());
@@ -159,7 +145,7 @@ class AuthServiceTest {
         when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
         when(passwordEncoder.matches("senha-errada", "encoded")).thenReturn(false);
 
-        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request));
         verify(authenticationProtectionService).registerLoginFailure(account.getEmail(), null);
     }
 
@@ -171,7 +157,7 @@ class AuthServiceTest {
         when(accountRepository.findAllByEmailIgnoreCase("ninguem@kalles.local")).thenReturn(List.of());
         when(passwordEncoder.encode(any())).thenReturn("hash-de-conta-inexistente");
 
-        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request, null));
+        assertThrows(InvalidCredentialsException.class, () -> authService.authenticate(request));
         verify(passwordEncoder).matches("123456", "hash-de-conta-inexistente");
         verify(authenticationProtectionService).registerLoginFailure("ninguem@kalles.local", null);
     }
@@ -186,7 +172,7 @@ class AuthServiceTest {
         when(accountRepository.findAllByEmailIgnoreCase(account.getEmail())).thenReturn(List.of(account));
         when(passwordEncoder.matches("123456", "encoded")).thenReturn(true);
 
-        assertThrows(ForbiddenOperationException.class, () -> authService.authenticate(request, null));
+        assertThrows(ForbiddenOperationException.class, () -> authService.authenticate(request));
     }
 
     @Test

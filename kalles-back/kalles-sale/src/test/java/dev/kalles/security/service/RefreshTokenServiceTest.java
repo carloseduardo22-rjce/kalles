@@ -52,7 +52,7 @@ class RefreshTokenServiceTest {
     void shouldIssueRefreshToken() {
         Account account = account();
 
-        String rawToken = refreshTokenService.issue(account, UUID.randomUUID());
+        String rawToken = refreshTokenService.issue(account);
 
         assertNotNull(rawToken);
         verify(refreshTokenSessionRepository, atLeastOnce()).save(any(RefreshTokenSession.class));
@@ -62,7 +62,7 @@ class RefreshTokenServiceTest {
     @DisplayName("deve validar refresh token ativo")
     void shouldValidateActiveRefreshToken() {
         Account account = account();
-        String rawToken = refreshTokenService.issue(account, null);
+        String rawToken = refreshTokenService.issue(account);
 
         RefreshTokenSession session = new RefreshTokenSession();
         session.setAccountId(account.getId());
@@ -82,7 +82,7 @@ class RefreshTokenServiceTest {
     @DisplayName("deve recusar refresh token revogado")
     void shouldRejectRevokedRefreshToken() {
         Account account = account();
-        String rawToken = refreshTokenService.issue(account, null);
+        String rawToken = refreshTokenService.issue(account);
 
         RefreshTokenSession session = new RefreshTokenSession();
         session.setAccountId(account.getId());
@@ -99,7 +99,7 @@ class RefreshTokenServiceTest {
     @DisplayName("deve rotacionar refresh token")
     void shouldRotateRefreshToken() {
         Account account = account();
-        String rawToken = refreshTokenService.issue(account, null);
+        String rawToken = refreshTokenService.issue(account);
 
         RefreshTokenSession session = new RefreshTokenSession();
         session.setAccountId(account.getId());
@@ -138,6 +138,6 @@ class RefreshTokenServiceTest {
     }
 
     private String hash(String rawToken) {
-        return (String) ReflectionTestUtils.invokeMethod(refreshTokenService, "hash", rawToken);
+        return OpaqueTokens.sha256Hex(rawToken);
     }
 }
