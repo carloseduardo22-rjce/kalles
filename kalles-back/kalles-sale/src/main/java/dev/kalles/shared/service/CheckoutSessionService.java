@@ -14,7 +14,9 @@ public interface CheckoutSessionService {
                 .orElse(false);
     }
 
-    default Session getOpenSessionOrThrow(String sessionToken) {
+    Session getOpenSessionOrThrow(String sessionToken);
+
+    default Session getOpenSessionForProviderOrThrow(String sessionToken) {
         Session session = findByToken(sessionToken)
                 .orElseThrow(() -> new NotFoundException("Sessão de caixa não encontrada: " + sessionToken));
 

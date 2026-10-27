@@ -7,6 +7,7 @@ import dev.kalles.cashregister.dto.SessionResponse;
 import dev.kalles.cashregister.dto.SessionSummaryResponse;
 import dev.kalles.cashregister.service.CloseSessionUseCase;
 import dev.kalles.cashregister.service.OpenSessionUseCase;
+import dev.kalles.security.controller.PosDeviceCookie;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +16,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +37,9 @@ public class CashRegisterSessionController {
     private final OpenSessionUseCase openSessionUseCase;
     private final CloseSessionUseCase closeSessionUseCase;
 
+    @Value("${app.security.cookies.secure:false}")
+    private boolean secureCookies;
+
     @PostMapping("/open")
     @Operation(summary = "Abrir sessão de caixa",
             description = "Registra a abertura de um caixa com o operador e o valor inicial em espécie.")
@@ -44,9 +50,13 @@ public class CashRegisterSessionController {
         @ApiResponse(responseCode = "409", description = "Já existe uma sessão ativa para este caixa", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "422", description = "Pagamento não configurado e operação somente em dinheiro não confirmada", content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<SessionResponse> openSession(@Valid @RequestBody OpenSessionRequest request) {
+    public ResponseEntity<SessionResponse> openSession(
+            @Valid @RequestBody OpenSessionRequest request,
+            @CookieValue(value = PosDeviceCookie.NAME, required = false) String deviceToken) {
         SessionResponse response = openSessionUseCase.execute(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.SET_COOKIE, PosDeviceCookie.issue(deviceToken, secureCookies).toString())
+                .body(response);
     }
 
     @PostMapping("/{sessionId}/close")

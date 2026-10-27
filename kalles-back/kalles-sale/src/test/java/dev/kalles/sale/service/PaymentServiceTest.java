@@ -407,7 +407,7 @@ class PaymentServiceTest {
         @Test
         @DisplayName("Should register externally confirmed payment without invoking local strategy")
         void shouldRegisterExternalPaymentWithoutStrategy() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(checkoutSessionService.getOpenSessionForProviderOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -425,7 +425,7 @@ class PaymentServiceTest {
         @Test
         @DisplayName("Should be idempotent when the same transactionId is registered twice")
         void shouldIgnoreDuplicateTransactionId() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(checkoutSessionService.getOpenSessionForProviderOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
             when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -441,7 +441,7 @@ class PaymentServiceTest {
         @Test
         @DisplayName("Should reject external payment exceeding the amount due")
         void shouldRejectExternalOverpayment() {
-            when(checkoutSessionService.getOpenSessionOrThrow(SESSION_TOKEN)).thenReturn(session);
+            when(checkoutSessionService.getOpenSessionForProviderOrThrow(SESSION_TOKEN)).thenReturn(session);
             when(saleRepository.findSaleForPaymentBySessionId(SESSION_ID)).thenReturn(Optional.of(sale));
 
             assertThrows(PaymentExceedsBalanceException.class, () -> paymentService.registerExternalPayment(

@@ -51,8 +51,6 @@ public class OpenSessionUseCase {
 
     @Transactional
     public SessionResponse execute(OpenSessionRequest request) {
-        validators.forEach(validator -> validator.validate(request));
-
         UUID companyId = CompanyContextHolder.requireCompanyId();
 
         CashRegister cashRegister = cashRegisterRepository
@@ -60,6 +58,8 @@ public class OpenSessionUseCase {
             .orElseThrow(() -> new CashRegisterNotFoundException(request.cashRegisterCode()));
 
         pairedDeviceSessionGuard.ensureCanOperate(cashRegister);
+
+        validators.forEach(validator -> validator.validate(request));
 
         Operator operator = operatorRepository
             .findByCodeAndCompanyId(request.operatorCode(), companyId)

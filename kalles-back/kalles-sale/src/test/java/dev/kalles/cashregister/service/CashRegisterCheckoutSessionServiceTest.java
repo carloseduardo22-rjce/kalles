@@ -4,6 +4,7 @@ import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
+import dev.kalles.security.exception.DeviceNotPairedException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.shared.service.Session;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,11 +28,14 @@ class CashRegisterCheckoutSessionServiceTest {
     @Mock
     private CashRegisterSessionRepository sessionRepository;
 
+    @Mock
+    private PairedDeviceSessionGuard pairedDeviceSessionGuard;
+
     private CashRegisterCheckoutSessionService service;
 
     @BeforeEach
     void setUp() {
-        service = new CashRegisterCheckoutSessionService(sessionRepository);
+        service = new CashRegisterCheckoutSessionService(sessionRepository, pairedDeviceSessionGuard);
     }
 
     private CashRegisterSession buildOpenSession() {
@@ -155,5 +159,29 @@ class CashRegisterCheckoutSessionServiceTest {
 
         assertNotNull(result);
         assertTrue(result.isOpen());
+    }
+
+    @Test
+    @DisplayName("Deve recusar operar sessão de caixa não pareado com o dispositivo")
+    void shouldRejectOperatingSessionFromUnpairedDevice() {
+        UUID id = UUID.randomUUID();
+        CashRegisterSession session = buildOpenSession();
+        when(sessionRepository.findById(id)).thenReturn(Optional.of(session));
+        doThrow(new DeviceNotPairedException()).when(pairedDeviceSessionGuard).ensureCanOperate(session.getCashRegister());
+
+        assertThrows(DeviceNotPairedException.class, () -> service.getOpenSessionOrThrow(id.toString()));
+    }
+
+    @Test
+    @DisplayName("Deve resolver a sessão para o provedor de pagamento sem conferir o dispositivo")
+    void shouldResolveSessionForProviderWithoutCheckingDevice() {
+        UUID id = UUID.randomUUID();
+        CashRegisterSession session = buildOpenSession();
+        when(sessionRepository.findById(id)).thenReturn(Optional.of(session));
+
+        Session result = service.getOpenSessionForProviderOrThrow(id.toString());
+
+        assertTrue(result.isOpen());
+        verifyNoInteractions(pairedDeviceSessionGuard);
     }
 }

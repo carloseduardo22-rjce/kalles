@@ -198,7 +198,7 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
         configurePaymentIntegration(true);
         AuthContext auth = authenticateOperator();
         seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
-        seedCashRegister(companyId, "CAIXA-02", "Caixa secundario");
+        pairDeviceWith(seedCashRegister(companyId, "CAIXA-02", "Caixa secundario"));
 
         given()
                 .contentType(ContentType.JSON)

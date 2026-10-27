@@ -66,7 +66,7 @@ public class PaymentService {
      */
     @Transactional
     public Sale registerExternalPayment(String sessionToken, PaymentMethod method, BigDecimal amount, String transactionId) {
-        Session session = checkoutSessionService.getOpenSessionOrThrow(sessionToken);
+        Session session = checkoutSessionService.getOpenSessionForProviderOrThrow(sessionToken);
 
         Sale sale = findSaleForPaymentOrThrow(session.getId());
 

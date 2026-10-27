@@ -65,6 +65,9 @@ class CloseSessionUseCaseTest {
     @Mock
     private SaleRepository saleRepository;
 
+    @Mock
+    private PairedDeviceSessionGuard pairedDeviceSessionGuard;
+
     private CloseSessionUseCase useCase;
 
     @BeforeEach
@@ -73,7 +76,8 @@ class CloseSessionUseCaseTest {
                 sessionRepository,
                 closingRepository,
                 operatorRepository,
-                saleRepository
+                saleRepository,
+                pairedDeviceSessionGuard
         );
     }
 
