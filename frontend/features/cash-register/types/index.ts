@@ -72,6 +72,17 @@ export interface CashRegisterStatusResponse {
   openedAt: string | null;
   paymentIntegrationConfigured: boolean;
   activeSessionCashOnlyOperation: boolean | null;
+  pairedAt: string | null;
+}
+
+export interface PairingCodeResponse {
+  code: string;
+  expiresAt: string;
+}
+
+export interface PairedDeviceResponse {
+  cashRegisterId: string;
+  cashRegisterCode: string;
 }
 
 /** Operador disponivel para vinculacao a uma sessao */

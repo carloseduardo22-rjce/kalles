@@ -42,6 +42,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { CreateCashRegisterDialog } from "@/features/cash-register/components/create-cash-register-dialog";
+import { DevicePairingSection } from "@/features/cash-register/components/device-pairing-section";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import type {
   CashRegisterStatusResponse,
@@ -101,9 +102,10 @@ function ErrorState({ refetch }: { refetch: () => void }) {
 interface RegisterCardProps {
   register: CashRegisterStatusResponse;
   onOpen: (reg: CashRegisterStatusResponse) => void;
+  onPairingChanged: () => void;
 }
 
-function RegisterCard({ register, onOpen }: RegisterCardProps) {
+function RegisterCard({ register, onOpen, onPairingChanged }: RegisterCardProps) {
   const isOpen = register.hasActiveSession;
   const isCashOnlySession = register.activeSessionCashOnlyOperation === true;
   const hasPaymentIntegration = register.paymentIntegrationConfigured;
@@ -204,6 +206,8 @@ function RegisterCard({ register, onOpen }: RegisterCardProps) {
         )}
 
         <Separator />
+
+        <DevicePairingSection register={register} onChanged={onPairingChanged} />
 
         <div className="flex flex-wrap gap-2">
           <Badge
@@ -548,6 +552,9 @@ export default function CaixasPage() {
               key={reg.cashRegisterId}
               register={reg}
               onOpen={handleOpenDialog}
+              onPairingChanged={() =>
+                queryClient.invalidateQueries({ queryKey: ["cash-registers"] })
+              }
             />
           ))
         )}
