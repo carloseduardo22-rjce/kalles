@@ -64,6 +64,8 @@ interface OpenSessionFormProps {
   isLoading: boolean;
   error: string | null;
   onClearError: () => void;
+  pairedCashRegisterCode?: string;
+  onRepair?: () => void;
 }
 
 export function OpenSessionForm({
@@ -71,6 +73,8 @@ export function OpenSessionForm({
   isLoading,
   error,
   onClearError,
+  pairedCashRegisterCode,
+  onRepair,
 }: OpenSessionFormProps) {
   const [cashOnlyWarningOpen, setCashOnlyWarningOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState<FormValues | null>(null);
@@ -94,6 +98,12 @@ export function OpenSessionForm({
   });
 
   useEffect(() => {
+    if (pairedCashRegisterCode) {
+      form.setValue("cashRegisterCode", pairedCashRegisterCode, {
+        shouldValidate: true,
+      });
+      return;
+    }
     if (
       registers &&
       registers.length > 0 &&
@@ -109,7 +119,7 @@ export function OpenSessionForm({
         });
       }
     }
-  }, [registers, form]);
+  }, [registers, form, pairedCashRegisterCode]);
 
   useEffect(() => {
     if (operators && operators.length > 0 && !form.getValues().operatorCode) {
@@ -210,6 +220,7 @@ export function OpenSessionForm({
                         onClearError();
                       }}
                       value={field.value}
+                      disabled={!!pairedCashRegisterCode}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -330,6 +341,16 @@ export function OpenSessionForm({
                   </>
                 )}
               </Button>
+              {onRepair && (
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={onRepair}
+                >
+                  Parear com outro caixa
+                </Button>
+              )}
             </form>
           </Form>
         </CardContent>
