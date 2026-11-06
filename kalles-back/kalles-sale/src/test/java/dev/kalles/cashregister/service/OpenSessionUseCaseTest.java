@@ -202,7 +202,7 @@ class OpenSessionUseCaseTest {
 
         assertTrue(exception.getMessage().contains("PDV-99"));
 
-        verify(validatorChain).validate(request);
+        verifyNoInteractions(validatorChain);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verifyNoInteractions(pairedDeviceSessionGuard);
         verifyNoInteractions(operatorRepository);
@@ -294,7 +294,7 @@ class OpenSessionUseCaseTest {
 
         assertEquals("O dispositivo precisa estar pareado antes da operação.", exception.getMessage());
 
-        verify(validatorChain).validate(request);
+        verifyNoInteractions(validatorChain);
         verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
         verifyNoInteractions(operatorRepository);

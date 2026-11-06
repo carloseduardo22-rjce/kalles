@@ -22,7 +22,7 @@ public class OpenSessionCashOnlySteps extends CashRegisterCucumberSpringConfigur
     private AuthContext authContext;
     private Response response;
 
-    @Before
+    @Before("not @RF-002")
     public void beforeScenario() {
         resetScenarioData();
         paymentIntegrationConfigured = false;

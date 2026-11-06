@@ -9,6 +9,7 @@ import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.service.PosPairingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class CashRegisterQueryService {
     private final CashRegisterSessionRepository sessionRepository;
     private final OperatorRepository operatorRepository;
     private final CashRegisterPaymentIntegrationService paymentIntegrationService;
+    private final PosPairingService posPairingService;
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
@@ -64,7 +66,8 @@ public class CashRegisterQueryService {
             activeSession.map(CashRegisterSession::getInitialAmountValue).orElse(null),
             activeSession.map(CashRegisterSession::getOpenedAt).orElse(null),
             paymentConfigured,
-            activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null)
+            activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null),
+            posPairingService.pairedAt(cashRegister.getId()).orElse(null)
         );
     }
 }

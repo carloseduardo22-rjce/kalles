@@ -229,6 +229,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                             "Cookie",
                             "kalles_auth_token=" + authContext.authCookie()
                                     + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                    + deviceCookie()
                     )
                     .header("X-XSRF-TOKEN", authContext.csrfToken())
                     .header("X-Company-ID", companyId.toString())
@@ -259,6 +260,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                             "Cookie",
                             "kalles_auth_token=" + authContext.authCookie()
                                     + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                    + deviceCookie()
                     )
                     .header("X-XSRF-TOKEN", authContext.csrfToken())
                     .header("X-Company-ID", companyId.toString())
@@ -284,7 +286,8 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                 "http://localhost:" + port + path,
                 Map.of(
                         "Accept", "application/json",
-                        "Cookie", "kalles_auth_token=" + authContext.authCookie() + "; XSRF-TOKEN=" + authContext.csrfCookie(),
+                        "Cookie", "kalles_auth_token=" + authContext.authCookie() + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                + deviceCookie(),
                         "X-XSRF-TOKEN", authContext.csrfToken(),
                         "X-Company-ID", companyId.toString()
                 )

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -26,10 +25,6 @@ public class JwtService {
     }
 
     public String generateToken(Account account) {
-        return generateToken(account, null);
-    }
-
-    public String generateToken(Account account, UUID posId) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             var jwtBuilder = JWT.create()
@@ -42,9 +37,6 @@ public class JwtService {
 
             if (account.getCompanyId() != null) {
                 jwtBuilder.withClaim("companyId", account.getCompanyId().toString());
-            }
-            if (posId != null) {
-                jwtBuilder.withClaim("posId", posId.toString());
             }
 
             return jwtBuilder

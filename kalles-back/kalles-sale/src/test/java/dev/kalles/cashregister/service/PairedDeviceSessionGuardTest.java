@@ -2,7 +2,7 @@ package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.security.context.RequestContext;
-import dev.kalles.shared.exception.ForbiddenOperationException;
+import dev.kalles.security.exception.DeviceNotPairedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -32,7 +32,7 @@ class PairedDeviceSessionGuardTest {
         CashRegister cashRegister = cashRegisterWithId(UUID.randomUUID());
 
         RequestContext.runWithin(RequestContext.empty(),
-                () -> assertThrows(ForbiddenOperationException.class, () -> guard.ensureCanOperate(cashRegister)));
+                () -> assertThrows(DeviceNotPairedException.class, () -> guard.ensureCanOperate(cashRegister)));
     }
 
     @Test
@@ -41,7 +41,7 @@ class PairedDeviceSessionGuardTest {
         CashRegister cashRegister = cashRegisterWithId(UUID.randomUUID());
 
         RequestContext.runWithin(RequestContext.empty().withPos(UUID.randomUUID()),
-                () -> assertThrows(ForbiddenOperationException.class, () -> guard.ensureCanOperate(cashRegister)));
+                () -> assertThrows(DeviceNotPairedException.class, () -> guard.ensureCanOperate(cashRegister)));
     }
 
     private CashRegister cashRegisterWithId(UUID id) {

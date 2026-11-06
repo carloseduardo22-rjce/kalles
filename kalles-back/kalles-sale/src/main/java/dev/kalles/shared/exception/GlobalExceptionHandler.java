@@ -61,6 +61,7 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Recurso não encontrado");
+        withCode(problem, ex.getCode());
         return problem;
     }
 
@@ -71,6 +72,7 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         problem.setTitle("Operação não permitida");
+        withCode(problem, ex.getCode());
         return problem;
     }
 
@@ -83,6 +85,12 @@ public class GlobalExceptionHandler {
             case AuthenticationFailedException _ ->
                 domainProblem(HttpStatus.UNAUTHORIZED, "Falha de autenticação", ex);
         };
+    }
+
+    private void withCode(ProblemDetail problem, String code) {
+        if (code != null) {
+            problem.setProperty("code", code);
+        }
     }
 
     private ProblemDetail domainProblem(HttpStatus status, String title, DomainException ex) {
