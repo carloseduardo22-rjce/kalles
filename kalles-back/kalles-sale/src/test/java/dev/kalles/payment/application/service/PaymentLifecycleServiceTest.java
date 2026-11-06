@@ -10,6 +10,7 @@ import dev.kalles.payment.domain.PaymentOrder;
 import dev.kalles.payment.domain.PaymentProvider;
 import dev.kalles.payment.domain.PaymentResult;
 import dev.kalles.payment.domain.PaymentStatus;
+import dev.kalles.security.exception.DeviceNotPairedException;
 import dev.kalles.shared.service.CheckoutSessionService;
 import dev.kalles.shared.service.Session;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,7 +49,9 @@ class PaymentLifecycleServiceTest {
         );
 
         when(paymentProviderPortFactory.gateway(PaymentProvider.MERCADO_PAGO)).thenReturn(paymentGatewayPort);
-        when(checkoutSessionService.findByToken(any())).thenReturn(Optional.empty());
+        Session openSession = mock(Session.class);
+        when(openSession.allowsElectronicPayments()).thenReturn(true);
+        when(checkoutSessionService.getOpenSessionOrThrow(any())).thenReturn(openSession);
     }
 
     @Test
@@ -137,7 +139,7 @@ class PaymentLifecycleServiceTest {
     void shouldRefuseElectronicPaymentsInACashOnlySession() {
         Session cashOnlySession = mock(Session.class);
         when(cashOnlySession.allowsElectronicPayments()).thenReturn(false);
-        when(checkoutSessionService.findByToken("SESSION-CASH-ONLY")).thenReturn(Optional.of(cashOnlySession));
+        when(checkoutSessionService.getOpenSessionOrThrow("SESSION-CASH-ONLY")).thenReturn(cashOnlySession);
         PaymentCommand command = new PaymentCommand(
                 PaymentProvider.MERCADO_PAGO,
                 PaymentFlow.TERMINAL,
@@ -152,6 +154,28 @@ class PaymentLifecycleServiceTest {
 
         assertThatThrownBy(() -> paymentLifecycleService.execute(command))
                 .isInstanceOf(CashOnlySessionException.class);
+
+        verify(paymentGatewayPort, never()).processPayment(any());
+        verify(paymentOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldNotChargeFromADeviceThatIsNotPairedWithTheSessionCashRegister() {
+        when(checkoutSessionService.getOpenSessionOrThrow("SESSION-REVOKED-DEVICE")).thenThrow(new DeviceNotPairedException());
+        PaymentCommand command = new PaymentCommand(
+                PaymentProvider.MERCADO_PAGO,
+                PaymentFlow.QR_CODE,
+                "SESSION-REVOKED-DEVICE",
+                new BigDecimal("25.00"),
+                "CAIXA-01",
+                null,
+                "Cobranca QR",
+                PaymentMethodType.UNSPECIFIED,
+                Map.of()
+        );
+
+        assertThatThrownBy(() -> paymentLifecycleService.execute(command))
+                .isInstanceOf(DeviceNotPairedException.class);
 
         verify(paymentGatewayPort, never()).processPayment(any());
         verify(paymentOrderRepository, never()).save(any());
