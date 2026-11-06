@@ -69,11 +69,12 @@ public class PosPairingService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<UUID> findPairedCashRegister(String deviceToken) {
-        if (deviceToken == null || deviceToken.isBlank()) {
+    public Optional<UUID> findPairedCashRegister(String deviceToken, UUID companyId) {
+        if (deviceToken == null || deviceToken.isBlank() || companyId == null) {
             return Optional.empty();
         }
         return deviceSessionRepository.findByTokenHashAndActiveTrue(OpaqueTokens.sha256Hex(deviceToken))
+                .filter(session -> session.getCompanyId().equals(companyId))
                 .map(PosDeviceSession::getPosId);
     }
 

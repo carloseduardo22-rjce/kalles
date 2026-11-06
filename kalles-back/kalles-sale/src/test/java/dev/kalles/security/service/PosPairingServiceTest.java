@@ -132,6 +132,34 @@ class PosPairingServiceTest {
     }
 
     @Test
+    @DisplayName("resolve o caixa pareado quando o dispositivo e da filial da requisicao")
+    void shouldResolvePairedCashRegisterOfTheRequestCompany() {
+        PosDeviceSession device = new PosDeviceSession(COMPANY_ID, cashRegister.getId(), OpaqueTokens.sha256Hex("token-do-dispositivo"));
+        when(deviceSessionRepository.findByTokenHashAndActiveTrue(OpaqueTokens.sha256Hex("token-do-dispositivo")))
+                .thenReturn(Optional.of(device));
+
+        assertThat(pairingService.findPairedCashRegister("token-do-dispositivo", COMPANY_ID))
+                .contains(cashRegister.getId());
+    }
+
+    @Test
+    @DisplayName("ignora o pareamento de outra filial")
+    void shouldIgnorePairingOfAnotherCompany() {
+        PosDeviceSession device = new PosDeviceSession(COMPANY_ID, cashRegister.getId(), OpaqueTokens.sha256Hex("token-do-dispositivo"));
+        when(deviceSessionRepository.findByTokenHashAndActiveTrue(OpaqueTokens.sha256Hex("token-do-dispositivo")))
+                .thenReturn(Optional.of(device));
+
+        assertThat(pairingService.findPairedCashRegister("token-do-dispositivo", UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("sem filial na requisicao o dispositivo conta como nao pareado")
+    void shouldNotResolvePairingWithoutRequestCompany() {
+        assertThat(pairingService.findPairedCashRegister("token-do-dispositivo", null)).isEmpty();
+        verify(deviceSessionRepository, never()).findByTokenHashAndActiveTrue(any());
+    }
+
+    @Test
     @DisplayName("revogar sem pareamento ativo nao falha")
     void shouldRevokeWithoutActivePairing() {
         when(cashRegisterRepository.findByIdAndCompanyId(cashRegister.getId(), COMPANY_ID))

@@ -78,7 +78,7 @@ class JwtAuthenticationFilterTest {
         UUID posId = UUID.randomUUID();
         DecodedJWT decodedJWT = decodedToken(tenantId, companyId);
         when(jwtService.validateToken(TOKEN)).thenReturn(decodedJWT);
-        when(posPairingService.findPairedCashRegister("token-do-dispositivo")).thenReturn(Optional.of(posId));
+        when(posPairingService.findPairedCashRegister("token-do-dispositivo", companyId)).thenReturn(Optional.of(posId));
 
         AtomicReference<RequestContext> contextSeenByChain = new AtomicReference<>();
         FilterChain capturingChain = (req, res) -> contextSeenByChain.set(RequestContext.current());

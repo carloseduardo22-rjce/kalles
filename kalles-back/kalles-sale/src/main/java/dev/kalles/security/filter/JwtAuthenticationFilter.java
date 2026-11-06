@@ -130,8 +130,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     context = context.withCompany(requestedCompanyId);
                 }
 
-                Optional<UUID> pairedCashRegister =
-                        posPairingService.findPairedCashRegister(readCookie(request, PosDeviceCookie.NAME));
+                Optional<UUID> pairedCashRegister = posPairingService.findPairedCashRegister(
+                        readCookie(request, PosDeviceCookie.NAME), context.companyId());
                 if (pairedCashRegister.isPresent()) {
                     context = context.withPos(pairedCashRegister.get());
                 }
