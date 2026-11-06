@@ -97,6 +97,7 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 
   Abrir sessão ou operar venda num caixa que não está pareado com o dispositivo da requisição responde 403 `DEVICE_NOT_PAIRED`. A rota `POST /api/pos/admin/generate-token` deixa de existir.
 - **D-002.15** (2026-10-26) Banco: `pos_device_session` troca `token` e `expires_at` por `token_hash` (único) e `revoked_at`, ganha chave estrangeira para o caixa e um índice único parcial em `pos_id` para pareamentos ativos (RN-002.3); a nova tabela `pos_pairing_code` guarda `company_id`, `cash_register_id`, `code_hash` (único), `expires_at`, `used_at` e `created_at`; `refresh_token_session` perde `pos_id`.
+- **D-002.16** (2026-11-06) A parte 2 é dividida em três entregas, nesta ordem: **2a**, operador como conta e abertura em nome da conta autenticada (CA-002.7 a CA-002.10 e CA-002.16); **2b**, fechamento por conferência cega com tolerância por loja (CA-002.11 e CA-002.12), mantendo no CA-002.13 a liberação atual por código de supervisor até o PIN; depois o PIN do RF-003; e **2c**, tela de Caixas só de acompanhamento e encerramento administrativo com conferência pendente (CA-002.14 e CA-002.17 a CA-002.20). Na 2a, `operator` ganha `account_id` e o cadastro de operador cria junto a conta de perfil `OPERATOR`, com o código como matrícula; operadores sem conta deixam de abrir sessão. O administrador que abre sessão numa loja onde ainda não tem cadastro de operador recebe um automaticamente, com nível `ADMIN` e matrícula gerada, para não exigir um passo prévio que ninguém saberia que existe.
 
 ## Referências de mercado
 
@@ -112,3 +113,4 @@ Como operador de caixa, quero abrir, operar e fechar a minha sessão no caixa em
 | 1.0 | 2026-10-16 | Rascunho do levantamento |
 | 1.0 | 2026-10-19 | Pontos em aberto decididos e requisito aprovado, com referências de mercado |
 | 1.0 | 2026-10-26 | Parte 1 (pareamento) modelada; requisito em desenvolvimento |
+| 1.0 | 2026-11-06 | Parte 2 dividida em três entregas (D-002.16) |
