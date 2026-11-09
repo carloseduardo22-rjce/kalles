@@ -5,6 +5,7 @@ import type {
   ActiveSession,
   CloseSessionRequest,
   CloseSessionResponse,
+  SessionResponse,
 } from "../types";
 import { cashRegisterService } from "../services/cash-register.service";
 import { ApiError } from "@/shared/services/api";
@@ -28,6 +29,21 @@ function readSession(): ActiveSession | null {
 
 function saveSession(session: ActiveSession): void {
   setSessionScopedItem(STORAGE_KEY, JSON.stringify(session));
+}
+
+export function storeActiveSession(response: SessionResponse): ActiveSession {
+  const active: ActiveSession = {
+    sessionId: response.sessionId,
+    cashRegisterId: response.cashRegisterId,
+    operatorId: response.operatorId,
+    cashRegisterCode: response.cashRegisterCode,
+    operatorName: response.operatorName,
+    initialAmount: response.initialAmount,
+    openedAt: response.openedAt,
+    cashOnlyOperation: response.cashOnlyOperation,
+  };
+  saveSession(active);
+  return active;
 }
 
 function clearSession(): void {
@@ -72,26 +88,7 @@ export function useSession(): UseSessionReturn {
           initialAmount,
           allowCashOnlyOperation,
         });
-        const registers = await cashRegisterService
-          .listCashRegisters()
-          .catch(() => []);
-        const openedRegister = registers.find(
-          (register) => register.code === response.cashRegisterCode,
-        );
-
-        const active: ActiveSession = {
-          sessionId: response.sessionId,
-          cashRegisterId: openedRegister?.cashRegisterId,
-          operatorId: response.operatorId,
-          cashRegisterCode: response.cashRegisterCode,
-          operatorName: response.operatorName,
-          initialAmount: response.initialAmount,
-          openedAt: response.openedAt,
-          cashOnlyOperation: response.cashOnlyOperation,
-        };
-
-        saveSession(active);
-        setSession(active);
+        setSession(storeActiveSession(response));
       } catch (err) {
         setError(
           err instanceof ApiError ? err.message : "Falha ao abrir sessao.",
@@ -106,11 +103,12 @@ export function useSession(): UseSessionReturn {
 
   const closeSession = useCallback(
     async (request: CloseSessionRequest): Promise<CloseSessionResponse | null> => {
-      if (!session) return null;
+      const active = session ?? readSession();
+      if (!active) return null;
       setIsLoading(true);
       setError(null);
       try {
-        const result = await cashRegisterService.closeSession(session.sessionId, request);
+        const result = await cashRegisterService.closeSession(active.sessionId, request);
         clearSession();
         setSession(null);
         return result;

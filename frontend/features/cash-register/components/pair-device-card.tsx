@@ -21,9 +21,14 @@ import type { PairedDeviceResponse } from "../types";
 interface PairDeviceCardProps {
   onPaired: (device: PairedDeviceResponse) => void;
   onCancel?: () => void;
+  notice?: string;
 }
 
-export function PairDeviceCard({ onPaired, onCancel }: PairDeviceCardProps) {
+export function PairDeviceCard({
+  onPaired,
+  onCancel,
+  notice,
+}: PairDeviceCardProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -56,8 +61,8 @@ export function PairDeviceCard({ onPaired, onCancel }: PairDeviceCardProps) {
             <CardTitle className="text-xl">Parear este navegador</CardTitle>
           </div>
           <CardDescription>
-            Este navegador ainda não está pareado com um caixa. Peça ao
-            administrador o código gerado na tela de Caixas.
+            {notice ??
+              "Este navegador ainda não está pareado com um caixa. Peça ao administrador o código gerado na tela de Caixas."}
           </CardDescription>
         </CardHeader>
 

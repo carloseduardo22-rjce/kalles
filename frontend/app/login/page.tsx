@@ -38,30 +38,19 @@ export default function LoginPage() {
       removeSessionScopedItem("@kalles:activeCompanyId");
       toast.success("Login realizado com sucesso!");
 
-      // Consulta o perfil para decidir o redirecionamento por role
-      try {
-        const me = await api.get<{
-          role: string;
+      const me = await api
+        .get<{
           tenantId?: string;
           companyId?: string | null;
-        }>(
-          "/api/auth/me",
-        );
-        if (me.tenantId) {
-          setSessionScopedItem(`@kalles:tenantId:${email}`, me.tenantId);
-        }
-        if (me.companyId) {
-          setSessionScopedItem("@kalles:activeCompanyId", me.companyId);
-        }
-        if (me.role === "ADMIN") {
-          router.push("/caixas");
-        } else {
-          router.push("/pdv");
-        }
-      } catch {
-        // Fallback: se não conseguir consultar, vai para caixas
-        router.push("/caixas");
+        }>("/api/auth/me")
+        .catch(() => null);
+      if (me?.tenantId) {
+        setSessionScopedItem(`@kalles:tenantId:${email}`, me.tenantId);
       }
+      if (me?.companyId) {
+        setSessionScopedItem("@kalles:activeCompanyId", me.companyId);
+      }
+      router.push("/");
     } catch (error: any) {
       toast.error(error.message || "E-mail ou senha incorretos.");
     } finally {

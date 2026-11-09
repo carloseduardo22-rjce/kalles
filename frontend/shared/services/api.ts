@@ -250,6 +250,7 @@ function isCompanyScopedApiRequest(input: string): boolean {
     "/api/operators",
     "/api/cash-registers",
     "/api/cash-register-sessions",
+    "/api/pos/device",
     "/api/sales",
     "/api/payments",
     "/api/payment-terminal-mappings",

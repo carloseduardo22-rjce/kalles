@@ -55,6 +55,20 @@ export const cashRegisterService = {
   pairDevice: (pairingCode: string): Promise<PairedDeviceResponse> =>
     api.post<PairedDeviceResponse>("/api/pos/setup", { pairingCode }),
 
+  getCurrentSession: (): Promise<SessionResponse> =>
+    api.get<SessionResponse>("/api/cash-register-sessions/current"),
+
+  findSessionOnThisDevice: async (): Promise<SessionResponse | null> => {
+    const session = await cashRegisterService
+      .getCurrentSession()
+      .catch(() => null);
+    if (!session) return null;
+    const device = await cashRegisterService
+      .getPairedDevice()
+      .catch(() => null);
+    return device?.cashRegisterId === session.cashRegisterId ? session : null;
+  },
+
   getPairedDevice: (): Promise<PairedDeviceResponse> =>
     api.get<PairedDeviceResponse>("/api/pos/device"),
 

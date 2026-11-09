@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,11 +30,28 @@ export default function OpenSessionPage() {
   const { openSession, isLoading, error, clearError } = useSession();
   const [repairing, setRepairing] = useState(false);
 
+  const current = useQuery({
+    queryKey: ["current-session"],
+    queryFn: cashRegisterService.getCurrentSession,
+    retry: false,
+    gcTime: 0,
+  });
   const device = useQuery({
     queryKey: DEVICE_QUERY_KEY,
     queryFn: cashRegisterService.getPairedDevice,
     retry: false,
+    gcTime: 0,
+    enabled: !current.isPending,
   });
+  const sessionOnThisDevice =
+    !!current.data &&
+    device.data?.cashRegisterId === current.data.cashRegisterId;
+
+  useEffect(() => {
+    if (sessionOnThisDevice) {
+      router.replace("/pdv");
+    }
+  }, [sessionOnThisDevice, router]);
   const notPaired =
     device.error instanceof ApiError && device.error.status === 404;
 
@@ -66,11 +83,19 @@ export default function OpenSessionPage() {
   }
 
   function renderBody() {
-    if (device.isLoading) {
+    if (current.isPending || device.isPending || sessionOnThisDevice) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" label="Verificando o pareamento…" />
         </div>
+      );
+    }
+    if (current.data) {
+      return (
+        <PairDeviceCard
+          onPaired={handlePaired}
+          notice={`Você tem uma sessão aberta no caixa ${current.data.cashRegisterCode}. Informe o código de pareamento desse caixa para continuar.`}
+        />
       );
     }
     if (notPaired || repairing) {
