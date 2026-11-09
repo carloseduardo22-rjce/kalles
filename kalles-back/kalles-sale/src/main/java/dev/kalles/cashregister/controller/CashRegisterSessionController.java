@@ -5,6 +5,7 @@ import dev.kalles.cashregister.dto.CloseSessionRequest;
 import dev.kalles.cashregister.dto.OpenSessionRequest;
 import dev.kalles.cashregister.dto.SessionResponse;
 import dev.kalles.cashregister.dto.SessionSummaryResponse;
+import dev.kalles.cashregister.service.CashRegisterQueryService;
 import dev.kalles.cashregister.service.CloseSessionUseCase;
 import dev.kalles.cashregister.service.OpenSessionUseCase;
 import dev.kalles.security.controller.PosDeviceCookie;
@@ -36,6 +37,7 @@ public class CashRegisterSessionController {
 
     private final OpenSessionUseCase openSessionUseCase;
     private final CloseSessionUseCase closeSessionUseCase;
+    private final CashRegisterQueryService cashRegisterQueryService;
 
     @Value("${app.security.cookies.secure:false}")
     private boolean secureCookies;
@@ -57,6 +59,16 @@ public class CashRegisterSessionController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, PosDeviceCookie.issue(deviceToken, secureCookies).toString())
                 .body(response);
+    }
+
+    @GetMapping("/current")
+    @Operation(summary = "Consultar a sessão aberta da conta autenticada")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sessão aberta encontrada"),
+        @ApiResponse(responseCode = "404", description = "A conta não tem sessão aberta nesta filial", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public SessionResponse currentSession() {
+        return cashRegisterQueryService.currentSession();
     }
 
     @PostMapping("/{sessionId}/close")

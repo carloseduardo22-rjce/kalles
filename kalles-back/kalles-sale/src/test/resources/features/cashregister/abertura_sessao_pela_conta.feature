@@ -13,6 +13,28 @@ Funcionalidade: Abertura da sessao em nome da conta autenticada
     Entao a abertura pela conta deve ter status HTTP 201
     E a sessao deve estar em nome de "Operador Caixa 01"
 
+  @CA-002.7
+  Cenario: Operador consulta a propria sessao aberta para retomar o caixa
+    Dado um operador com cadastro autenticado no dispositivo pareado
+    E a pessoa autenticada abrir a sessao do caixa
+    Quando a pessoa autenticada consultar a sessao atual
+    Entao a abertura pela conta deve ter status HTTP 200
+    E a sessao deve estar em nome de "Operador Caixa 01"
+
+  @CA-002.7
+  Cenario: Consulta sem sessao aberta nao devolve sessao
+    Dado um operador com cadastro autenticado no dispositivo pareado
+    Quando a pessoa autenticada consultar a sessao atual
+    Entao a abertura pela conta deve ter status HTTP 404
+    E o erro da abertura deve ter o codigo "NO_OPEN_SESSION"
+
+  @CA-002.7
+  Cenario: Sessao de outra pessoa no caixa nao e devolvida
+    Dado um operador com cadastro autenticado no dispositivo pareado
+    E outra pessoa tem sessao aberta no caixa
+    Quando a pessoa autenticada consultar a sessao atual
+    Entao a abertura pela conta deve ter status HTTP 404
+
   @CA-002.8
   Cenario: Administrador sem cadastro de operador abre a sessao em nome proprio
     Dado um administrador sem cadastro de operador autenticado no dispositivo pareado

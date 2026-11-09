@@ -25,6 +25,11 @@ public interface CashRegisterSessionRepository extends JpaRepository<CashRegiste
         SessionStatus status
     );
 
+    Optional<CashRegisterSession> findByOperatorAndStatus(
+        Operator operator,
+        SessionStatus status
+    );
+
     boolean existsByOperatorAndStatus(
         Operator operator,
         SessionStatus status

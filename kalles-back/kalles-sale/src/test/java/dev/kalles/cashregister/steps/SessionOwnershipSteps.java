@@ -1,7 +1,9 @@
 package dev.kalles.cashregister.steps;
 
+import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.security.entity.Account;
 import dev.kalles.security.enums.AccountRole;
+import dev.kalles.testsupport.LocalHttpTestClient;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.E;
@@ -70,6 +72,19 @@ public class SessionOwnershipSteps extends CashRegisterCucumberSpringConfigurati
                 ))
                 .when()
                 .post("/api/cash-register-sessions/open");
+    }
+
+    @E("outra pessoa tem sessao aberta no caixa")
+    public void givenAnotherPersonSession() {
+        seedOperator(companyId, "Outra pessoa", "OP002", PermissionLevel.BASIC);
+        seedSession(companyId, CASH_REGISTER_CODE, "OP002", BigDecimal.TEN);
+    }
+
+    @Quando("a pessoa autenticada consultar a sessao atual")
+    public void whenFetchingCurrentSession() {
+        response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/cash-register-sessions/current",
+                Map.of("Cookie", "kalles_auth_token=" + authContext.authCookie(), "X-Company-ID", companyId.toString()));
     }
 
     @Entao("a abertura pela conta deve ter status HTTP {int}")
