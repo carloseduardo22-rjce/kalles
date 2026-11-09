@@ -4,7 +4,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 public final class SharedPostgresContainer {
 
-    private static final PostgreSQLContainer<?> INSTANCE = new PostgreSQLContainer<>("postgres:17-alpine");
+    private static final PostgreSQLContainer<?> INSTANCE = new PostgreSQLContainer<>("postgres:17-alpine")
+            .withUrlParam("sslmode", "disable");
 
     static {
         INSTANCE.start();
