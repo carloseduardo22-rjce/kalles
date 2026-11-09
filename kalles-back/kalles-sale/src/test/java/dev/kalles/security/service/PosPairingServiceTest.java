@@ -3,6 +3,7 @@ package dev.kalles.security.service;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
+import dev.kalles.cashregister.service.CashRegisterPaymentIntegrationService;
 import dev.kalles.security.context.RequestContext;
 import dev.kalles.security.dto.PairingCodeResponse;
 import dev.kalles.security.entity.PosDeviceSession;
@@ -48,6 +49,9 @@ class PosPairingServiceTest {
 
     @Mock
     private CashRegisterRepository cashRegisterRepository;
+
+    @Mock
+    private CashRegisterPaymentIntegrationService paymentIntegrationService;
 
     @InjectMocks
     private PosPairingService pairingService;
@@ -157,6 +161,19 @@ class PosPairingServiceTest {
     void shouldNotResolvePairingWithoutRequestCompany() {
         assertThat(pairingService.findPairedCashRegister("token-do-dispositivo", null)).isEmpty();
         verify(deviceSessionRepository, never()).findByTokenHashAndActiveTrue(any());
+    }
+
+    @Test
+    @DisplayName("informa se o caixa pareado aceita pagamento eletronico")
+    void shouldReportWhetherThePairedCashRegisterAcceptsElectronicPayments() {
+        UUID id = UUID.randomUUID();
+        CashRegister cashRegister = new CashRegister("CX-9", "Caixa", UUID.randomUUID());
+        ReflectionTestUtils.setField(cashRegister, "id", id);
+        when(cashRegisterRepository.findById(id)).thenReturn(Optional.of(cashRegister));
+        when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
+
+        assertThat(pairingService.describe(id)).hasValueSatisfying(
+                device -> assertThat(device.paymentIntegrationConfigured()).isTrue());
     }
 
     @Test

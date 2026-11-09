@@ -34,7 +34,8 @@ public class PosSetupController {
         PairedDevice device = pairingService.pair(request.pairingCode());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, PosDeviceCookie.issue(device.deviceToken(), secureCookies).toString())
-                .body(new PairedDeviceResponse(device.cashRegisterId(), device.cashRegisterCode()));
+                .body(new PairedDeviceResponse(
+                        device.cashRegisterId(), device.cashRegisterCode(), device.paymentIntegrationConfigured()));
     }
 
     @GetMapping("/device")

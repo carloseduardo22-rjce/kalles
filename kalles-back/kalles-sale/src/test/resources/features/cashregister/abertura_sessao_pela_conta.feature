@@ -35,6 +35,13 @@ Funcionalidade: Abertura da sessao em nome da conta autenticada
     Quando a pessoa autenticada consultar a sessao atual
     Entao a abertura pela conta deve ter status HTTP 404
 
+  Cenario: Operador enxerga apenas a propria filial na lista de lojas
+    Dado um operador com cadastro autenticado no dispositivo pareado
+    E existe outra filial no tenant
+    Quando a pessoa autenticada listar as lojas
+    Entao a abertura pela conta deve ter status HTTP 200
+    E a lista deve trazer apenas a filial do operador
+
   @CA-002.8
   Cenario: Administrador sem cadastro de operador abre a sessao em nome proprio
     Dado um administrador sem cadastro de operador autenticado no dispositivo pareado

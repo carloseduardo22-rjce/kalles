@@ -80,11 +80,28 @@ public class SessionOwnershipSteps extends CashRegisterCucumberSpringConfigurati
         seedSession(companyId, CASH_REGISTER_CODE, "OP002", BigDecimal.TEN);
     }
 
+    @E("existe outra filial no tenant")
+    public void givenAnotherCompany() {
+        seedCompany("Outra filial");
+    }
+
     @Quando("a pessoa autenticada consultar a sessao atual")
     public void whenFetchingCurrentSession() {
         response = LocalHttpTestClient.get(
                 "http://localhost:" + port + "/api/cash-register-sessions/current",
                 Map.of("Cookie", "kalles_auth_token=" + authContext.authCookie(), "X-Company-ID", companyId.toString()));
+    }
+
+    @Quando("a pessoa autenticada listar as lojas")
+    public void whenListingCompanies() {
+        response = LocalHttpTestClient.get(
+                "http://localhost:" + port + "/api/companies",
+                Map.of("Cookie", "kalles_auth_token=" + authContext.authCookie()));
+    }
+
+    @Entao("a lista deve trazer apenas a filial do operador")
+    public void thenOnlyOperatorCompanyIsListed() {
+        assertThat(response.jsonPath().getList("id")).containsExactly(companyId.toString());
     }
 
     @Entao("a abertura pela conta deve ter status HTTP {int}")

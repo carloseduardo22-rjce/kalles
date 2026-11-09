@@ -3,6 +3,7 @@ package dev.kalles.security.service;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
+import dev.kalles.cashregister.service.CashRegisterPaymentIntegrationService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.dto.PairedDeviceResponse;
 import dev.kalles.security.dto.PairingCodeResponse;
@@ -35,6 +36,7 @@ public class PosPairingService {
     private final PosPairingCodeRepository pairingCodeRepository;
     private final PosDeviceSessionRepository deviceSessionRepository;
     private final CashRegisterRepository cashRegisterRepository;
+    private final CashRegisterPaymentIntegrationService paymentIntegrationService;
 
     @Transactional
     public PairingCodeResponse generateCode(UUID cashRegisterId) {
@@ -60,7 +62,8 @@ public class PosPairingService {
                 pairingCode.getCompanyId(), pairingCode.getCashRegisterId(), OpaqueTokens.sha256Hex(deviceToken)));
 
         CashRegister cashRegister = cashRegisterRepository.findById(pairingCode.getCashRegisterId()).orElseThrow();
-        return new PairedDevice(cashRegister.getId(), cashRegister.getCode(), deviceToken);
+        return new PairedDevice(cashRegister.getId(), cashRegister.getCode(),
+                paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister), deviceToken);
     }
 
     @Transactional
@@ -81,7 +84,8 @@ public class PosPairingService {
     @Transactional(readOnly = true)
     public Optional<PairedDeviceResponse> describe(UUID cashRegisterId) {
         return cashRegisterRepository.findById(cashRegisterId)
-                .map(cashRegister -> new PairedDeviceResponse(cashRegister.getId(), cashRegister.getCode()));
+                .map(cashRegister -> new PairedDeviceResponse(cashRegister.getId(), cashRegister.getCode(),
+                        paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)));
     }
 
     @Transactional(readOnly = true)
