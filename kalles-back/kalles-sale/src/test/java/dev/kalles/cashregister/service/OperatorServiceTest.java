@@ -1,11 +1,15 @@
 package dev.kalles.cashregister.service;
 
+import dev.kalles.cashregister.dto.CreateOperatorRequest;
 import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.exception.OperatorCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.OperatorRepository;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.service.OperatorAccountService;
 import dev.kalles.security.exception.CompanyContextRequiredException;
 import dev.kalles.shared.exception.NotFoundException;
 import dev.kalles.testsupport.RequestContextExtension;
@@ -18,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,16 +44,24 @@ class OperatorServiceTest {
     @Mock
     private OperatorRepository operatorRepository;
 
+    @Mock
+    private OperatorAccountService operatorAccountService;
+
     @InjectMocks
     private OperatorService operatorService;
 
     @Test
     @DisplayName("Deve criar operador vinculado a filial ativa")
     void shouldCreateOperatorForActiveCompany() {
-        OperatorRequest request = new OperatorRequest("Maria Silva", "maria.silva", PermissionLevel.MANAGER);
+        CreateOperatorRequest request = new CreateOperatorRequest("Maria Silva", "maria.silva", "maria@loja.com", "senha-inicial", PermissionLevel.MANAGER);
         Operator saved = buildOperator(UUID.randomUUID(), "Maria Silva", "maria.silva", PermissionLevel.MANAGER, true);
 
+        UUID accountId = UUID.randomUUID();
+        Account account = new Account(UUID.randomUUID(), "Maria Silva", "maria@loja.com", "hash", AccountRole.OPERATOR);
+        ReflectionTestUtils.setField(account, "id", accountId);
+
         when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID)).thenReturn(Optional.empty());
+        when(operatorAccountService.create("Maria Silva", "maria@loja.com", "senha-inicial", COMPANY_ID)).thenReturn(account);
         when(operatorRepository.save(any(Operator.class))).thenReturn(saved);
 
         OperatorResponse response = operatorService.create(request);
@@ -60,13 +73,14 @@ class OperatorServiceTest {
         ArgumentCaptor<Operator> captor = ArgumentCaptor.forClass(Operator.class);
         verify(operatorRepository).save(captor.capture());
         assertEquals(COMPANY_ID, captor.getValue().getCompanyId());
+        assertEquals(accountId, captor.getValue().getAccountId());
         assertTrue(captor.getValue().isActive());
     }
 
     @Test
     @DisplayName("Deve rejeitar codigo duplicado na mesma filial")
     void shouldRejectDuplicateCodeWithinSameCompany() {
-        OperatorRequest request = new OperatorRequest("Maria Silva", "maria.silva", PermissionLevel.MANAGER);
+        CreateOperatorRequest request = new CreateOperatorRequest("Maria Silva", "maria.silva", "maria@loja.com", "senha-inicial", PermissionLevel.MANAGER);
         when(operatorRepository.findByCodeAndCompanyId("maria.silva", COMPANY_ID))
                 .thenReturn(Optional.of(buildOperator(UUID.randomUUID(), "Outra Maria", "maria.silva", PermissionLevel.BASIC, true)));
 

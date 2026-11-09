@@ -1,11 +1,14 @@
 package dev.kalles.cashregister.service;
 
+import dev.kalles.cashregister.dto.CreateOperatorRequest;
 import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.OperatorCodeAlreadyExistsException;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.entity.Account;
+import dev.kalles.security.service.OperatorAccountService;
 import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class OperatorService {
 
     private final OperatorRepository operatorRepository;
+    private final OperatorAccountService operatorAccountService;
 
     @Transactional(readOnly = true)
     public List<OperatorResponse> listAll() {
@@ -36,13 +40,15 @@ public class OperatorService {
     }
 
     @Transactional
-    public OperatorResponse create(OperatorRequest request) {
+    public OperatorResponse create(CreateOperatorRequest request) {
         UUID companyId = CompanyContextHolder.requireCompanyId();
         operatorRepository.findByCodeAndCompanyId(request.code(), companyId).ifPresent(existing -> {
             throw new OperatorCodeAlreadyExistsException();
         });
+        Account account = operatorAccountService.create(request.name(), request.email(), request.password(), companyId);
         Operator operator = new Operator();
         operator.setCompanyId(companyId);
+        operator.setAccountId(account.getId());
         operator.setName(request.name());
         operator.setCode(request.code());
         operator.setPermissionLevel(request.permissionLevel());

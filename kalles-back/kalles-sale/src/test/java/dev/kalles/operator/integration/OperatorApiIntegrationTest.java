@@ -3,6 +3,7 @@ package dev.kalles.operator.integration;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.operator.support.AbstractOperatorApiSupport;
 import dev.kalles.testsupport.LocalHttpTestClient;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -31,6 +33,8 @@ class OperatorApiIntegrationTest extends AbstractOperatorApiSupport {
                 .body(Map.of(
                         "name", "Maria Silva",
                         "code", "maria.silva",
+                        "email", "operador0@loja.com",
+                        "password", "senha-inicial",
                         "permissionLevel", "MANAGER"
                 ))
                 .when()
@@ -51,6 +55,8 @@ class OperatorApiIntegrationTest extends AbstractOperatorApiSupport {
                 .body(Map.of(
                         "name", "Maria Nova",
                         "code", "maria.silva",
+                        "email", "operador2@loja.com",
+                        "password", "senha-inicial",
                         "permissionLevel", "MANAGER"
                 ))
                 .when()
@@ -70,6 +76,8 @@ class OperatorApiIntegrationTest extends AbstractOperatorApiSupport {
                 .body(Map.of(
                         "name", "Maria Loja A",
                         "code", "maria.silva",
+                        "email", "operador4@loja.com",
+                        "password", "senha-inicial",
                         "permissionLevel", "MANAGER"
                 ))
                 .when()
@@ -130,6 +138,45 @@ class OperatorApiIntegrationTest extends AbstractOperatorApiSupport {
         response.then()
                 .statusCode(400)
                 .body("code", equalTo("COMPANY_CONTEXT_REQUIRED"));
+    }
+
+    @Test
+    void shouldLetTheNewOperatorLogInWithTheCredentialsDefinedAtRegistration() {
+        AuthContext auth = authenticateTenantAdminWithCsrf();
+
+        registerOperator(auth, "joana", "joana@loja.com").then().statusCode(201);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "joana@loja.com", "password", "senha-inicial"))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    void shouldRejectOperatorWithEmailAlreadyUsedInTheTenant() {
+        AuthContext auth = authenticateTenantAdminWithCsrf();
+        registerOperator(auth, "joana", "joana@loja.com").then().statusCode(201);
+
+        registerOperator(auth, "joana.2", "JOANA@loja.com")
+                .then()
+                .statusCode(409)
+                .body("code", equalTo("ACCOUNT_EMAIL_ALREADY_EXISTS"));
+    }
+
+    private Response registerOperator(AuthContext auth, String code, String email) {
+        return givenAuthenticated(auth, companyAId)
+                .body(Map.of(
+                        "name", "Joana Lima",
+                        "code", code,
+                        "email", email,
+                        "password", "senha-inicial",
+                        "permissionLevel", "BASIC"
+                ))
+                .when()
+                .post("/api/operators");
     }
 
     @Test

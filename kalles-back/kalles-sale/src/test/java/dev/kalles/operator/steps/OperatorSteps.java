@@ -43,6 +43,8 @@ public class OperatorSteps extends OperatorCucumberSpringConfiguration {
                 .body(Map.of(
                         "name", "Maria Silva",
                         "code", "maria.silva",
+                        "email", "maria.silva@loja.com",
+                        "password", "senha-inicial",
                         "permissionLevel", "MANAGER"
                 ))
                 .when()
