@@ -111,13 +111,13 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
 
         Operator operator = new Operator("Operador Caixa 01", OPERATOR_CODE);
         operator.setCompanyId(companyId);
-        operatorRepository.save(operator);
 
         Account account = new Account(TENANT_ID, "Operador Caixa 01", OPERATOR_EMAIL,
                 passwordEncoder.encode(DEFAULT_PASSWORD), AccountRole.OPERATOR);
         account.setCompanyId(companyId);
         account.setVerified(true);
-        accountRepository.save(account);
+        operator.setAccountId(accountRepository.save(account).getId());
+        operatorRepository.save(operator);
     }
 
     protected UUID seedClosedSessionId() {
@@ -140,6 +140,10 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     }
 
     protected AuthContext authenticateOperator() {
+        return authenticateOnPairedDevice(OPERATOR_EMAIL);
+    }
+
+    protected AuthContext authenticateOnPairedDevice(String email) {
         deviceToken = seedPairedDevice();
         RestAssured.requestSpecification = new RequestSpecBuilder()
                 .addCookie("kalles_pos_token", deviceToken)
@@ -148,7 +152,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         Response loginResponse = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(Map.of(
-                        "email", OPERATOR_EMAIL,
+                        "email", email,
                         "password", DEFAULT_PASSWORD
                 ))
                 .when()

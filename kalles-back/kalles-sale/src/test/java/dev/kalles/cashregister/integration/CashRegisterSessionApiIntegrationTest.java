@@ -36,7 +36,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", false
                 ))
@@ -62,7 +61,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", false
                 ))
@@ -87,7 +85,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", true
                 ))
@@ -171,7 +168,7 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
         configurePaymentIntegration(true);
         AuthContext auth = authenticateOperator();
         seedOperator(companyId, "Operador Caixa 02", "OP002", PermissionLevel.BASIC);
-        seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
+        seedSession(companyId, CASH_REGISTER_CODE, "OP002", new BigDecimal("100.00"));
 
         given()
                 .contentType(ContentType.JSON)
@@ -181,7 +178,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", "OP002",
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", false
                 ))
@@ -208,7 +204,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", "CAIXA-02",
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", true
                 ))
@@ -234,7 +229,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", false
                 ))
@@ -258,7 +252,6 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", "CAIXA-INEXISTENTE",
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", true
                 ))

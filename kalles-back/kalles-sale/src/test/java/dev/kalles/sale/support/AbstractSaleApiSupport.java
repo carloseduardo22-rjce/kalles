@@ -203,7 +203,6 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", cashOnlyOperation
                 ))

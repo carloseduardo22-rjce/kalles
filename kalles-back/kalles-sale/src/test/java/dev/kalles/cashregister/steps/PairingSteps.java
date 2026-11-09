@@ -137,7 +137,6 @@ public class PairingSteps extends CashRegisterCucumberSpringConfiguration {
     public void whenDeviceTriesToOpenSession(String device) {
         Map<String, Object> body = new HashMap<>();
         body.put("cashRegisterCode", CASH_REGISTER_CODE);
-        body.put("operatorCode", OPERATOR_CODE);
         body.put("initialAmount", 100);
         body.put("allowCashOnlyOperation", true);
 
@@ -181,6 +180,7 @@ public class PairingSteps extends CashRegisterCucumberSpringConfiguration {
         assertThat(deviceResponse.statusCode()).isEqualTo(200);
         assertThat(deviceResponse.jsonPath().getString("cashRegisterId")).isEqualTo(cashRegisterId.toString());
         assertThat(deviceResponse.jsonPath().getString("cashRegisterCode")).isEqualTo(CASH_REGISTER_CODE);
+        assertThat(deviceResponse.jsonPath().getBoolean("paymentIntegrationConfigured")).isFalse();
     }
 
     @Entao("o dispositivo {string} deve conseguir abrir a sessao do caixa")

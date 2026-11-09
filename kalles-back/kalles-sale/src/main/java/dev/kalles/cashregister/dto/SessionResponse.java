@@ -9,6 +9,7 @@ import java.util.UUID;
 public record SessionResponse(
     UUID sessionId,
     UUID operatorId,
+    UUID cashRegisterId,
     String cashRegisterCode,
     String operatorName,
     BigDecimal initialAmount,
@@ -20,6 +21,7 @@ public record SessionResponse(
         return new SessionResponse(
             session.getId(),
             session.getOperator().getId(),
+            session.getCashRegister().getId(),
             session.getCashRegister().getCode(),
             session.getOperator().getName(),
             session.getInitialAmountValue(),

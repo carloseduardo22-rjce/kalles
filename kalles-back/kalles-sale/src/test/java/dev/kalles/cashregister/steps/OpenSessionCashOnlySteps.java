@@ -58,7 +58,6 @@ public class OpenSessionCashOnlySteps extends CashRegisterCucumberSpringConfigur
     public void whenRequestSessionOpening() {
         Map<String, Object> body = new HashMap<>();
         body.put("cashRegisterCode", CASH_REGISTER_CODE);
-        body.put("operatorCode", OPERATOR_CODE);
         body.put("initialAmount", initialAmount);
         body.put("allowCashOnlyOperation", allowCashOnlyOperation);
 

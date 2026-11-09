@@ -10,9 +10,6 @@ public record OpenSessionRequest(
     @NotBlank(message = "Codigo do caixa obrigatorio")
     String cashRegisterCode,
 
-    @NotBlank(message = "Codigo do operador obrigatorio")
-    String operatorCode,
-
     @NotNull(message = "Valor inicial obrigatorio")
     @DecimalMin(value = "0.0", inclusive = true, message = "Valor inicial nao pode ser negativo")
     BigDecimal initialAmount,

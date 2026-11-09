@@ -6,11 +6,10 @@ import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
-import dev.kalles.cashregister.exception.OperatorNotFoundException;
+import dev.kalles.cashregister.exception.OperatorAccountNotLinkedException;
 import dev.kalles.cashregister.exception.PaymentIntegrationNotConfiguredException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
-import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.shared.exception.ForbiddenOperationException;
@@ -55,7 +54,7 @@ class OpenSessionUseCaseTest {
     private CashRegisterRepository cashRegisterRepository;
 
     @Mock
-    private OperatorRepository operatorRepository;
+    private SessionOperatorResolver sessionOperatorResolver;
 
     @Mock
     private CashRegisterSessionRepository sessionRepository;
@@ -75,7 +74,7 @@ class OpenSessionUseCaseTest {
     void setUp() {
         useCase = new OpenSessionUseCase(
             cashRegisterRepository,
-            operatorRepository,
+            sessionOperatorResolver,
             sessionRepository,
             List.of(validatorChain),
             pairedDeviceSessionGuard,
@@ -92,7 +91,6 @@ class OpenSessionUseCaseTest {
 
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            operatorCode,
             initialAmount,
             false
         );
@@ -103,8 +101,7 @@ class OpenSessionUseCaseTest {
 
         when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
-            .thenReturn(Optional.of(operator));
+        when(sessionOperatorResolver.resolve(COMPANY_ID)).thenReturn(operator);
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
         when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenReturn(session);
 
@@ -117,10 +114,10 @@ class OpenSessionUseCaseTest {
         assertEquals(SessionStatus.OPEN.name(), response.status());
         assertFalse(response.cashOnlyOperation());
 
-        verify(validatorChain).validate(request);
+        verify(validatorChain).validate(request, operator);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
-        verify(operatorRepository).findByCodeAndCompanyId(operatorCode, COMPANY_ID);
+        verify(sessionOperatorResolver).resolve(COMPANY_ID);
         verify(paymentIntegrationService).isPaymentIntegrationConfigured(cashRegister);
 
         ArgumentCaptor<CashRegisterSession> captor = ArgumentCaptor.forClass(CashRegisterSession.class);
@@ -139,15 +136,13 @@ class OpenSessionUseCaseTest {
         Operator operator = new Operator("Joao Silva", "OP001");
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
-            "OP001",
             new BigDecimal("100.00"),
             true
         );
 
         when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
-            .thenReturn(Optional.of(operator));
+        when(sessionOperatorResolver.resolve(COMPANY_ID)).thenReturn(operator);
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
         when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -163,15 +158,13 @@ class OpenSessionUseCaseTest {
         Operator operator = new Operator("Joao Silva", "OP001");
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
 
         when(cashRegisterRepository.findByCodeAndCompanyId("PDV-01", COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCodeAndCompanyId("OP001", COMPANY_ID))
-            .thenReturn(Optional.of(operator));
+        when(sessionOperatorResolver.resolve(COMPANY_ID)).thenReturn(operator);
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(false);
         PaymentIntegrationNotConfiguredException exception = assertThrows(
             PaymentIntegrationNotConfiguredException.class,
@@ -187,7 +180,6 @@ class OpenSessionUseCaseTest {
         String cashRegisterCode = "PDV-99";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -205,18 +197,16 @@ class OpenSessionUseCaseTest {
         verifyNoInteractions(validatorChain);
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verifyNoInteractions(pairedDeviceSessionGuard);
-        verifyNoInteractions(operatorRepository);
+        verifyNoInteractions(sessionOperatorResolver);
         verifyNoInteractions(sessionRepository);
     }
 
     @Test
-    @DisplayName("Deve lancar excecao quando operador nao encontrado")
-    void shouldThrowExceptionWhenOperatorNotFound() {
+    @DisplayName("Deve recusar abertura quando a conta nao tem cadastro de operador")
+    void shouldRejectOpeningWhenAccountHasNoOperator() {
         String cashRegisterCode = "PDV-01";
-        String operatorCode = "OP999";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            operatorCode,
             new BigDecimal("100.00"),
             false
         );
@@ -225,20 +215,12 @@ class OpenSessionUseCaseTest {
 
         when(cashRegisterRepository.findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCodeAndCompanyId(operatorCode, COMPANY_ID))
-            .thenReturn(Optional.empty());
+        when(sessionOperatorResolver.resolve(COMPANY_ID)).thenThrow(new OperatorAccountNotLinkedException());
 
-        OperatorNotFoundException exception = assertThrows(
-            OperatorNotFoundException.class,
-            () -> useCase.execute(request)
-        );
+        assertThrows(OperatorAccountNotLinkedException.class, () -> useCase.execute(request));
 
-        assertTrue(exception.getMessage().contains("OP999"));
-
-        verify(validatorChain).validate(request);
-        verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
-        verify(operatorRepository).findByCodeAndCompanyId(operatorCode, COMPANY_ID);
+        verifyNoInteractions(validatorChain);
         verifyNoInteractions(sessionRepository);
     }
 
@@ -247,7 +229,6 @@ class OpenSessionUseCaseTest {
     void shouldCallValidatorChainBeforeProcessing() {
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -258,14 +239,13 @@ class OpenSessionUseCaseTest {
 
         when(cashRegisterRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
             .thenReturn(Optional.of(cashRegister));
-        when(operatorRepository.findByCodeAndCompanyId(anyString(), eq(COMPANY_ID)))
-            .thenReturn(Optional.of(operator));
+        when(sessionOperatorResolver.resolve(COMPANY_ID)).thenReturn(operator);
         when(paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister)).thenReturn(true);
         when(sessionRepository.saveAndFlush(any(CashRegisterSession.class))).thenReturn(session);
 
         useCase.execute(request);
 
-        verify(validatorChain).validate(request);
+        verify(validatorChain).validate(request, operator);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
     }
 
@@ -274,7 +254,6 @@ class OpenSessionUseCaseTest {
     void shouldBlockOpenSessionWhenDeviceIsNotPaired() {
         OpenSessionRequest request = new OpenSessionRequest(
             "PDV-01",
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -297,7 +276,7 @@ class OpenSessionUseCaseTest {
         verifyNoInteractions(validatorChain);
         verify(cashRegisterRepository).findByCodeAndCompanyId("PDV-01", COMPANY_ID);
         verify(pairedDeviceSessionGuard).ensureCanOperate(cashRegister);
-        verifyNoInteractions(operatorRepository);
+        verifyNoInteractions(sessionOperatorResolver);
         verifyNoInteractions(sessionRepository);
     }
 }
