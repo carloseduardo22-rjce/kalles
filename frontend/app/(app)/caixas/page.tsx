@@ -32,13 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
 import { CreateCashRegisterDialog } from "@/features/cash-register/components/create-cash-register-dialog";
@@ -46,7 +39,6 @@ import { DevicePairingSection } from "@/features/cash-register/components/device
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import type {
   CashRegisterStatusResponse,
-  OperatorResponse,
 } from "@/features/cash-register/types";
 import { formatCurrency } from "@/shared/utils/formatters";
 
@@ -256,20 +248,15 @@ function RegisterCard({ register, onOpen, onPairingChanged }: RegisterCardProps)
 ──────────────────────────────────────────────── */
 interface OpenSessionDialogProps {
   register: CashRegisterStatusResponse | null;
-  operators: OperatorResponse[];
-  isLoadingOperators: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 function OpenSessionDialog({
   register,
-  operators,
-  isLoadingOperators,
   onClose,
   onSuccess,
 }: OpenSessionDialogProps) {
-  const [operatorCode, setOperatorCode] = useState<string>("");
   const [initialAmount, setInitialAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -278,7 +265,7 @@ function OpenSessionDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!register || !operatorCode) return;
+    if (!register) return;
 
     const amount = parseFloat(initialAmount.replace(",", "."));
     if (isNaN(amount) || amount < 0) {
@@ -290,7 +277,6 @@ function OpenSessionDialog({
     try {
       await cashRegisterService.openSession({
         cashRegisterCode: register.code,
-        operatorCode,
         initialAmount: amount,
         allowCashOnlyOperation: !register.paymentIntegrationConfigured,
       });
@@ -307,7 +293,6 @@ function OpenSessionDialog({
 
   function handleOpenChange(open: boolean) {
     if (!open) {
-      setOperatorCode("");
       setInitialAmount("");
       onClose();
     }
@@ -346,41 +331,6 @@ function OpenSessionDialog({
             </div>
           )}
 
-          {/* Operator */}
-          <div className="space-y-1.5">
-            <Label htmlFor="operator-select">
-              Operador <span className="text-destructive">*</span>
-            </Label>
-            {isLoadingOperators ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Carregando operadores…
-              </div>
-            ) : (
-              <Select value={operatorCode} onValueChange={setOperatorCode}>
-                <SelectTrigger id="operator-select">
-                  <SelectValue placeholder="Selecione um operador" />
-                </SelectTrigger>
-                <SelectContent>
-                  {operators.length === 0 ? (
-                    <SelectItem value="__none__" disabled>
-                      Nenhum operador disponível
-                    </SelectItem>
-                  ) : (
-                    operators.map((op) => (
-                      <SelectItem key={op.id} value={op.code}>
-                        <span className="font-mono text-xs text-muted-foreground mr-1.5">
-                          {op.code}
-                        </span>
-                        {op.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
           {/* Initial amount */}
           <div className="space-y-1.5">
             <Label htmlFor="initial-amount">Valor inicial (R$)</Label>
@@ -407,7 +357,7 @@ function OpenSessionDialog({
             type="submit"
             form="open-session-form"
             data-testid="open-session-confirm"
-            disabled={!operatorCode || submitting}
+            disabled={submitting}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
             {submitting
@@ -439,13 +389,6 @@ export default function CaixasPage() {
   } = useQuery({
     queryKey: ["cash-registers"],
     queryFn: cashRegisterService.listCashRegisters,
-  });
-
-  const { data: operators = [], isLoading: isLoadingOperators } = useQuery({
-    queryKey: ["operators"],
-    queryFn: cashRegisterService.listOperators,
-    enabled: !!selectedRegister && !selectedRegister.hasActiveSession,
-    staleTime: 30_000,
   });
 
   /* ── Summary stats ── */
@@ -563,8 +506,6 @@ export default function CaixasPage() {
       {/* Open-session dialog */}
       <OpenSessionDialog
         register={selectedRegister}
-        operators={operators}
-        isLoadingOperators={isLoadingOperators}
         onClose={() => setSelectedRegister(null)}
         onSuccess={handleDialogSuccess}
       />

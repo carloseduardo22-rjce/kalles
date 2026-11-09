@@ -65,22 +65,9 @@ describe("Gerenciamento de caixas", () => {
       });
     }).as("getRegisters");
 
-    cy.intercept("GET", "**/api/cash-registers/operators", {
-      statusCode: 200,
-      body: [
-        {
-          id: "123e4567-e89b-12d3-a456-426614174022",
-          name: "Operador Caixa 01",
-          code: "OP001",
-          permissionLevel: null,
-        },
-      ],
-    }).as("getOperators");
-
     cy.intercept("POST", "**/api/cash-register-sessions/open", (req) => {
       expect(req.body).to.deep.include({
         cashRegisterCode: "CAIXA-01",
-        operatorCode: "OP001",
         allowCashOnlyOperation: true,
       });
 
@@ -103,8 +90,6 @@ describe("Gerenciamento de caixas", () => {
 
     cy.get("[data-testid='open-session-CAIXA-01']").click();
     cy.get("[data-testid='cash-only-open-warning']").should("be.visible");
-    cy.get("#operator-select").click();
-    cy.contains("[role='option']", "Operador Caixa 01").click();
     cy.get("#initial-amount").type("50");
     cy.get("[data-testid='open-session-confirm']").click();
 

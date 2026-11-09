@@ -71,6 +71,11 @@ export interface OperatorRequest {
   permissionLevel: PermissionLevel;
 }
 
+export interface CreateOperatorRequest extends OperatorRequest {
+  email: string;
+  password: string;
+}
+
 export interface OperatorAdminResponse {
   id: string;
   name: string;

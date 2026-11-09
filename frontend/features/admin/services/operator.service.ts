@@ -1,5 +1,6 @@
 import { api } from "@/shared/services/api";
 import type {
+  CreateOperatorRequest,
   OperatorAdminResponse,
   OperatorRequest,
 } from "@/features/admin/types";
@@ -10,7 +11,7 @@ export const operatorService = {
   listAll: (): Promise<OperatorAdminResponse[]> =>
     api.get<OperatorAdminResponse[]>(BASE),
 
-  create: (data: OperatorRequest): Promise<OperatorAdminResponse> =>
+  create: (data: CreateOperatorRequest): Promise<OperatorAdminResponse> =>
     api.post<OperatorAdminResponse>(BASE, data),
 
   update: (id: string, data: OperatorRequest): Promise<OperatorAdminResponse> =>

@@ -1,15 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  Unlock,
-  Store,
-  User,
-  DollarSign,
-  CreditCard,
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Unlock, Store, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,14 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,26 +33,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
-import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
+import type { PairedDeviceResponse } from "@/features/cash-register/types";
 
 interface FormValues {
-  cashRegisterCode: string;
-  operatorCode: string;
   initialAmount: string;
 }
 
 interface OpenSessionFormProps {
   onSuccess: (
     cashRegisterCode: string,
-    operatorCode: string,
     initialAmount: number,
     allowCashOnlyOperation?: boolean,
   ) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   onClearError: () => void;
-  pairedCashRegisterCode?: string;
-  onRepair?: () => void;
+  device: PairedDeviceResponse;
+  onRepair: () => void;
 }
 
 export function OpenSessionForm({
@@ -73,7 +57,7 @@ export function OpenSessionForm({
   isLoading,
   error,
   onClearError,
-  pairedCashRegisterCode,
+  device,
   onRepair,
 }: OpenSessionFormProps) {
   const [cashOnlyWarningOpen, setCashOnlyWarningOpen] = useState(false);
@@ -81,53 +65,9 @@ export function OpenSessionForm({
 
   const form = useForm<FormValues>({
     defaultValues: {
-      cashRegisterCode: "",
-      operatorCode: "",
       initialAmount: "0,00",
     },
   });
-
-  const { data: registers, isLoading: isLoadingRegisters } = useQuery({
-    queryKey: ["cash-registers"],
-    queryFn: cashRegisterService.listCashRegisters,
-  });
-
-  const { data: operators, isLoading: isLoadingOperators } = useQuery({
-    queryKey: ["operators"],
-    queryFn: cashRegisterService.listOperators,
-  });
-
-  useEffect(() => {
-    if (pairedCashRegisterCode) {
-      form.setValue("cashRegisterCode", pairedCashRegisterCode, {
-        shouldValidate: true,
-      });
-      return;
-    }
-    if (
-      registers &&
-      registers.length > 0 &&
-      !form.getValues().cashRegisterCode
-    ) {
-      const suggestedRegister = registers.find(
-        (register) =>
-          register.paymentIntegrationConfigured && !register.hasActiveSession,
-      );
-      if (suggestedRegister) {
-        form.setValue("cashRegisterCode", suggestedRegister.code, {
-          shouldValidate: true,
-        });
-      }
-    }
-  }, [registers, form, pairedCashRegisterCode]);
-
-  useEffect(() => {
-    if (operators && operators.length > 0 && !form.getValues().operatorCode) {
-      form.setValue("operatorCode", operators[0].code, {
-        shouldValidate: true,
-      });
-    }
-  }, [operators, form]);
 
   async function submitForm(
     values: FormValues,
@@ -145,19 +85,14 @@ export function OpenSessionForm({
     }
 
     await onSuccess(
-      values.cashRegisterCode.trim(),
-      values.operatorCode.trim(),
+      device.cashRegisterCode,
       amount,
       allowCashOnlyOperation,
     );
   }
 
   async function onSubmit(values: FormValues) {
-    const selectedRegister = registers?.find(
-      (register) => register.code === values.cashRegisterCode,
-    );
-
-    if (selectedRegister && !selectedRegister.paymentIntegrationConfigured) {
+    if (!device.paymentIntegrationConfigured) {
       setPendingSubmit(values);
       setCashOnlyWarningOpen(true);
       return;
@@ -185,7 +120,7 @@ export function OpenSessionForm({
             <CardTitle className="text-xl">Abertura de Caixa</CardTitle>
           </div>
           <CardDescription>
-            Informe os dados do caixa e do operador para iniciar a sessao.
+            Informe o valor inicial para abrir a sessao em seu nome.
           </CardDescription>
         </CardHeader>
 
@@ -204,110 +139,20 @@ export function OpenSessionForm({
               onChange={onClearError}
               className="space-y-4"
             >
-              <FormField
-                control={form.control}
-                name="cashRegisterCode"
-                rules={{ required: "Codigo do caixa obrigatorio" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <Store className="h-3.5 w-3.5" />
-                      Codigo do Caixa
-                    </FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onClearError();
-                      }}
-                      value={field.value}
-                      disabled={!!pairedCashRegisterCode}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              isLoadingRegisters
-                                ? "Carregando caixas..."
-                                : "Selecione um caixa"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {registers?.map((register) => (
-                          <SelectItem
-                            key={register.cashRegisterId}
-                            value={register.code}
-                            disabled={register.hasActiveSession}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>
-                                {register.code} - {register.description}
-                              </span>
-                              {register.paymentIntegrationConfigured && (
-                                <span className="flex items-center rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
-                                  <CreditCard className="mr-1 size-3" />
-                                  MP Auth
-                                </span>
-                              )}
-                              {register.hasActiveSession && (
-                                <span className="mr-1.5 text-xs text-muted-foreground">
-                                  (Em uso)
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="operatorCode"
-                rules={{ required: "Codigo do operador obrigatorio" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" />
-                      Codigo do Operador
-                    </FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onClearError();
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              isLoadingOperators
-                                ? "Carregando operadores..."
-                                : "Selecione um operador"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {operators?.map((operator) => (
-                          <SelectItem key={operator.id} value={operator.code}>
-                            <span className="mr-2 font-mono text-muted-foreground">
-                              {operator.code}
-                            </span>
-                            {operator.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label
+                  htmlFor="paired-cash-register"
+                  className="flex items-center gap-1"
+                >
+                  <Store className="h-3.5 w-3.5" />
+                  Caixa
+                </Label>
+                <Input
+                  id="paired-cash-register"
+                  value={device.cashRegisterCode}
+                  disabled
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -341,16 +186,14 @@ export function OpenSessionForm({
                   </>
                 )}
               </Button>
-              {onRepair && (
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full"
-                  onClick={onRepair}
-                >
-                  Parear com outro caixa
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="link"
+                className="w-full"
+                onClick={onRepair}
+              >
+                Parear com outro caixa
+              </Button>
             </form>
           </Form>
         </CardContent>

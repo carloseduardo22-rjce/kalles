@@ -48,14 +48,12 @@ export default function OpenSessionPage() {
 
   async function handleSuccess(
     cashRegisterCode: string,
-    operatorCode: string,
     initialAmount: number,
     allowCashOnlyOperation = false,
   ) {
     try {
       await openSession(
         cashRegisterCode,
-        operatorCode,
         initialAmount,
         allowCashOnlyOperation,
       );
@@ -99,7 +97,7 @@ export default function OpenSessionPage() {
         isLoading={isLoading}
         error={error}
         onClearError={clearError}
-        pairedCashRegisterCode={device.data.cashRegisterCode}
+        device={device.data}
         onRepair={() => setRepairing(true)}
       />
     );

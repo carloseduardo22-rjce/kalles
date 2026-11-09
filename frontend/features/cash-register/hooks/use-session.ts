@@ -40,7 +40,6 @@ interface UseSessionReturn {
   error: string | null;
   openSession: (
     cashRegisterCode: string,
-    operatorCode: string,
     initialAmount: number,
     allowCashOnlyOperation?: boolean,
   ) => Promise<void>;
@@ -62,7 +61,6 @@ export function useSession(): UseSessionReturn {
   const openSession = useCallback(
     async (
       cashRegisterCode: string,
-      operatorCode: string,
       initialAmount: number,
       allowCashOnlyOperation = false,
     ) => {
@@ -71,7 +69,6 @@ export function useSession(): UseSessionReturn {
       try {
         const response = await cashRegisterService.openSession({
           cashRegisterCode,
-          operatorCode,
           initialAmount,
           allowCashOnlyOperation,
         });
