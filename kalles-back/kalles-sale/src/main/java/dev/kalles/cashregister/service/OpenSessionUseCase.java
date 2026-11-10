@@ -8,11 +8,9 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.exception.OperatorAlreadyInSessionException;
-import dev.kalles.cashregister.exception.OperatorNotFoundException;
 import dev.kalles.cashregister.exception.PaymentIntegrationNotConfiguredException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
-import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.validator.SessionValidator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
@@ -27,7 +25,7 @@ import java.util.UUID;
 public class OpenSessionUseCase {
 
     private final CashRegisterRepository cashRegisterRepository;
-    private final OperatorRepository operatorRepository;
+    private final SessionOperatorResolver sessionOperatorResolver;
     private final CashRegisterSessionRepository sessionRepository;
     private final List<SessionValidator> validators;
     private final PairedDeviceSessionGuard pairedDeviceSessionGuard;
@@ -35,14 +33,14 @@ public class OpenSessionUseCase {
 
     public OpenSessionUseCase(
             CashRegisterRepository cashRegisterRepository,
-            OperatorRepository operatorRepository,
+            SessionOperatorResolver sessionOperatorResolver,
             CashRegisterSessionRepository sessionRepository,
             List<SessionValidator> validators,
             PairedDeviceSessionGuard pairedDeviceSessionGuard,
             CashRegisterPaymentIntegrationService paymentIntegrationService
     ) {
         this.cashRegisterRepository = cashRegisterRepository;
-        this.operatorRepository = operatorRepository;
+        this.sessionOperatorResolver = sessionOperatorResolver;
         this.sessionRepository = sessionRepository;
         this.validators = validators;
         this.pairedDeviceSessionGuard = pairedDeviceSessionGuard;
@@ -51,8 +49,6 @@ public class OpenSessionUseCase {
 
     @Transactional
     public SessionResponse execute(OpenSessionRequest request) {
-        validators.forEach(validator -> validator.validate(request));
-
         UUID companyId = CompanyContextHolder.requireCompanyId();
 
         CashRegister cashRegister = cashRegisterRepository
@@ -61,9 +57,9 @@ public class OpenSessionUseCase {
 
         pairedDeviceSessionGuard.ensureCanOperate(cashRegister);
 
-        Operator operator = operatorRepository
-            .findByCodeAndCompanyId(request.operatorCode(), companyId)
-            .orElseThrow(() -> new OperatorNotFoundException(request.operatorCode()));
+        Operator operator = sessionOperatorResolver.resolve(companyId);
+
+        validators.forEach(validator -> validator.validate(request, operator));
 
         boolean paymentIntegrationConfigured = paymentIntegrationService.isPaymentIntegrationConfigured(cashRegister);
         boolean cashOnlyOperation = !paymentIntegrationConfigured && request.shouldAllowCashOnlyOperation();

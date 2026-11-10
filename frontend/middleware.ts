@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (hasSession && isPublicPage) {
-    return NextResponse.redirect(new URL("/caixas", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

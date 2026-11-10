@@ -2,6 +2,7 @@ package dev.kalles.cashregister.validator;
 
 import dev.kalles.cashregister.dto.OpenSessionRequest;
 import dev.kalles.cashregister.entity.CashRegister;
+import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
@@ -54,7 +55,6 @@ class NoActiveSessionValidatorTest {
         String cashRegisterCode = "PDV-01";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -66,7 +66,7 @@ class NoActiveSessionValidatorTest {
         when(activeSessionSpec.isSatisfiedBy(cashRegister))
             .thenReturn(false);
 
-        assertDoesNotThrow(() -> validator.validate(request));
+        assertDoesNotThrow(() -> validator.validate(request, new Operator("Operador", "OP001")));
 
         verify(cashRegisterRepository).findByCodeAndCompanyId(cashRegisterCode, COMPANY_ID);
         verify(activeSessionSpec).isSatisfiedBy(cashRegister);
@@ -78,7 +78,6 @@ class NoActiveSessionValidatorTest {
         String cashRegisterCode = "PDV-01";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -92,7 +91,7 @@ class NoActiveSessionValidatorTest {
 
         ActiveSessionAlreadyExistsException exception = assertThrows(
             ActiveSessionAlreadyExistsException.class,
-            () -> validator.validate(request)
+            () -> validator.validate(request, new Operator("Operador", "OP001"))
         );
 
         org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("PDV-01"));
@@ -107,7 +106,6 @@ class NoActiveSessionValidatorTest {
         String cashRegisterCode = "PDV-99";
         OpenSessionRequest request = new OpenSessionRequest(
             cashRegisterCode,
-            "OP001",
             new BigDecimal("100.00"),
             false
         );
@@ -117,7 +115,7 @@ class NoActiveSessionValidatorTest {
 
         CashRegisterNotFoundException exception = assertThrows(
             CashRegisterNotFoundException.class,
-            () -> validator.validate(request)
+            () -> validator.validate(request, new Operator("Operador", "OP001"))
         );
 
         org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("PDV-99"));

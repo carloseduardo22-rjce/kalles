@@ -30,13 +30,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AccountVerificationService accountVerificationService;
-    private final PosDeviceAuthorizationService posDeviceAuthorizationService;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationProtectionService authenticationProtectionService;
 
     private volatile String unknownAccountPasswordHash;
 
-    public AuthTokens authenticate(LoginRequest request, String posToken) {
+    public AuthTokens authenticate(LoginRequest request) {
         authenticationProtectionService.assertLoginAllowed(request.email(), request.tenantId());
         try {
             var account = resolveAccountOptional(request.email(), request.tenantId())
@@ -48,10 +47,8 @@ public class AuthService {
                 throw new ForbiddenOperationException("Conta ainda nao verificada.");
             }
 
-            UUID posId = posDeviceAuthorizationService.resolveAuthorizedPosId(account, posToken);
-
             authenticationProtectionService.registerLoginSuccess(request.email(), request.tenantId());
-            return buildSessionTokens(account, posId);
+            return buildSessionTokens(account);
         } catch (RuntimeException ex) {
             authenticationProtectionService.registerLoginFailure(request.email(), request.tenantId());
             throw ex;
@@ -102,7 +99,7 @@ public class AuthService {
             accountRepository.save(account);
             authenticationProtectionService.registerVerificationSuccess(request.email(), request.tenantId());
 
-            return buildSessionTokens(account, null);
+            return buildSessionTokens(account);
         } catch (RuntimeException ex) {
             authenticationProtectionService.registerVerificationFailure(request.email(), request.tenantId());
             throw ex;
@@ -120,7 +117,7 @@ public class AuthService {
     @Transactional
     public AuthTokens refresh(String rawRefreshToken) {
         RefreshTokenPrincipal principal = refreshTokenService.validate(rawRefreshToken);
-        String accessToken = jwtService.generateToken(principal.account(), principal.posId());
+        String accessToken = jwtService.generateToken(principal.account());
         String nextRefreshToken = refreshTokenService.rotate(rawRefreshToken);
         return new AuthTokens(accessToken, nextRefreshToken);
     }
@@ -130,9 +127,9 @@ public class AuthService {
         refreshTokenService.revoke(rawRefreshToken);
     }
 
-    private AuthTokens buildSessionTokens(Account account, UUID posId) {
-        String accessToken = jwtService.generateToken(account, posId);
-        String refreshToken = refreshTokenService.issue(account, posId);
+    private AuthTokens buildSessionTokens(Account account) {
+        String accessToken = jwtService.generateToken(account);
+        String refreshToken = refreshTokenService.issue(account);
         return new AuthTokens(accessToken, refreshToken);
     }
 

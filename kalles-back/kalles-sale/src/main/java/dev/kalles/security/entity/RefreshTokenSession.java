@@ -31,9 +31,6 @@ public class RefreshTokenSession {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(name = "pos_id")
-    private UUID posId;
-
     @Column(name = "token_hash", nullable = false, unique = true, length = 128)
     private String tokenHash;
 

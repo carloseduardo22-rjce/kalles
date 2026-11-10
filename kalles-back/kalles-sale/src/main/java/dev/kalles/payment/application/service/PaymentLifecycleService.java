@@ -72,11 +72,7 @@ public class PaymentLifecycleService implements ProcessPaymentUseCase {
     }
 
     private void validateSessionAllowsElectronicPayments(PaymentCommand command) {
-        checkoutSessionService.findByToken(command.externalReference())
-            .ifPresent(this::ensureElectronicPaymentsAllowed);
-    }
-
-    private void ensureElectronicPaymentsAllowed(Session session) {
+        Session session = checkoutSessionService.getOpenSessionOrThrow(command.externalReference());
         if (!session.allowsElectronicPayments()) {
             throw new CashOnlySessionException();
         }

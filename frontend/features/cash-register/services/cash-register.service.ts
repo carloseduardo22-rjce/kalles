@@ -5,6 +5,8 @@ import type {
   CloseSessionResponse,
   OpenSessionRequest,
   OperatorResponse,
+  PairedDeviceResponse,
+  PairingCodeResponse,
   SessionResponse,
   SessionSummaryResponse,
 } from "../types";
@@ -41,6 +43,34 @@ export const cashRegisterService = {
   /** Lista operadores disponíveis para vinculação. */
   listOperators: (): Promise<OperatorResponse[]> =>
     api.get<OperatorResponse[]>(`${REGISTERS_BASE}/operators`),
+
+  generatePairingCode: (cashRegisterId: string): Promise<PairingCodeResponse> =>
+    api.post<PairingCodeResponse>(
+      `${REGISTERS_BASE}/${cashRegisterId}/pairing-code`,
+    ),
+
+  revokePairing: (cashRegisterId: string): Promise<void> =>
+    api.delete<void>(`${REGISTERS_BASE}/${cashRegisterId}/pairing`),
+
+  pairDevice: (pairingCode: string): Promise<PairedDeviceResponse> =>
+    api.post<PairedDeviceResponse>("/api/pos/setup", { pairingCode }),
+
+  getCurrentSession: (): Promise<SessionResponse> =>
+    api.get<SessionResponse>("/api/cash-register-sessions/current"),
+
+  findSessionOnThisDevice: async (): Promise<SessionResponse | null> => {
+    const session = await cashRegisterService
+      .getCurrentSession()
+      .catch(() => null);
+    if (!session) return null;
+    const device = await cashRegisterService
+      .getPairedDevice()
+      .catch(() => null);
+    return device?.cashRegisterId === session.cashRegisterId ? session : null;
+  },
+
+  getPairedDevice: (): Promise<PairedDeviceResponse> =>
+    api.get<PairedDeviceResponse>("/api/pos/device"),
 
   /** Lista sessões (abertas ou fechadas) cujas aberturas ocorreram entre startDate e endDate (YYYY-MM-DD, inclusivo). */
   listSessionsByDateRange: (

@@ -8,10 +8,9 @@ import dev.kalles.company.entity.Tenant;
 import dev.kalles.company.repository.CompanyRepository;
 import dev.kalles.company.repository.TenantRepository;
 import dev.kalles.security.entity.Account;
-import dev.kalles.security.entity.PosDeviceSession;
 import dev.kalles.security.enums.AccountRole;
 import dev.kalles.security.repository.AccountRepository;
-import dev.kalles.security.repository.PosDeviceSessionRepository;
+import dev.kalles.security.repository.PosPairingCodeRepository;
 import dev.kalles.security.support.AbstractSecurityApiContainerSupport;
 import dev.kalles.testsupport.CsrfTestClient;
 import dev.kalles.testsupport.CsrfTestClient.CsrfContext;
@@ -27,7 +26,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,12 +57,12 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     private AccountRepository accountRepository;
 
     @Autowired
-    private PosDeviceSessionRepository posDeviceSessionRepository;
+    private PosPairingCodeRepository posPairingCodeRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-        private UUID companyId;
+    private UUID companyId;
     private UUID cashRegisterId;
 
     @BeforeEach
@@ -123,70 +121,9 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     }
 
     @Test
-    void shouldBlockOperatorLoginWithoutPosToken() {
+    void shouldAllowOperatorLoginWithoutPairedDevice() {
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(Map.of(
-                        "email", "operador.caixa01@sistema.local",
-                        "password", "123456"
-                ))
-                .when()
-                .post("/api/auth/login")
-                .then()
-                .statusCode(403)
-                .body("detail", equalTo("Terminal não configurado. Por favor, solicite o pareamento do caixa."));
-    }
-
-    @Test
-    void shouldGeneratePairingTokenForAuthenticatedAdmin() {
-        String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
-        CsrfContext csrf = CsrfTestClient.fetch(port);
-
-        Response response = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie("kalles_auth_token", authCookie)
-                .cookie("XSRF-TOKEN", csrf.csrfCookie())
-                .header("X-XSRF-TOKEN", csrf.csrfToken())
-                .body(Map.of(
-                        "companyId", companyId,
-                        "posId", cashRegisterId
-                ))
-                .when()
-                .post("/api/pos/admin/generate-token");
-
-        response.then()
-                .statusCode(200)
-                .body("pairingToken", not(blankOrNullString()));
-
-        String pairingToken = response.jsonPath().getString("pairingToken");
-        assertThat(posDeviceSessionRepository.findByTokenAndActiveTrueAndExpiresAtGreaterThan(
-                pairingToken,
-                LocalDateTime.now().minusSeconds(1)
-        )).isPresent();
-    }
-
-    @Test
-    void shouldSetupDeviceCookieWithValidPairingToken() {
-        String pairingToken = seedPairingToken("pairing-token-caixa-01", companyId, cashRegisterId, true);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .body(Map.of("pairingToken", pairingToken))
-                .when()
-                .post("/api/pos/setup")
-                .then()
-                .statusCode(200)
-                .body("message", equalTo("Dispositivo pareado com sucesso."))
-                .header(HttpHeaders.SET_COOKIE, not(blankOrNullString()));
-    }
-
-    @Test
-    void shouldAllowOperatorLoginWithValidPosToken() {
-        String pairingToken = seedPairingToken("pairing-token-valido", companyId, cashRegisterId, true);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie("kalles_pos_token", pairingToken)
                 .body(Map.of(
                         "email", "operador.caixa01@sistema.local",
                         "password", "123456"
@@ -199,40 +136,8 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
     }
 
     @Test
-    void shouldBlockOperatorLoginWithRevokedPosToken() {
-        String pairingToken = seedPairingToken("pairing-token-revogado", companyId, cashRegisterId, false);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie("kalles_pos_token", pairingToken)
-                .body(Map.of(
-                        "email", "operador.caixa01@sistema.local",
-                        "password", "123456"
-                ))
-                .when()
-                .post("/api/auth/login")
-                .then()
-                .statusCode(401)
-                .body("code", equalTo("POS_SESSION_INVALID"))
-                .body("detail", equalTo("Sessão do terminal inválida ou expirada."));
-    }
-
-    @Test
-    void shouldRejectInvalidPairingToken() {
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .body(Map.of("pairingToken", "token-invalido"))
-                .when()
-                .post("/api/pos/setup")
-                .then()
-                .statusCode(401)
-                .body("code", equalTo("PAIRING_TOKEN_INVALID"))
-                .body("detail", equalTo("Token de pareamento inválido ou expirado."));
-    }
-
-    @Test
-    void shouldRequireCompanyIdAndPosIdWhenGeneratingPairingToken() {
-        String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
+    void shouldRejectPairingCodeGenerationForOperator() {
+        String authCookie = loginAndExtractAuthCookie("operador.caixa01@sistema.local", "123456");
         CsrfContext csrf = CsrfTestClient.fetch(port);
 
         RestAssured.given()
@@ -240,38 +145,16 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .cookie("kalles_auth_token", authCookie)
                 .cookie("XSRF-TOKEN", csrf.csrfCookie())
                 .header("X-XSRF-TOKEN", csrf.csrfToken())
-                .body(Map.of())
                 .when()
-                .post("/api/pos/admin/generate-token")
-                .then()
-                .statusCode(400);
-    }
-
-    @Test
-    void shouldRejectPairingTokenGenerationForOperator() {
-        String pairingToken = seedPairingToken("pairing-token-operador", companyId, cashRegisterId, true);
-        String authCookie = loginOperatorAndExtractAuthCookie(pairingToken);
-        CsrfContext csrf = CsrfTestClient.fetch(port);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie("kalles_auth_token", authCookie)
-                .cookie("XSRF-TOKEN", csrf.csrfCookie())
-                .header("X-XSRF-TOKEN", csrf.csrfToken())
-                .body(Map.of(
-                        "companyId", companyId,
-                        "posId", cashRegisterId
-                ))
-                .when()
-                .post("/api/pos/admin/generate-token")
+                .post("/api/cash-registers/{id}/pairing-code", cashRegisterId)
                 .then()
                 .statusCode(403);
 
-        assertThat(posDeviceSessionRepository.count()).isEqualTo(1);
+        assertThat(posPairingCodeRepository.count()).isZero();
     }
 
     @Test
-    void shouldRejectPairingTokenGenerationForCompanyOfAnotherTenant() {
+    void shouldNotGeneratePairingCodeForCashRegisterOfAnotherTenant() {
         UUID otherTenantId = UUID.fromString("99999999-e89b-12d3-a456-426614174000");
         tenantRepository.save(new Tenant(otherTenantId, "Conta de Outro Cliente"));
         UUID otherCompanyId = companyRepository.save(new Company(
@@ -285,6 +168,9 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 null,
                 null
         )).getId();
+        UUID otherCashRegisterId = cashRegisterRepository.save(
+                new CashRegister("CAIXA-99", "Caixa de outro cliente", otherCompanyId)
+        ).getId();
 
         String authCookie = loginAndExtractAuthCookie("admin@sistema.local", "123456");
         CsrfContext csrf = CsrfTestClient.fetch(port);
@@ -294,16 +180,13 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
                 .cookie("kalles_auth_token", authCookie)
                 .cookie("XSRF-TOKEN", csrf.csrfCookie())
                 .header("X-XSRF-TOKEN", csrf.csrfToken())
-                .body(Map.of(
-                        "companyId", otherCompanyId,
-                        "posId", cashRegisterId
-                ))
                 .when()
-                .post("/api/pos/admin/generate-token")
+                .post("/api/cash-registers/{id}/pairing-code", otherCashRegisterId)
                 .then()
-                .statusCode(403);
+                .statusCode(404)
+                .body("code", equalTo("CASH_REGISTER_NOT_FOUND"));
 
-        assertThat(posDeviceSessionRepository.count()).isZero();
+        assertThat(posPairingCodeRepository.count()).isZero();
     }
 
     @Test
@@ -410,29 +293,5 @@ class AuthAndPosSetupApiIntegrationTest extends AbstractSecurityApiContainerSupp
 
         response.then().statusCode(200);
         return response.getCookie("kalles_auth_token");
-    }
-
-    private String loginOperatorAndExtractAuthCookie(String pairingToken) {
-        Response response = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie("kalles_pos_token", pairingToken)
-                .body(Map.of("email", "operador.caixa01@sistema.local", "password", "123456"))
-                .when()
-                .post("/api/auth/login");
-
-        response.then().statusCode(200);
-        return response.getCookie("kalles_auth_token");
-    }
-
-    private String seedPairingToken(String token, UUID companyId, UUID posId, boolean active) {
-        PosDeviceSession session = new PosDeviceSession();
-        session.setCompanyId(companyId);
-        session.setPosId(posId);
-        session.setToken(token);
-        session.setCreatedAt(LocalDateTime.now());
-        session.setExpiresAt(LocalDateTime.now().plusDays(30));
-        session.setActive(active);
-        posDeviceSessionRepository.save(session);
-        return token;
     }
 }

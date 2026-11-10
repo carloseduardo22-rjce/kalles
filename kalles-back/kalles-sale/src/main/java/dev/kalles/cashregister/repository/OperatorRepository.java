@@ -15,6 +15,10 @@ public interface OperatorRepository extends JpaRepository<Operator, UUID> {
 
     Optional<Operator> findByIdAndCompanyId(UUID id, UUID companyId);
 
+    Optional<Operator> findByAccountIdAndCompanyId(UUID accountId, UUID companyId);
+
+    boolean existsByCodeAndCompanyId(String code, UUID companyId);
+
     List<Operator> findAllByActiveTrueOrderByNameAsc();
 
     List<Operator> findAllByCompanyIdAndActiveTrueOrderByNameAsc(UUID companyId);

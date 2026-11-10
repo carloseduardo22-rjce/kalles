@@ -1,5 +1,6 @@
 package dev.kalles.cashregister.controller;
 
+import dev.kalles.cashregister.dto.CreateOperatorRequest;
 import dev.kalles.cashregister.dto.OperatorRequest;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.service.OperatorService;
@@ -36,9 +37,9 @@ public class OperatorController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Operador cadastrado com sucesso"),
         @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-        @ApiResponse(responseCode = "409", description = "Código já cadastrado nesta filial")
+        @ApiResponse(responseCode = "409", description = "Código já cadastrado nesta filial ou e-mail já em uso")
     })
-    public ResponseEntity<OperatorResponse> create(@Valid @RequestBody OperatorRequest request) {
+    public ResponseEntity<OperatorResponse> create(@Valid @RequestBody CreateOperatorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(operatorService.create(request));
     }
 

@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
-import { cashRegisterService } from "../services/cash-register.service";
 
 interface CloseSessionAuthorizedDialogProps {
   isLoading: boolean;
@@ -27,8 +26,6 @@ interface CloseSessionAuthorizedDialogProps {
     countedCashAmount: number;
   }) => Promise<void>;
 }
-
-const AUTHORIZED_LEVELS = ["SUPERVISOR", "MANAGER", "ADMIN"];
 
 export function CloseSessionAuthorizedDialog({
   isLoading,
@@ -64,25 +61,17 @@ export function CloseSessionAuthorizedDialog({
     setChecking(true);
     setAuthError(null);
     try {
-      const operators = await cashRegisterService.listOperators();
-      const match = operators.find(
-        (op) =>
-          op.code.toUpperCase() === operatorCode.trim().toUpperCase() &&
-          AUTHORIZED_LEVELS.includes(op.permissionLevel ?? ""),
-      );
-      if (!match) {
-        setAuthError(
-          "Código inválido ou operador sem permissão para fechar o caixa.",
-        );
-        return;
-      }
       await onConfirm({
         authorizedOperatorCode: operatorCode.trim(),
         countedCashAmount: countedValue,
       });
       setOpen(false);
-    } catch {
-      setAuthError("Erro ao verificar autorização. Tente novamente.");
+    } catch (err) {
+      setAuthError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao verificar autorização. Tente novamente.",
+      );
     } finally {
       setChecking(false);
     }

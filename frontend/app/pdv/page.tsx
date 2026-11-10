@@ -18,7 +18,10 @@ import { FidelityPdvPanel } from "@/features/sales/components/fidelity-pdv-panel
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { useSale } from "@/features/sales/hooks/use-sale";
-import { useSession } from "@/features/cash-register/hooks/use-session";
+import {
+  storeActiveSession,
+  useSession,
+} from "@/features/cash-register/hooks/use-session";
 import { cashRegisterService } from "@/features/cash-register/services/cash-register.service";
 import { companySettingsService } from "@/shared/services/company-settings.service";
 import { CompanySwitcher } from "@/components/company-switcher";
@@ -28,7 +31,6 @@ import type { ProductCodeType, SaleItemResponse } from "@/features/sales/types";
 import { formatCurrency } from "@/shared/utils/formatters";
 import type { ProductSearchHandle } from "@/features/sales/components/product-search";
 import {
-  getSessionScopedItem,
   removeSessionScopedItem,
 } from "@/shared/utils/session-storage";
 
@@ -170,33 +172,13 @@ export default function PdvPage() {
 
   useEffect(() => {
     async function initSession() {
-      let stored: ActiveSession | null = null;
-      try {
-        const raw = getSessionScopedItem(STORAGE_KEY);
-        stored = raw ? (JSON.parse(raw) as ActiveSession) : null;
-      } catch {
-        // ignore parse error
-      }
-
-      if (stored) {
-        const sessionId = stored.sessionId;
-        const registers = await cashRegisterService
-          .listCashRegisters()
-          .catch(() => null);
-        const stillOpen = registers?.some(
-          (r) => r.hasActiveSession && r.activeSessionId === sessionId,
-        );
-        if (registers && !stillOpen) {
-          removeSessionScopedItem(STORAGE_KEY);
-          stored = null;
-        }
-      }
-
-      if (!stored) {
+      const current = await cashRegisterService.findSessionOnThisDevice();
+      if (!current) {
+        removeSessionScopedItem(STORAGE_KEY);
         router.replace("/open-session");
         return;
       }
-      setSessionData(stored);
+      setSessionData(storeActiveSession(current));
       setLogoUrl(companySettingsService.getLogo());
       setHydrated(true);
     }

@@ -96,7 +96,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/notes/sensitive/**").hasAnyRole("ADMIN", "OPERATOR")
 
                 // ── Admin-only: management CRUD ──
-                .requestMatchers(HttpMethod.POST, "/api/pos/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/agents/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/products/**").hasRole("ADMIN")
@@ -107,6 +106,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/goals/**").hasRole("ADMIN")
                 .requestMatchers("/api/fidelity-policies/**").hasRole("ADMIN")
                 .requestMatchers("/api/reports/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/companies").hasAnyRole("ADMIN", "OPERATOR")
                 .requestMatchers("/api/companies/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")

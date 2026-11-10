@@ -203,7 +203,6 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "cashRegisterCode", CASH_REGISTER_CODE,
-                        "operatorCode", OPERATOR_CODE,
                         "initialAmount", 100.00,
                         "allowCashOnlyOperation", cashOnlyOperation
                 ))
@@ -229,6 +228,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                             "Cookie",
                             "kalles_auth_token=" + authContext.authCookie()
                                     + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                    + deviceCookie()
                     )
                     .header("X-XSRF-TOKEN", authContext.csrfToken())
                     .header("X-Company-ID", companyId.toString())
@@ -259,6 +259,7 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                             "Cookie",
                             "kalles_auth_token=" + authContext.authCookie()
                                     + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                    + deviceCookie()
                     )
                     .header("X-XSRF-TOKEN", authContext.csrfToken())
                     .header("X-Company-ID", companyId.toString())
@@ -284,7 +285,8 @@ public abstract class AbstractSaleApiSupport extends AbstractCashRegisterApiSupp
                 "http://localhost:" + port + path,
                 Map.of(
                         "Accept", "application/json",
-                        "Cookie", "kalles_auth_token=" + authContext.authCookie() + "; XSRF-TOKEN=" + authContext.csrfCookie(),
+                        "Cookie", "kalles_auth_token=" + authContext.authCookie() + "; XSRF-TOKEN=" + authContext.csrfCookie()
+                                + deviceCookie(),
                         "X-XSRF-TOKEN", authContext.csrfToken(),
                         "X-Company-ID", companyId.toString()
                 )

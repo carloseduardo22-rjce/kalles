@@ -19,5 +19,6 @@ public record CashRegisterStatusResponse(
     BigDecimal initialAmount,
     LocalDateTime openedAt,
     boolean paymentIntegrationConfigured,
-    Boolean activeSessionCashOnlyOperation
+    Boolean activeSessionCashOnlyOperation,
+    LocalDateTime pairedAt
 ) {}

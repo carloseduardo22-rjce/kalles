@@ -27,7 +27,7 @@
 		<java.version>25</java.version>
 		<cucumber.version>7.22.2</cucumber.version>
 		<rest-assured.version>5.5.6</rest-assured.version>
-		<testcontainers.version>1.21.3</testcontainers.version>
+		<testcontainers.version>1.21.4</testcontainers.version>
 	</properties>
 	<dependencies>
 		<dependency>

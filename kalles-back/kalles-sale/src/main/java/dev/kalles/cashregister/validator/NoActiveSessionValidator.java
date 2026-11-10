@@ -2,6 +2,7 @@ package dev.kalles.cashregister.validator;
 
 import dev.kalles.cashregister.dto.OpenSessionRequest;
 import dev.kalles.cashregister.entity.CashRegister;
+import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.exception.ActiveSessionAlreadyExistsException;
 import dev.kalles.cashregister.exception.CashRegisterNotFoundException;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
@@ -22,7 +23,7 @@ public class NoActiveSessionValidator implements SessionValidator {
     private final ActiveSessionSpecification activeSessionSpec;
 
     @Override
-    public void validate(OpenSessionRequest request) {
+    public void validate(OpenSessionRequest request, Operator operator) {
         UUID companyId = CompanyContextHolder.requireCompanyId();
         CashRegister cashRegister = cashRegisterRepository
             .findByCodeAndCompanyId(request.cashRegisterCode(), companyId)

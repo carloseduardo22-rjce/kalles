@@ -2,6 +2,7 @@ package dev.kalles.cashregister.service;
 
 import dev.kalles.cashregister.dto.CashRegisterStatusResponse;
 import dev.kalles.cashregister.dto.OperatorResponse;
+import dev.kalles.cashregister.dto.SessionResponse;
 import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.repository.CashRegisterRepository;
@@ -9,6 +10,9 @@ import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
 import dev.kalles.cashregister.valueobject.SessionStatus;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.service.AuthenticatedAccountProvider;
+import dev.kalles.security.service.PosPairingService;
+import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +33,18 @@ public class CashRegisterQueryService {
     private final CashRegisterSessionRepository sessionRepository;
     private final OperatorRepository operatorRepository;
     private final CashRegisterPaymentIntegrationService paymentIntegrationService;
+    private final PosPairingService posPairingService;
+    private final AuthenticatedAccountProvider authenticatedAccountProvider;
+
+    @Transactional(readOnly = true)
+    public SessionResponse currentSession() {
+        return operatorRepository
+                .findByAccountIdAndCompanyId(
+                        authenticatedAccountProvider.require().getId(), CompanyContextHolder.requireCompanyId())
+                .flatMap(operator -> sessionRepository.findByOperatorAndStatus(operator, SessionStatus.OPEN))
+                .map(SessionResponse::fromEntity)
+                .orElseThrow(() -> new NotFoundException("NO_OPEN_SESSION", "Esta conta não tem sessão aberta nesta filial."));
+    }
 
     @Transactional(readOnly = true)
     public List<CashRegisterStatusResponse> listAllWithSessionStatus() {
@@ -64,7 +80,8 @@ public class CashRegisterQueryService {
             activeSession.map(CashRegisterSession::getInitialAmountValue).orElse(null),
             activeSession.map(CashRegisterSession::getOpenedAt).orElse(null),
             paymentConfigured,
-            activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null)
+            activeSession.map(CashRegisterSession::isCashOnlyOperation).orElse(null),
+            posPairingService.pairedAt(cashRegister.getId()).orElse(null)
         );
     }
 }

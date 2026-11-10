@@ -113,6 +113,8 @@ function OperatorAvatar({ id, name }: { id: string; name: string }) {
 
 interface OperatorFormValues extends OperatorRequest {
   photoUrl?: string;
+  email?: string;
+  password?: string;
 }
 
 /* ─── Form ──────────────────────────────────────────────────────────────── */
@@ -122,7 +124,9 @@ function OperatorForm({
   onSubmit,
   isPending,
   onCancel,
+  withAccess = false,
 }: {
+  withAccess?: boolean;
   defaultValues?: Partial<OperatorFormValues>;
   onSubmit: (data: OperatorFormValues) => void;
   isPending: boolean;
@@ -153,11 +157,54 @@ function OperatorForm({
         )}
       </div>
 
+      {withAccess && (
+        <>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">E-mail de acesso *</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="off"
+              {...register("email", { required: "E-mail é obrigatório" })}
+              placeholder="operador@loja.com"
+            />
+            {errors.email && (
+              <p className="text-xs text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Senha inicial *</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              {...register("password", {
+                required: "Senha é obrigatória",
+                minLength: { value: 8, message: "Mínimo de 8 caracteres" },
+              })}
+            />
+            {errors.password && (
+              <p className="text-xs text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+        </>
+      )}
+
       <div className="space-y-1.5">
-        <Label htmlFor="code">Código de Login *</Label>
+        <Label htmlFor="code">Matrícula *</Label>
         <Input
           id="code"
-          {...register("code", { required: "Código é obrigatório" })}
+          {...register("code", {
+            required: "Matrícula é obrigatória",
+            pattern: {
+              value: /^[a-zA-Z0-9._-]+$/,
+              message:
+                "A matrícula deve ter apenas letras sem acento, números, ponto, underscore ou hífen",
+            },
+          })}
           placeholder="Ex: joao.silva"
           className="font-mono"
         />
@@ -258,8 +305,20 @@ export default function OperadoresPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: ({ name, code, permissionLevel }: OperatorFormValues) =>
-      operatorService.create({ name, code, permissionLevel }),
+    mutationFn: ({
+      name,
+      code,
+      permissionLevel,
+      email,
+      password,
+    }: OperatorFormValues) =>
+      operatorService.create({
+        name,
+        code,
+        permissionLevel,
+        email: email ?? "",
+        password: password ?? "",
+      }),
     onSuccess: (created, variables) => {
       if (variables.photoUrl?.trim()) {
         operatorPhotoService.setPhoto(created.id, variables.photoUrl.trim());
@@ -432,6 +491,7 @@ export default function OperadoresPage() {
             </DialogDescription>
           </DialogHeader>
           <OperatorForm
+            withAccess
             onSubmit={(data) => createMutation.mutate(data)}
             isPending={createMutation.isPending}
             onCancel={() => setCreateOpen(false)}

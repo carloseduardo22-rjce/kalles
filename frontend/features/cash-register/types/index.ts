@@ -2,7 +2,6 @@ export type SessionStatus = "OPEN" | "CLOSED";
 
 export interface OpenSessionRequest {
   cashRegisterCode: string;
-  operatorCode: string;
   initialAmount: number;
   allowCashOnlyOperation?: boolean;
 }
@@ -10,6 +9,7 @@ export interface OpenSessionRequest {
 export interface SessionResponse {
   sessionId: string;
   operatorId: string;
+  cashRegisterId: string;
   cashRegisterCode: string;
   operatorName: string;
   initialAmount: number;
@@ -72,6 +72,18 @@ export interface CashRegisterStatusResponse {
   openedAt: string | null;
   paymentIntegrationConfigured: boolean;
   activeSessionCashOnlyOperation: boolean | null;
+  pairedAt: string | null;
+}
+
+export interface PairingCodeResponse {
+  code: string;
+  expiresAt: string;
+}
+
+export interface PairedDeviceResponse {
+  cashRegisterId: string;
+  cashRegisterCode: string;
+  paymentIntegrationConfigured: boolean;
 }
 
 /** Operador disponivel para vinculacao a uma sessao */

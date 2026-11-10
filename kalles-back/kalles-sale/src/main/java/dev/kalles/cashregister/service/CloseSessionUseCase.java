@@ -40,10 +40,12 @@ public class CloseSessionUseCase {
     private final CashRegisterClosingRepository closingRepository;
     private final OperatorRepository operatorRepository;
     private final SaleRepository saleRepository;
+    private final PairedDeviceSessionGuard pairedDeviceSessionGuard;
 
     @Transactional
     public CloseSessionResponse execute(UUID sessionId, CloseSessionRequest request) {
         CashRegisterSession session = findSessionOrThrow(sessionId);
+        pairedDeviceSessionGuard.ensureCanOperate(session.getCashRegister());
         Operator authorizedByOperator = findAuthorizedOperator(request.authorizedOperatorCode());
         resolvePendingSales(session);
         SessionSummaryResponse summary = buildLiveSummary(session);

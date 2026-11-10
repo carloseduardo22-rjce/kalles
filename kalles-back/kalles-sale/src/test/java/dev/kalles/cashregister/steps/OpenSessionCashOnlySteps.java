@@ -22,7 +22,7 @@ public class OpenSessionCashOnlySteps extends CashRegisterCucumberSpringConfigur
     private AuthContext authContext;
     private Response response;
 
-    @Before
+    @Before("not @RF-002")
     public void beforeScenario() {
         resetScenarioData();
         paymentIntegrationConfigured = false;
@@ -58,7 +58,6 @@ public class OpenSessionCashOnlySteps extends CashRegisterCucumberSpringConfigur
     public void whenRequestSessionOpening() {
         Map<String, Object> body = new HashMap<>();
         body.put("cashRegisterCode", CASH_REGISTER_CODE);
-        body.put("operatorCode", OPERATOR_CODE);
         body.put("initialAmount", initialAmount);
         body.put("allowCashOnlyOperation", allowCashOnlyOperation);
 

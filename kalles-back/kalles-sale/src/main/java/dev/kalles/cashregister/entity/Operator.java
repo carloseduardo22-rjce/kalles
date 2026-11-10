@@ -39,6 +39,9 @@ public class Operator {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "account_id")
+    private UUID accountId;
+
     public Operator(String name, String code) {
         this.name = Objects.requireNonNull(name, "Nome obrigatório");
         this.code = Objects.requireNonNull(code, "Código obrigatório");
