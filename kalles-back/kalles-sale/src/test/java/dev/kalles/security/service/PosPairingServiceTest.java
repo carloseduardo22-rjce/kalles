@@ -189,6 +189,7 @@ class PosPairingServiceTest {
         });
 
         verify(deviceSessionRepository, never()).saveAndFlush(any());
+        verify(pairingCodeRepository).consumeUnusedCodes(any(), any());
     }
 
     private PosPairingCode pairingCode(LocalDateTime expiresAt) {

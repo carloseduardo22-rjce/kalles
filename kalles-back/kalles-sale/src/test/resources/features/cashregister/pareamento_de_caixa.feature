@@ -55,6 +55,14 @@ Funcionalidade: Pareamento do dispositivo com o caixa
     E o dispositivo "A" nao deve conseguir registrar venda na sessao aberta
     E o dispositivo "A" nao deve conseguir abrir a sessao do caixa
 
+  @CA-002.5
+  Cenario: Codigo emitido antes da revogacao nao pareia mais
+    Dado um codigo de pareamento gerado para o caixa
+    E o administrador revogar o pareamento do caixa
+    Quando o dispositivo "B" informar o codigo de pareamento
+    Entao a resposta do pareamento deve ter status HTTP 422
+    E o erro do pareamento deve ter o codigo "PAIRING_CODE_INVALID"
+
   @CA-002.6
   Cenario: Navegador nao pareado nao abre sessao
     Quando o dispositivo "C" tentar abrir a sessao do caixa

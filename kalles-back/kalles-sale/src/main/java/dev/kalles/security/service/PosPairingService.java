@@ -68,7 +68,10 @@ public class PosPairingService {
 
     @Transactional
     public void revoke(UUID cashRegisterId) {
-        revokeActivePairing(requireCashRegister(cashRegisterId).getId(), LocalDateTime.now());
+        UUID id = requireCashRegister(cashRegisterId).getId();
+        LocalDateTime now = LocalDateTime.now();
+        pairingCodeRepository.consumeUnusedCodes(id, now);
+        revokeActivePairing(id, now);
     }
 
     @Transactional(readOnly = true)
