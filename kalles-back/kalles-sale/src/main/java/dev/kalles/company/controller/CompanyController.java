@@ -4,9 +4,14 @@ import dev.kalles.company.entity.Company;
 import dev.kalles.company.service.CompanyService;
 import dev.kalles.security.context.CompanyContextHolder;
 import dev.kalles.security.context.TenantContextHolder;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,6 +65,29 @@ public class CompanyController {
 
         return ResponseEntity.ok(responses);
     }
+
+    @GetMapping("/{companyId}/cash-closing-tolerance")
+    public CashClosingToleranceResponse cashClosingTolerance(@PathVariable UUID companyId) {
+        return new CashClosingToleranceResponse(companyService.cashClosingTolerance(companyId));
+    }
+
+    @PutMapping("/{companyId}/cash-closing-tolerance")
+    public CashClosingToleranceResponse updateCashClosingTolerance(
+            @PathVariable UUID companyId,
+            @Valid @RequestBody CashClosingToleranceRequest request
+    ) {
+        return new CashClosingToleranceResponse(
+                companyService.updateCashClosingTolerance(companyId, request.amount()));
+    }
+
+    public record CashClosingToleranceRequest(
+            @NotNull
+            @DecimalMin("0.00")
+            @Digits(integer = 17, fraction = 2)
+            BigDecimal amount
+    ) {}
+
+    public record CashClosingToleranceResponse(BigDecimal amount) {}
 
     public record CreateCompanyRequest(
             String name,
