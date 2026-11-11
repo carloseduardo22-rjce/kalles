@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { KeyRound, Loader2, MonitorSmartphone, Unlink } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Check,
+  Copy,
+  KeyRound,
+  Loader2,
+  MonitorSmartphone,
+  Unlink,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +39,25 @@ interface DevicePairingSectionProps {
   onChanged: () => void;
 }
 
+async function copyText(text: string): Promise<void> {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.opacity = "0";
+  document.body.appendChild(field);
+  field.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(field);
+  if (!copied) {
+    throw new Error("copy failed");
+  }
+}
+
 function formatTime(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -48,6 +74,38 @@ export function DevicePairingSection({
   );
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async (code: string) => {
+    try {
+      await copyText(code);
+      setCopied(true);
+      toast.success("Código copiado.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o código e copie manualmente.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pairingCode) return;
+    const code = pairingCode.code;
+    function onKeyDown(event: KeyboardEvent) {
+      const isCopyShortcut =
+        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
+      if (isCopyShortcut && !window.getSelection()?.toString()) {
+        event.preventDefault();
+        handleCopy(code);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pairingCode, handleCopy]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   async function handleGenerate() {
     setBusy(true);
@@ -83,6 +141,7 @@ export function DevicePairingSection({
   function handleCodeDialogChange(open: boolean) {
     if (!open) {
       setPairingCode(null);
+      setCopied(false);
       onChanged();
     }
   }
@@ -146,10 +205,23 @@ export function DevicePairingSection({
               >
                 {pairingCode.code}
               </p>
+              <Button
+                data-testid="copy-pairing-code"
+                size="sm"
+                variant="outline"
+                onClick={() => handleCopy(pairingCode.code)}
+              >
+                {copied ? (
+                  <Check className="mr-1 size-3.5" />
+                ) : (
+                  <Copy className="mr-1 size-3.5" />
+                )}
+                {copied ? "Copiado" : "Copiar"}
+              </Button>
               <p className="text-sm text-muted-foreground">
                 Válido até {formatTime(pairingCode.expiresAt)}. Informe este
                 código no navegador do caixa, na tela de abertura de sessão. Ele
-                só pode ser usado uma vez.
+                só pode ser usado uma vez. Ctrl+C também copia o código.
               </p>
             </div>
           )}
