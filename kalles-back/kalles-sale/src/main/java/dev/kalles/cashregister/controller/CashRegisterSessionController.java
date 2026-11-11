@@ -79,7 +79,7 @@ public class CashRegisterSessionController {
         @ApiResponse(responseCode = "403", description = "Operador autorizador sem nível de supervisor", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "404", description = "Sessão não encontrada", content = @Content(schema = @Schema(hidden = true))),
         @ApiResponse(responseCode = "409", description = "Sessão já está fechada", content = @Content(schema = @Schema(hidden = true))),
-        @ApiResponse(responseCode = "422", description = "Há vendas pendentes na sessão", content = @Content(schema = @Schema(hidden = true)))
+        @ApiResponse(responseCode = "422", description = "Há vendas pendentes na sessão ou a contagem precisa de liberação", content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<CloseSessionResponse> closeSession(
             @PathVariable UUID sessionId,

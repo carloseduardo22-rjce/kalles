@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/shared/services/api";
 import { useCompany } from "@/shared/contexts/company-context";
+import { CashClosingToleranceField } from "@/features/admin/components/cash-closing-tolerance-field";
 
 type CompanyResponse = {
   id: string;
@@ -256,6 +257,9 @@ export default function LojasPage() {
                       {co.stateName}
                     </p>
                   </div>
+                </CardContent>
+                <CardContent className="px-4 pb-4 pt-0">
+                  <CashClosingToleranceField companyId={co.id} />
                 </CardContent>
               </Card>
             ))

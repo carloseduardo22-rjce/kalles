@@ -44,6 +44,7 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
     protected static final String CASH_REGISTER_CODE = "CAIXA-01";
     protected static final String OPERATOR_CODE = "OP001";
     protected static final String OPERATOR_EMAIL = "operador.caixa01@sistema.local";
+    protected static final String ADMIN_EMAIL = "administrador.loja@sistema.local";
     protected static final String DEFAULT_PASSWORD = "123456";
 
     @LocalServerPort
@@ -148,7 +149,18 @@ public abstract class AbstractCashRegisterApiSupport extends AbstractSecurityApi
         RestAssured.requestSpecification = new RequestSpecBuilder()
                 .addCookie("kalles_pos_token", deviceToken)
                 .build();
+        return login(email);
+    }
 
+    protected AuthContext authenticateAdmin() {
+        Account account = new Account(TENANT_ID, "Administrador da loja", ADMIN_EMAIL,
+                passwordEncoder.encode(DEFAULT_PASSWORD), AccountRole.ADMIN);
+        account.setVerified(true);
+        accountRepository.save(account);
+        return login(ADMIN_EMAIL);
+    }
+
+    private AuthContext login(String email) {
         Response loginResponse = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(Map.of(

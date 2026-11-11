@@ -1,11 +1,11 @@
 package dev.kalles.company.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -13,7 +13,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Company {
 
     @Id
@@ -33,6 +32,31 @@ public class Company {
     private String stateName;
     private Double latitude;
     private Double longitude;
+
+    @Column(name = "cash_closing_tolerance", nullable = false, precision = 19, scale = 2)
+    private BigDecimal cashClosingTolerance = BigDecimal.ZERO;
+
+    public Company(
+            UUID id,
+            String name,
+            UUID tenantId,
+            String streetName,
+            String streetNumber,
+            String cityName,
+            String stateName,
+            Double latitude,
+            Double longitude
+    ) {
+        this.id = id;
+        this.name = name;
+        this.tenantId = tenantId;
+        this.streetName = streetName;
+        this.streetNumber = streetNumber;
+        this.cityName = cityName;
+        this.stateName = stateName;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 
     // Caso a empresa tenha ativado/desativado, pode adicionar aqui depois
 }

@@ -31,6 +31,14 @@ function saveSession(session: ActiveSession): void {
   setSessionScopedItem(STORAGE_KEY, JSON.stringify(session));
 }
 
+export function isClosingAuthorizationRequired(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    (err.data as { code?: string } | undefined)?.code ===
+      "CLOSING_AUTHORIZATION_REQUIRED"
+  );
+}
+
 export function storeActiveSession(response: SessionResponse): ActiveSession {
   const active: ActiveSession = {
     sessionId: response.sessionId,
@@ -113,9 +121,11 @@ export function useSession(): UseSessionReturn {
         setSession(null);
         return result;
       } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : "Falha ao fechar sessao.",
-        );
+        if (!isClosingAuthorizationRequired(err)) {
+          setError(
+            err instanceof ApiError ? err.message : "Falha ao fechar sessao.",
+          );
+        }
         throw err;
       } finally {
         setIsLoading(false);

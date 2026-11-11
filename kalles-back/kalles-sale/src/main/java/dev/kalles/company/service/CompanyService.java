@@ -2,9 +2,12 @@ package dev.kalles.company.service;
 
 import dev.kalles.company.entity.Company;
 import dev.kalles.company.repository.CompanyRepository;
+import dev.kalles.security.context.TenantContextHolder;
+import dev.kalles.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +25,23 @@ public class CompanyService {
         // You might want to assign a default/random external ID if needed, 
         // but it is handled in DTO mapping.
         return companyRepository.save(company);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal cashClosingTolerance(UUID companyId) {
+        return requireInCurrentTenant(companyId).getCashClosingTolerance();
+    }
+
+    @Transactional
+    public BigDecimal updateCashClosingTolerance(UUID companyId, BigDecimal amount) {
+        Company company = requireInCurrentTenant(companyId);
+        company.setCashClosingTolerance(amount);
+        return companyRepository.save(company).getCashClosingTolerance();
+    }
+
+    private Company requireInCurrentTenant(UUID companyId) {
+        return companyRepository.findByIdAndTenantId(companyId, TenantContextHolder.requireTenantId())
+                .orElseThrow(() -> new NotFoundException("Loja não encontrada: " + companyId));
     }
 
     public List<Company> listCompaniesByTenant(UUID tenantId) {

@@ -4,7 +4,9 @@ import dev.kalles.cashregister.entity.CashRegister;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.valueobject.SessionStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -36,6 +38,9 @@ public interface CashRegisterSessionRepository extends JpaRepository<CashRegiste
     );
 
     Optional<CashRegisterSession> findByIdAndCashRegister_CompanyId(UUID id, UUID companyId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<CashRegisterSession> findForClosingByIdAndCashRegister_CompanyId(UUID id, UUID companyId);
 
     List<CashRegisterSession> findBySessionPeriod_OpenedAtBetweenOrderBySessionPeriod_OpenedAtDesc(
         LocalDateTime start,

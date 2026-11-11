@@ -4,6 +4,9 @@ import dev.kalles.cashregister.entity.Operator;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,6 +19,21 @@ class PermissionServiceTest {
         Operator op = new Operator();
         op.setPermissionLevel(level);
         return op;
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = PermissionLevel.class, names = {"SUPERVISOR", "MANAGER", "ADMIN"})
+    @DisplayName("Supervisor ou acima fecha com diferenca e libera fechamento")
+    void shouldAllowClosingWithDifferenceFromSupervisorUp(PermissionLevel level) {
+        assertTrue(permissionService.canCloseWithDifference(operatorWith(level)));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @EnumSource(value = PermissionLevel.class, names = {"BASIC"})
+    @DisplayName("Operador basico ou sem nivel nao fecha com diferenca")
+    void shouldDenyClosingWithDifferenceBelowSupervisor(PermissionLevel level) {
+        assertFalse(permissionService.canCloseWithDifference(operatorWith(level)));
     }
 
     // --- canRemoveItens ---

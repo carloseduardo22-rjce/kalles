@@ -30,6 +30,11 @@ public class PermissionService {
         return operator.getPermissionLevel().getLevel() >= PermissionLevel.SUPERVISOR.getLevel();
     }
 
+    public boolean canCloseWithDifference(Operator operator) {
+        PermissionLevel level = operator.getPermissionLevel();
+        return level != null && level.getLevel() >= PermissionLevel.SUPERVISOR.getLevel();
+    }
+
     public boolean canAuthorizeItemDiscount(Operator authorizer, Operator requester) {
         return authorizer.getPermissionLevel().canAuthorize(requester.getPermissionLevel());
     }

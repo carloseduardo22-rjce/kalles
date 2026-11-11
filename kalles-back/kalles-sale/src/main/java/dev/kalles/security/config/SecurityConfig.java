@@ -76,7 +76,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
 
                 // ── PDV operations: OPERATOR + ADMIN ──
+                .requestMatchers(HttpMethod.GET, "/api/sales/history", "/api/sales/history/export").hasRole("ADMIN")
                 .requestMatchers("/api/sales/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers(HttpMethod.GET, "/api/cash-register-sessions", "/api/cash-register-sessions/*/report").hasRole("ADMIN")
                 .requestMatchers("/api/cash-register-sessions/**").hasAnyRole("ADMIN", "OPERATOR")
                 .requestMatchers(HttpMethod.POST, "/api/payments/process").hasAnyRole("ADMIN", "OPERATOR")
                 .requestMatchers(HttpMethod.GET, "/api/payment-terminal-mappings/by-cash-register").hasAnyRole("ADMIN", "OPERATOR")

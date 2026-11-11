@@ -39,8 +39,6 @@ import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.state.CanceledState;
 import dev.kalles.sale.state.CompletedState;
 import dev.kalles.sale.state.OpenState;
-import dev.kalles.security.entity.Account;
-import dev.kalles.security.enums.AccountRole;
 import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Entao;
@@ -127,6 +125,12 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
         authContext = authenticateOperator();
     }
 
+    @Dado("que o administrador do tenant {string} esta autenticado")
+    public void givenTenantAdministratorIsAuthenticated(String tenantName) {
+        assertThat(tenantName).isEqualTo("Alpha");
+        authContext = authenticateAdmin();
+    }
+
     @Dado("a filial ativa da requisicao e {string}")
     public void givenActiveCompany(String companyName) {
         activeCompanyId = companyIds.get(companyName);
@@ -161,13 +165,6 @@ public class SaleHistorySteps extends SaleCucumberSpringConfiguration {
 
     @Quando("consultar o historico de vendas de {string} ate {string} sem informar filial ativa")
     public void whenListHistoryWithoutCompany(String startDate, String endDate) {
-        Account account = accountRepository.findAllByEmailIgnoreCase(OPERATOR_EMAIL).getFirst();
-        account.setCompanyId(null);
-        account.setRole(AccountRole.ADMIN);
-        accountRepository.save(account);
-        posDeviceSessionRepository.deleteAll();
-        authContext = authenticateOperator();
-
         lastResponse = getJson(
                 "/api/sales/history?startDate=" + startDate + "&endDate=" + endDate,
                 false

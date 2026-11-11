@@ -40,8 +40,8 @@ public class CashRegisterClosing {
     @JoinColumn(name = "session_id", nullable = false, unique = true)
     private CashRegisterSession session;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "authorized_by_operator_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "authorized_by_operator_id")
     private Operator authorizedByOperator;
 
     @Column(name = "completed_sales_count", nullable = false)
@@ -84,7 +84,7 @@ public class CashRegisterClosing {
             BigDecimal countedCashAmount
     ) {
         this.session = Objects.requireNonNull(session, "Sessao obrigatoria");
-        this.authorizedByOperator = Objects.requireNonNull(authorizedByOperator, "Operador autorizador obrigatorio");
+        this.authorizedByOperator = authorizedByOperator;
         this.completedSalesCount = summary.vendasConcluidas();
         this.canceledSalesCount = summary.vendasCanceladas();
         this.totalSoldAmount = defaultValue(summary.totalVendido());
