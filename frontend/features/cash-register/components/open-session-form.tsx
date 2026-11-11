@@ -32,11 +32,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import type { PairedDeviceResponse } from "@/features/cash-register/types";
 
 interface FormValues {
-  initialAmount: string;
+  initialAmount: number;
 }
 
 interface OpenSessionFormProps {
@@ -65,7 +66,7 @@ export function OpenSessionForm({
 
   const form = useForm<FormValues>({
     defaultValues: {
-      initialAmount: "0,00",
+      initialAmount: 0,
     },
   });
 
@@ -73,20 +74,9 @@ export function OpenSessionForm({
     values: FormValues,
     allowCashOnlyOperation = false,
   ) {
-    const amountStr = values.initialAmount
-      ? values.initialAmount.replace(",", ".")
-      : "0";
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount < 0) {
-      form.setError("initialAmount", {
-        message: "Informe um valor inicial valido (>= 0)",
-      });
-      return;
-    }
-
     await onSuccess(
       device.cashRegisterCode,
-      amount,
+      values.initialAmount,
       allowCashOnlyOperation,
     );
   }
@@ -157,18 +147,19 @@ export function OpenSessionForm({
               <FormField
                 control={form.control}
                 name="initialAmount"
-                rules={{ required: "Valor inicial obrigatorio" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <DollarSign className="h-3.5 w-3.5" />
-                      Valor Inicial em Especie (R$)
+                      Valor Inicial em Especie
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="0,00"
-                        inputMode="decimal"
-                        {...field}
+                      <MoneyInput
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onValueChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />

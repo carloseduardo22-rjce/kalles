@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { isClosingAuthorizationRequired } from "../hooks/use-session";
 
 interface CloseSessionAuthorizedDialogProps {
@@ -33,7 +34,9 @@ export function CloseSessionAuthorizedDialog({
   onConfirm,
 }: CloseSessionAuthorizedDialogProps) {
   const [open, setOpen] = useState(false);
-  const [countedCashAmount, setCountedCashAmount] = useState("");
+  const [countedCashAmount, setCountedCashAmount] = useState<number | null>(
+    null,
+  );
   const [authorizerCode, setAuthorizerCode] = useState("");
   const [needsAuthorization, setNeedsAuthorization] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export function CloseSessionAuthorizedDialog({
   function handleOpenChange(value: boolean) {
     setOpen(value);
     if (!value) {
-      setCountedCashAmount("");
+      setCountedCashAmount(null);
       setAuthorizerCode("");
       setNeedsAuthorization(false);
       setFormError(null);
@@ -50,12 +53,7 @@ export function CloseSessionAuthorizedDialog({
   }
 
   async function handleConfirm() {
-    const countedValue = Number(countedCashAmount.replace(",", "."));
-    if (
-      !countedCashAmount.trim() ||
-      Number.isNaN(countedValue) ||
-      countedValue < 0
-    ) {
+    if (countedCashAmount === null) {
       setFormError("Informe o valor contado em dinheiro.");
       return;
     }
@@ -67,7 +65,7 @@ export function CloseSessionAuthorizedDialog({
     setFormError(null);
     try {
       await onConfirm({
-        countedCashAmount: countedValue,
+        countedCashAmount,
         authorizedOperatorCode: needsAuthorization
           ? authorizerCode.trim()
           : undefined,
@@ -90,7 +88,7 @@ export function CloseSessionAuthorizedDialog({
 
   const busy = isLoading || submitting;
   const canSubmit =
-    !!countedCashAmount.trim() &&
+    countedCashAmount !== null &&
     (!needsAuthorization || !!authorizerCode.trim());
 
   return (
@@ -121,19 +119,15 @@ export function CloseSessionAuthorizedDialog({
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
             <Label htmlFor="counted-cash">Valor contado em dinheiro</Label>
-            <Input
+            <MoneyInput
               id="counted-cash"
-              type="number"
-              min="0"
-              step="0.01"
               value={countedCashAmount}
-              onChange={(e) => {
-                setCountedCashAmount(e.target.value);
+              onValueChange={(value) => {
+                setCountedCashAmount(value);
                 setFormError(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && !busy && handleConfirm()}
               autoFocus
-              autoComplete="off"
             />
           </div>
           {needsAuthorization && (
