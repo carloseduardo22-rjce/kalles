@@ -4,6 +4,11 @@ const nextConfig = {
     unoptimized: true,
   },
   allowedDevOrigins: ["http://localhost:3000"],
+  async redirects() {
+    return [
+      { source: "/admin/caixas", destination: "/caixas", permanent: false },
+    ];
+  },
   async rewrites() {
     return {
       // afterFiles ensures filesystem routes (Route Handlers in app/api/)
