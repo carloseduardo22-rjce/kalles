@@ -248,9 +248,6 @@ export default function PdvPage() {
       if (e.key === "F2") {
         e.preventDefault();
         setLookupOpen(true);
-      } else if (e.key === "F4") {
-        e.preventDefault();
-        router.push("/produtos");
       } else if (e.key === "F7") {
         e.preventDefault();
         if (sale && sale.state === "OPEN" && sale.items.length > 0) {
@@ -267,7 +264,7 @@ export default function PdvPage() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, sale, addItem, decrementItem, completeSale]);
+  }, [sale, addItem, decrementItem]);
 
   async function requestAddItem(type: ProductCodeType, code: string) {
     setPendingAddItem({ type, code });
