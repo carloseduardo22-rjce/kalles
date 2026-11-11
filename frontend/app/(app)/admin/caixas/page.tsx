@@ -54,7 +54,6 @@ export default function CaixasPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const [form, setForm] = useState({
-    code: "",
     description: "",
     companyId: "",
   });
@@ -83,12 +82,12 @@ export default function CaixasPage() {
     e.preventDefault();
     setIsCreating(true);
     try {
-      await api.post("/api/cash-registers", form);
-      toast.success("Caixa criado com sucesso!");
-      setForm({ code: "", description: "", companyId: "" });
+      const created = await api.post<{ code: string }>("/api/cash-registers", form);
+      toast.success(`Caixa ${created.code} criado.`);
+      setForm({ description: "", companyId: "" });
       fetchData();
-    } catch {
-      toast.error("Erro ao criar caixa. O código pode já estar em uso.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar caixa.");
     } finally {
       setIsCreating(false);
     }
@@ -118,16 +117,6 @@ export default function CaixasPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Código Único do Caixa</Label>
-                <Input
-                  required
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="Ex: CX01"
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <Input

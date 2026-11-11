@@ -75,6 +75,12 @@ export interface CashRegisterStatusResponse {
   pairedAt: string | null;
 }
 
+export interface CreatedCashRegisterResponse {
+  id: string;
+  code: string;
+  description: string;
+}
+
 export interface PairingCodeResponse {
   code: string;
   expiresAt: string;

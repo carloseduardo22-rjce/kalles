@@ -21,7 +21,6 @@ import { cashRegisterService } from "@/features/cash-register/services/cash-regi
 
 export function CreateCashRegisterDialog() {
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
@@ -29,20 +28,18 @@ export function CreateCashRegisterDialog() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!code.trim() || !description.trim()) {
-      toast.error("Por favor, preencha o código e a descrição.");
+    if (!description.trim()) {
+      toast.error("Informe a descrição do caixa.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await cashRegisterService.createCashRegister({
-        code: code.trim(),
+      const created = await cashRegisterService.createCashRegister({
         description: description.trim(),
       });
-      toast.success("Caixa criado com sucesso!");
+      toast.success(`Caixa ${created.code} criado.`);
       setOpen(false);
-      setCode("");
       setDescription("");
       queryClient.invalidateQueries({ queryKey: ["cash-registers"] });
     } catch (err: any) {
@@ -55,7 +52,6 @@ export function CreateCashRegisterDialog() {
 
   function handleOpenChange(newOpen: boolean) {
     if (!newOpen) {
-      setCode("");
       setDescription("");
     }
     setOpen(newOpen);
@@ -76,7 +72,8 @@ export function CreateCashRegisterDialog() {
             Cadastrar Novo Caixa
           </DialogTitle>
           <DialogDescription>
-            Preencha os detalhes para registrar um novo caixa no sistema.
+            O código do caixa é gerado pelo sistema em sequência (CAIXA-01,
+            CAIXA-02...). Informe só a descrição.
           </DialogDescription>
         </DialogHeader>
 
@@ -85,18 +82,6 @@ export function CreateCashRegisterDialog() {
           onSubmit={handleSubmit}
           className="space-y-4 pt-2"
         >
-          <div className="space-y-1.5">
-            <Label htmlFor="code">
-              Código do Caixa <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="code"
-              placeholder="Ex: CX-01"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              disabled={isSubmitting}
-            />
-          </div>
           <div className="space-y-1.5">
             <Label htmlFor="description">
               Descrição <span className="text-destructive">*</span>

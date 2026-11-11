@@ -3,6 +3,7 @@ import type {
   CloseSessionRequest,
   CashRegisterStatusResponse,
   CloseSessionResponse,
+  CreatedCashRegisterResponse,
   OpenSessionRequest,
   OperatorResponse,
   PairedDeviceResponse,
@@ -36,9 +37,9 @@ export const cashRegisterService = {
 
   /** Cria um novo caixa. */
   createCashRegister: (body: {
-    code: string;
     description: string;
-  }): Promise<void> => api.post<void>(REGISTERS_BASE, body),
+  }): Promise<CreatedCashRegisterResponse> =>
+    api.post<CreatedCashRegisterResponse>(REGISTERS_BASE, body),
 
   /** Lista operadores disponíveis para vinculação. */
   listOperators: (): Promise<OperatorResponse[]> =>
