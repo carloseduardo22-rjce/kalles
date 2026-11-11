@@ -43,7 +43,7 @@ export interface CloseSessionResponse {
 }
 
 export interface CloseSessionRequest {
-  authorizedOperatorCode: string;
+  authorizedOperatorCode?: string;
   countedCashAmount: number;
 }
 

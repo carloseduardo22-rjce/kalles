@@ -288,7 +288,7 @@ export default function PdvPage() {
   }
 
   async function handleCloseSessionWithPayload(payload: {
-    authorizedOperatorCode: string;
+    authorizedOperatorCode?: string;
     countedCashAmount: number;
   }) {
     const result = await closeSession(payload);
@@ -357,7 +357,6 @@ export default function PdvPage() {
               <CloseSessionAuthorizedDialog
                 isLoading={sessionLoading}
                 error={sessionError}
-                initialAmount={sessionData.initialAmount}
                 onConfirm={handleCloseSessionWithPayload}
               />
               <LogoutButton
