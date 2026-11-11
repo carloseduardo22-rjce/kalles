@@ -6,17 +6,23 @@ import dev.kalles.cashregister.dto.SessionSummaryResponse;
 import dev.kalles.cashregister.entity.CashRegisterClosing;
 import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.entity.Operator;
-import dev.kalles.cashregister.enums.PermissionLevel;
+import dev.kalles.cashregister.exception.ClosingAuthorizationRequiredException;
+import dev.kalles.cashregister.exception.ClosingAuthorizerNotAllowedException;
+import dev.kalles.cashregister.exception.ClosingAuthorizerNotFoundException;
 import dev.kalles.cashregister.exception.PendingSalesBlockClosingException;
+import dev.kalles.cashregister.exception.SessionOwnedByAnotherAccountException;
 import dev.kalles.cashregister.repository.CashRegisterClosingRepository;
 import dev.kalles.cashregister.repository.CashRegisterSessionRepository;
 import dev.kalles.cashregister.repository.OperatorRepository;
+import dev.kalles.company.service.CompanyService;
 import dev.kalles.sale.dto.SessionPaymentMethodTotal;
 import dev.kalles.sale.entity.Sale;
 import dev.kalles.sale.enums.PaymentMethod;
 import dev.kalles.sale.repository.SaleRepository;
 import dev.kalles.sale.state.OpenState;
 import dev.kalles.security.context.CompanyContextHolder;
+import dev.kalles.security.enums.AccountRole;
+import dev.kalles.security.service.AuthenticatedAccountProvider;
 import dev.kalles.shared.exception.ForbiddenOperationException;
 import dev.kalles.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -41,13 +47,26 @@ public class CloseSessionUseCase {
     private final OperatorRepository operatorRepository;
     private final SaleRepository saleRepository;
     private final PairedDeviceSessionGuard pairedDeviceSessionGuard;
+    private final CompanyService companyService;
+    private final PermissionService permissionService;
+    private final AuthenticatedAccountProvider authenticatedAccountProvider;
 
-    @Transactional
+    @Transactional(noRollbackFor = {
+            ClosingAuthorizationRequiredException.class,
+            ClosingAuthorizerNotFoundException.class,
+            ClosingAuthorizerNotAllowedException.class
+    })
     public CloseSessionResponse execute(UUID sessionId, CloseSessionRequest request) {
-        CashRegisterSession session = findSessionOrThrow(sessionId);
+        CashRegisterSession session = sessionRepository
+                .findForClosingByIdAndCashRegister_CompanyId(sessionId, CompanyContextHolder.requireCompanyId())
+                .orElseThrow(() -> sessionNotFound(sessionId));
         pairedDeviceSessionGuard.ensureCanOperate(session.getCashRegister());
-        Operator authorizedByOperator = findAuthorizedOperator(request.authorizedOperatorCode());
-        resolvePendingSales(session);
+        ensureClosedByOwner(session);
+        session.ensureOpen();
+        List<Sale> pendingSales = saleRepository.findPendingBySessionId(session.getId());
+        ensureNoBlockingSales(pendingSales);
+        Operator authorizedByOperator = resolveAuthorizer(session, request);
+        cancelIdleSales(pendingSales);
         SessionSummaryResponse summary = buildLiveSummary(session);
 
         session.close();
@@ -75,6 +94,7 @@ public class CloseSessionUseCase {
     @Transactional(readOnly = true)
     public CloseSessionResponse getSessionDetails(UUID sessionId) {
         CashRegisterSession session = findSessionOrThrow(sessionId);
+        ensureCanSeeExpectedCash(session);
         return toSessionDetailsResponse(session);
     }
 
@@ -95,33 +115,64 @@ public class CloseSessionUseCase {
 
     private CashRegisterSession findSessionOrThrow(UUID sessionId) {
         return sessionRepository.findByIdAndCashRegister_CompanyId(sessionId, CompanyContextHolder.requireCompanyId())
-                .orElseThrow(() -> new NotFoundException("Sessao de caixa nao encontrada: " + sessionId));
+                .orElseThrow(() -> sessionNotFound(sessionId));
     }
 
-    /**
-     * Impede o fechamento com vendas pendentes: uma venda PAID fora do fechamento
-     * significa dinheiro recebido que não entraria no caixa. Vendas vazias criadas
-     * automaticamente pelo PDV entre atendimentos são canceladas em silêncio.
-     */
-    private void resolvePendingSales(CashRegisterSession session) {
-        List<Sale> pendingSales = saleRepository.findPendingBySessionId(session.getId());
+    private NotFoundException sessionNotFound(UUID sessionId) {
+        return new NotFoundException("Sessao de caixa nao encontrada: " + sessionId);
+    }
 
-        long blockingSales = 0;
-        for (Sale sale : pendingSales) {
-            boolean idleState = OpenState.NAME.equals(sale.getStateName());
-            boolean emptySale = sale.getItems().isEmpty() && sale.getPayments().isEmpty();
-
-            if (idleState && emptySale) {
-                sale.cancel();
-                saleRepository.save(sale);
-            } else {
-                blockingSales++;
-            }
+    private void ensureClosedByOwner(CashRegisterSession session) {
+        UUID ownerAccountId = session.getOperator().getAccountId();
+        if (ownerAccountId == null || !ownerAccountId.equals(authenticatedAccountProvider.require().getId())) {
+            throw new SessionOwnedByAnotherAccountException();
         }
+    }
 
+    private void ensureCanSeeExpectedCash(CashRegisterSession session) {
+        if (session.isOpen() && authenticatedAccountProvider.require().getRole() != AccountRole.ADMIN) {
+            throw new ForbiddenOperationException("O valor esperado fica oculto enquanto a sessão está aberta.");
+        }
+    }
+
+    private void ensureNoBlockingSales(List<Sale> pendingSales) {
+        long blockingSales = pendingSales.stream().filter(sale -> !isIdle(sale)).count();
         if (blockingSales > 0) {
             throw new PendingSalesBlockClosingException(blockingSales);
         }
+    }
+
+    private void cancelIdleSales(List<Sale> pendingSales) {
+        for (Sale sale : pendingSales) {
+            sale.cancel();
+            saleRepository.save(sale);
+        }
+    }
+
+    private boolean isIdle(Sale sale) {
+        return OpenState.NAME.equals(sale.getStateName())
+                && sale.getItems().isEmpty()
+                && sale.getPayments().isEmpty();
+    }
+
+    private Operator resolveAuthorizer(CashRegisterSession session, CloseSessionRequest request) {
+        if (permissionService.canCloseWithDifference(session.getOperator())) {
+            return null;
+        }
+        if (!session.hasDivergentCount() && isWithinTolerance(session, request.countedCashAmount())) {
+            return null;
+        }
+        session.registerDivergentCount(request.countedCashAmount());
+        if (request.authorizedOperatorCode() == null || request.authorizedOperatorCode().isBlank()) {
+            throw new ClosingAuthorizationRequiredException();
+        }
+        return findAuthorizedOperator(request.authorizedOperatorCode());
+    }
+
+    private boolean isWithinTolerance(CashRegisterSession session, BigDecimal countedAmount) {
+        BigDecimal expectedCash = session.getInitialAmountValue().add(cashReceived(session.getId()));
+        BigDecimal difference = countedAmount.subtract(expectedCash).abs();
+        return difference.compareTo(companyService.cashClosingTolerance(CompanyContextHolder.requireCompanyId())) <= 0;
     }
 
     private CloseSessionResponse toSessionDetailsResponse(CashRegisterSession session) {
@@ -136,16 +187,21 @@ public class CloseSessionUseCase {
 
     private Operator findAuthorizedOperator(String operatorCode) {
         Operator operator = operatorRepository.findByCodeAndCompanyId(operatorCode, CompanyContextHolder.requireCompanyId())
-                .orElseThrow(() -> new NotFoundException("Operador autorizador nao encontrado: " + operatorCode));
+                .orElseThrow(() -> new ClosingAuthorizerNotFoundException(operatorCode));
 
-        PermissionLevel permissionLevel = operator.getPermissionLevel();
-        if (permissionLevel == null || permissionLevel.getLevel() < PermissionLevel.SUPERVISOR.getLevel()) {
-            throw new ForbiddenOperationException("Operador sem permissao para autorizar fechamento de caixa.");
+        if (!operator.isActive() || !permissionService.canCloseWithDifference(operator)) {
+            throw new ClosingAuthorizerNotAllowedException();
         }
 
         return operator;
     }
 
+    private BigDecimal cashReceived(UUID sessionId) {
+        return saleRepository.sumCompletedPaymentsByMethod(sessionId).stream()
+                .filter(total -> total.method() == PaymentMethod.CASH)
+                .map(SessionPaymentMethodTotal::total)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
     private SessionSummaryResponse buildLiveSummary(CashRegisterSession session) {
         return computeSummary(session.getId(), session.getInitialAmountValue());

@@ -1,5 +1,6 @@
 package dev.kalles.cashregister.integration;
 
+import dev.kalles.cashregister.entity.CashRegisterSession;
 import dev.kalles.cashregister.enums.PermissionLevel;
 import dev.kalles.cashregister.support.AbstractCashRegisterApiSupport;
 import dev.kalles.testsupport.LocalHttpTestClient;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -131,17 +133,22 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
                 .header("X-Company-ID", companyId.toString())
                 .body(Map.of(
                         "authorizedOperatorCode", "SUP999",
-                        "countedCashAmount", 100.00
+                        "countedCashAmount", 90.00
                 ))
                 .when()
                 .post("/api/cash-register-sessions/{sessionId}/close", sessionId)
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body("code", equalTo("CLOSING_AUTHORIZER_NOT_FOUND"));
+
+        CashRegisterSession session = cashRegisterSessionRepository.findById(sessionId).orElseThrow();
+        assertThat(session.isOpen()).isTrue();
+        assertThat(session.getFirstDivergentCountedAmount()).isEqualByComparingTo("90.00");
     }
 
     @Test
     void shouldListOnlySessionsFromActiveCompany() {
-        AuthContext auth = authenticateOperator();
+        AuthContext auth = authenticateAdmin();
         seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));
 
         UUID foreignCompanyId = seedCompany("Loja secundaria");

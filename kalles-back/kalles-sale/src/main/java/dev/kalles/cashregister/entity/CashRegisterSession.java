@@ -59,6 +59,9 @@ public class CashRegisterSession {
     @Column(name = "cash_only_operation", nullable = false)
     private boolean cashOnlyOperation;
 
+    @Column(name = "first_divergent_counted_amount", precision = 19, scale = 2)
+    private BigDecimal firstDivergentCountedAmount;
+
     public static CashRegisterSession open(
             CashRegister cashRegister,
             Operator operator,
@@ -101,10 +104,24 @@ public class CashRegisterSession {
         return status == SessionStatus.OPEN;
     }
 
-    public void close() {
+    public void ensureOpen() {
         if (!isOpen()) {
             throw new SessionAlreadyClosedException();
         }
+    }
+
+    public boolean hasDivergentCount() {
+        return firstDivergentCountedAmount != null;
+    }
+
+    public void registerDivergentCount(BigDecimal countedAmount) {
+        if (firstDivergentCountedAmount == null) {
+            firstDivergentCountedAmount = countedAmount;
+        }
+    }
+
+    public void close() {
+        ensureOpen();
         sessionPeriod.close(LocalDateTime.now());
         this.status = SessionStatus.CLOSED;
     }
