@@ -147,6 +147,28 @@ class CashRegisterSessionApiIntegrationTest extends AbstractCashRegisterApiSuppo
     }
 
     @Test
+    void shouldGenerateNextCashRegisterCodeOnRegistration() {
+        AuthContext auth = authenticateAdmin();
+
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("kalles_auth_token", auth.authCookie())
+                .cookie("XSRF-TOKEN", auth.csrfCookie())
+                .header("X-XSRF-TOKEN", auth.csrfToken())
+                .header("X-Company-ID", companyId.toString())
+                .body(Map.of("code", "IGNORADO", "description", "Caixa da entrada"))
+                .when()
+                .post("/api/cash-registers")
+                .then()
+                .statusCode(201)
+                .body("code", equalTo("CAIXA-02"))
+                .body("description", equalTo("Caixa da entrada"));
+
+        assertThat(cashRegisterRepository.findByCodeAndCompanyId("CAIXA-02", companyId)).isPresent();
+        assertThat(cashRegisterRepository.findByCodeAndCompanyId("IGNORADO", companyId)).isEmpty();
+    }
+
+    @Test
     void shouldListOnlySessionsFromActiveCompany() {
         AuthContext auth = authenticateAdmin();
         seedSession(companyId, CASH_REGISTER_CODE, OPERATOR_CODE, new BigDecimal("100.00"));

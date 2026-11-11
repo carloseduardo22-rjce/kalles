@@ -2,6 +2,7 @@ package dev.kalles.cashregister.controller;
 
 import dev.kalles.cashregister.dto.CashRegisterStatusResponse;
 import dev.kalles.cashregister.dto.CreateCashRegisterRequest;
+import dev.kalles.cashregister.dto.CreatedCashRegisterResponse;
 import dev.kalles.cashregister.dto.OperatorResponse;
 import dev.kalles.cashregister.service.CashRegisterQueryService;
 import dev.kalles.cashregister.service.CashRegisterCommandService;
@@ -33,11 +34,11 @@ public class CashRegisterController {
     @PostMapping
     @Operation(
         summary = "Criar novo caixa",
-        description = "Cadastra um novo caixa registrador com código e descrição."
+        description = "Cadastra um novo caixa com a descrição informada; o código é gerado em sequência por loja (CAIXA-01, CAIXA-02)."
     )
-    public ResponseEntity<Void> create(@RequestBody @Valid CreateCashRegisterRequest request) {
-        commandService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<CreatedCashRegisterResponse> create(@RequestBody @Valid CreateCashRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CreatedCashRegisterResponse.from(commandService.create(request)));
     }
 
     @GetMapping
