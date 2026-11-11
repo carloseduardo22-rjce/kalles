@@ -238,7 +238,7 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         completeSimpleSale(auth, sessionToken);
 
         LocalDate today = LocalDate.now();
-        getJson(auth, "/api/sales/history?startDate=" + today + "&endDate=" + today)
+        getJson(authenticateAdmin(), "/api/sales/history?startDate=" + today + "&endDate=" + today)
                 .then()
                 .statusCode(200)
                 .body("", hasSize(1))
@@ -250,6 +250,19 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
     }
 
     @Test
+    void shouldHideSaleHistoryFromOperator() {
+        AuthContext auth = authenticateOperator();
+        openSession(auth, false);
+
+        LocalDate today = LocalDate.now();
+        getJson(auth, "/api/sales/history?startDate=" + today + "&endDate=" + today)
+                .then()
+                .statusCode(403);
+        assertThat(getBytes(auth, "/api/sales/history/export?startDate=" + today + "&endDate=" + today).statusCode())
+                .isEqualTo(403);
+    }
+
+    @Test
     void shouldFilterSaleHistoryByState() {
         AuthContext auth = authenticateOperator();
         String sessionToken = openSession(auth, false);
@@ -257,7 +270,7 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         completeSimpleSale(auth, sessionToken);
 
         LocalDate today = LocalDate.now();
-        getJson(auth, "/api/sales/history?startDate=" + today + "&endDate=" + today + "&state=CANCELED")
+        getJson(authenticateAdmin(), "/api/sales/history?startDate=" + today + "&endDate=" + today + "&state=CANCELED")
                 .then()
                 .statusCode(200)
                 .body("", hasSize(0));
@@ -268,7 +281,7 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         AuthContext auth = authenticateOperator();
         String sessionToken = openSession(auth, false);
 
-        getJson(auth, "/api/sales/history?startDate=2026-04-30&endDate=2026-04-01")
+        getJson(authenticateAdmin(), "/api/sales/history?startDate=2026-04-30&endDate=2026-04-01")
                 .then()
                 .statusCode(400)
                 .body("detail", equalTo("A data final nao pode ser menor que a data inicial."));
@@ -282,7 +295,7 @@ class SaleApiIntegrationTest extends AbstractSaleApiSupport {
         completeSimpleSale(auth, sessionToken);
 
         LocalDate today = LocalDate.now();
-        RawHttpResponse response = getBytes(auth, "/api/sales/history/export?startDate=" + today + "&endDate=" + today);
+        RawHttpResponse response = getBytes(authenticateAdmin(), "/api/sales/history/export?startDate=" + today + "&endDate=" + today);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.firstHeader("content-type"))
