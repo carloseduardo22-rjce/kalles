@@ -197,7 +197,9 @@ describe("Fluxo principal do PDV", () => {
     cy.get("[data-testid='sale-item-SKU-001']").should("be.visible");
     cy.get("[data-testid='sale-item-discount-SKU-001']").click();
 
-    cy.get("[data-testid='discount-amount-input']").type("5");
+    cy.get("[data-testid='discount-amount-input']")
+      .type("500")
+      .should("have.value", "5,00");
     cy.get("[data-testid='discount-confirm']").click();
     cy.wait("@applyDiscount");
 

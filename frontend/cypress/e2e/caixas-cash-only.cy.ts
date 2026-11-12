@@ -68,6 +68,7 @@ describe("Gerenciamento de caixas", () => {
     cy.intercept("POST", "**/api/cash-register-sessions/open", (req) => {
       expect(req.body).to.deep.include({
         cashRegisterCode: "CAIXA-01",
+        initialAmount: 50,
         allowCashOnlyOperation: true,
       });
 
@@ -90,7 +91,7 @@ describe("Gerenciamento de caixas", () => {
 
     cy.get("[data-testid='open-session-CAIXA-01']").click();
     cy.get("[data-testid='cash-only-open-warning']").should("be.visible");
-    cy.get("#initial-amount").type("50");
+    cy.get("#initial-amount").type("5000").should("have.value", "50,00");
     cy.get("[data-testid='open-session-confirm']").click();
 
     cy.wait("@openSession");

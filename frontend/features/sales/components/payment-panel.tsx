@@ -396,7 +396,7 @@ export function PaymentPanel({
                 Escaneie o QR Code abaixo com o aplicativo do {pixProviderName}
                 para pagar o valor de{" "}
                 <strong className="text-foreground">
-                  R$ {pendingPixAmount.toFixed(2).replace(".", ",")}
+                  {formatCurrency(pendingPixAmount)}
                 </strong>
                 .
               </DialogDescription>
