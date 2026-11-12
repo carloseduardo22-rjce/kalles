@@ -16,7 +16,7 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { PieChart, Pie } from "recharts";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { EmptyState } from "@/shared/components/empty-state";
 import { fidelityService } from "@/features/admin/services/fidelity.service";
 import { clientService } from "@/features/admin/services/client.service";
@@ -75,6 +76,7 @@ function PolicyForm({
 }) {
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -117,20 +119,50 @@ function PolicyForm({
         <Label htmlFor="configuredDiscount">
           {discountType === "PERCENTAGE"
             ? "Desconto Configurado (%) *"
-            : "Desconto Configurado (R$) *"}
+            : "Desconto Configurado *"}
         </Label>
-        <Input
-          id="configuredDiscount"
-          type="number"
-          min={0.01}
-          step={0.01}
-          {...register("configuredDiscount", {
-            required: "Desconto é obrigatório",
-            valueAsNumber: true,
-            min: { value: 0.01, message: "Desconto deve ser positivo" },
-          })}
-          max={discountType === "PERCENTAGE" ? 100 : undefined}
-          placeholder={discountType === "PERCENTAGE" ? "Ex: 10" : "Ex: 20.00"}
+        <Controller
+          name="configuredDiscount"
+          control={control}
+          rules={{
+            validate: (value) => {
+              if (!value || value <= 0) return "Desconto deve ser positivo";
+              if (discountType === "PERCENTAGE" && value > 100) {
+                return "O percentual deve ser no maximo 100";
+              }
+              return true;
+            },
+          }}
+          render={({ field }) =>
+            discountType === "PERCENTAGE" ? (
+              <Input
+                id="configuredDiscount"
+                type="number"
+                min={0.01}
+                max={100}
+                step={0.01}
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                value={field.value ?? ""}
+                onChange={(e) =>
+                  field.onChange(
+                    e.target.value === "" ? undefined : Number(e.target.value),
+                  )
+                }
+                placeholder="Ex: 10"
+              />
+            ) : (
+              <MoneyInput
+                id="configuredDiscount"
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )
+          }
         />
         <p className="text-xs text-muted-foreground">
           {discountType === "PERCENTAGE"

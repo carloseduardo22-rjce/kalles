@@ -61,6 +61,7 @@ import {
 import { EmptyState } from "@/shared/components/empty-state";
 import { ErrorAlert } from "@/shared/components/error-alert";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
+import { MoneyInput } from "@/shared/components/money-input";
 import { goalService } from "@/features/admin/services/goal.service";
 import { normalizeGoalRequest } from "@/features/admin/utils/form-normalization";
 import type {
@@ -335,18 +336,23 @@ function GoalFormFields({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="targetValue">Valor Alvo (R$) *</Label>
-        <Input
-          id="targetValue"
-          type="number"
-          min={0.01}
-          step={0.01}
-          placeholder="Ex: 100000.00"
-          {...register("targetValue", {
-            required: "O valor alvo é obrigatório",
-            valueAsNumber: true,
-            min: { value: 0.01, message: "O valor deve ser maior que zero" },
-          })}
+        <Label htmlFor="targetValue">Valor Alvo *</Label>
+        <Controller
+          name="targetValue"
+          control={control}
+          rules={{
+            validate: (value) => (value ?? 0) > 0 || "O valor deve ser maior que zero",
+          }}
+          render={({ field }) => (
+            <MoneyInput
+              id="targetValue"
+              name={field.name}
+              ref={field.ref}
+              onBlur={field.onBlur}
+              value={field.value}
+              onValueChange={field.onChange}
+            />
+          )}
         />
         {errors.targetValue && (
           <p className="text-xs text-destructive">

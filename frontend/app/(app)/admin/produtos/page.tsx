@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { productAdminService } from "@/features/admin/services/product-admin.service";
 import { stockService } from "@/features/admin/services/stock.service";
 import { formatCurrency } from "@/shared/utils/formatters";
@@ -61,6 +62,7 @@ function ProductForm({
 }) {
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<ProductRequest>({
@@ -134,17 +136,22 @@ function ProductForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="price">Preco de Venda *</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            min="0.01"
-            {...register("price", {
-              required: "Preco e obrigatorio",
-              min: { value: 0.01, message: "Preco deve ser maior que zero" },
-              valueAsNumber: true,
-            })}
-            placeholder="0,00"
+          <Controller
+            name="price"
+            control={control}
+            rules={{
+              validate: (value) => (value ?? 0) > 0 || "Preco deve ser maior que zero",
+            }}
+            render={({ field }) => (
+              <MoneyInput
+                id="price"
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
           />
           {errors.price && (
             <p className="text-xs text-destructive">{errors.price.message}</p>
@@ -153,17 +160,22 @@ function ProductForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="costPrice">Custo da Mercadoria *</Label>
-          <Input
-            id="costPrice"
-            type="number"
-            step="0.01"
-            min="0.01"
-            {...register("costPrice", {
-              required: "Custo e obrigatorio",
-              min: { value: 0.01, message: "Custo deve ser maior que zero" },
-              valueAsNumber: true,
-            })}
-            placeholder="0,00"
+          <Controller
+            name="costPrice"
+            control={control}
+            rules={{
+              validate: (value) => (value ?? 0) > 0 || "Custo deve ser maior que zero",
+            }}
+            render={({ field }) => (
+              <MoneyInput
+                id="costPrice"
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
           />
           {errors.costPrice && (
             <p className="text-xs text-destructive">
