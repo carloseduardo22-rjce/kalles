@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ export default function RootPage() {
   const router = useRouter();
   const [resumableSession, setResumableSession] =
     useState<SessionResponse | null>(null);
+  const goToPdvButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     async function chooseLandingPage() {
@@ -48,7 +49,12 @@ export default function RootPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <LoadingSpinner size="lg" label="Carregando…" />
       <AlertDialog open={!!resumableSession}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            goToPdvButtonRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem um caixa aberto</AlertDialogTitle>
             <AlertDialogDescription>
@@ -60,7 +66,10 @@ export default function RootPage() {
             <AlertDialogCancel onClick={() => router.replace("/caixas")}>
               Ir para Caixas
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.replace("/pdv")}>
+            <AlertDialogAction
+              ref={goToPdvButtonRef}
+              onClick={() => router.replace("/pdv")}
+            >
               Ir para o PDV
             </AlertDialogAction>
           </AlertDialogFooter>

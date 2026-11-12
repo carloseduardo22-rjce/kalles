@@ -226,7 +226,7 @@ export function DevicePairingSection({
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => handleCodeDialogChange(false)}>
+            <Button autoFocus onClick={() => handleCodeDialogChange(false)}>
               Concluir
             </Button>
           </DialogFooter>

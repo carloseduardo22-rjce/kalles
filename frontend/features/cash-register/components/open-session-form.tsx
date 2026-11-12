@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Unlock, Store, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ export function OpenSessionForm({
   onRepair,
 }: OpenSessionFormProps) {
   const [cashOnlyWarningOpen, setCashOnlyWarningOpen] = useState(false);
+  const continueButtonRef = useRef<HTMLButtonElement>(null);
   const [pendingSubmit, setPendingSubmit] = useState<FormValues | null>(null);
 
   const form = useForm<FormValues>({
@@ -199,7 +200,12 @@ export function OpenSessionForm({
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            continueButtonRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Pagamento nao configurado</AlertDialogTitle>
             <AlertDialogDescription>
@@ -210,7 +216,10 @@ export function OpenSessionForm({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCashOnlyOperation}>
+            <AlertDialogAction
+              ref={continueButtonRef}
+              onClick={confirmCashOnlyOperation}
+            >
               Continuar mesmo assim
             </AlertDialogAction>
           </AlertDialogFooter>
