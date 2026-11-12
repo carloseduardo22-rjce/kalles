@@ -31,7 +31,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 import { CreateCashRegisterDialog } from "@/features/cash-register/components/create-cash-register-dialog";
@@ -40,6 +39,7 @@ import { cashRegisterService } from "@/features/cash-register/services/cash-regi
 import type {
   CashRegisterStatusResponse,
 } from "@/features/cash-register/types";
+import { MoneyInput } from "@/shared/components/money-input";
 import { formatCurrency } from "@/shared/utils/formatters";
 
 /* ────────────────────────────────────────────────
@@ -257,7 +257,7 @@ function OpenSessionDialog({
   onClose,
   onSuccess,
 }: OpenSessionDialogProps) {
-  const [initialAmount, setInitialAmount] = useState<string>("");
+  const [initialAmount, setInitialAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   const isOpen = !!register;
@@ -267,17 +267,11 @@ function OpenSessionDialog({
     e.preventDefault();
     if (!register) return;
 
-    const amount = parseFloat(initialAmount.replace(",", "."));
-    if (isNaN(amount) || amount < 0) {
-      toast.error("Informe um valor inicial válido.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       await cashRegisterService.openSession({
         cashRegisterCode: register.code,
-        initialAmount: amount,
+        initialAmount,
         allowCashOnlyOperation: !register.paymentIntegrationConfigured,
       });
       toast.success(`Sessão aberta no caixa ${register.code} com sucesso!`);
@@ -293,7 +287,7 @@ function OpenSessionDialog({
 
   function handleOpenChange(open: boolean) {
     if (!open) {
-      setInitialAmount("");
+      setInitialAmount(0);
       onClose();
     }
   }
@@ -333,18 +327,14 @@ function OpenSessionDialog({
 
           {/* Initial amount */}
           <div className="space-y-1.5">
-            <Label htmlFor="initial-amount">Valor inicial (R$)</Label>
-            <Input
+            <Label htmlFor="initial-amount">Valor inicial</Label>
+            <MoneyInput
               id="initial-amount"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
               value={initialAmount}
-              onChange={(e) => setInitialAmount(e.target.value)}
+              onValueChange={setInitialAmount}
             />
             <p className="text-xs text-muted-foreground">
-              Deixe em branco ou zero para iniciar sem fundo de caixa.
+              Deixe em zero para iniciar sem fundo de caixa.
             </p>
           </div>
         </form>

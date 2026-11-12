@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -27,55 +26,16 @@ import {
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { formatCurrency, formatPaymentMethod } from "@/shared/utils/formatters";
 import type { PaymentMethod, SaleResponse } from "../types";
 import { getDefaultQrCodeProvider } from "@/features/payment/providers";
 
 const amountSchema = z.object({
-  amount: z
-    .string()
-    .min(1, "Informe o valor")
-    .refine(
-      (value) =>
-        !isNaN(parseFloat(value.replace(",", "."))) &&
-        parseFloat(value.replace(",", ".")) > 0,
-      "Valor deve ser maior que zero",
-    ),
+  amount: z.number().positive("Valor deve ser maior que zero"),
 });
 
 type AmountForm = z.infer<typeof amountSchema>;
-
-const ZERO_MONEY_VALUE = "0,00";
-
-function formatCentsAsMoneyInput(cents: number): string {
-  const normalizedCents = Math.max(0, cents);
-  const reais = Math.floor(normalizedCents / 100);
-  const centavos = normalizedCents % 100;
-
-  return `${reais.toString()},${centavos.toString().padStart(2, "0")}`;
-}
-
-function formatMoneyInputFromText(value: string): string {
-  const digits = value.replace(/\D/g, "");
-
-  if (!digits) {
-    return ZERO_MONEY_VALUE;
-  }
-
-  return formatCentsAsMoneyInput(Number(digits));
-}
-
-function parseMoneyInput(value: string): number {
-  const cents = Number(value.replace(/\D/g, ""));
-  return cents / 100;
-}
-
-function keepCaretAtEnd(input: HTMLInputElement) {
-  window.requestAnimationFrame(() => {
-    const end = input.value.length;
-    input.setSelectionRange(end, end);
-  });
-}
 
 interface PaymentPanelProps {
   sale: SaleResponse;
@@ -197,20 +157,16 @@ export function PaymentPanel({
   }, [sale.state, sale.amountDue, showQrDialog]);
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<AmountForm>({
     resolver: zodResolver(amountSchema),
     defaultValues: {
-      amount: ZERO_MONEY_VALUE,
+      amount: 0,
     },
   });
-  const amountValue = watch("amount");
-  const amountField = register("amount");
 
   const isPaid = sale.state === "PAID";
   const canPay = sale.state === "OPEN" || sale.state === "PAYMENT_IN_PROGRESS";
@@ -220,19 +176,8 @@ export function PaymentPanel({
     : PAYMENT_METHODS;
 
   async function handlePay(data: AmountForm) {
-    const amount = parseMoneyInput(data.amount);
-    await onAddPayment(method, amount);
-    reset({ amount: ZERO_MONEY_VALUE });
-  }
-
-  function handleAmountChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const formattedValue = formatMoneyInputFromText(event.target.value);
-    setValue("amount", formattedValue, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-    keepCaretAtEnd(event.target);
+    await onAddPayment(method, data.amount);
+    reset({ amount: 0 });
   }
 
   async function handlePixPayment(amount: number) {
@@ -252,11 +197,11 @@ export function PaymentPanel({
         console.error("Failed to generate QR Code", err);
       } finally {
         setIsGeneratingQr(false);
-        reset({ amount: ZERO_MONEY_VALUE });
+        reset({ amount: 0 });
       }
     } else {
       await onAddPayment("PIX", amount);
-      reset({ amount: ZERO_MONEY_VALUE });
+      reset({ amount: 0 });
     }
   }
 
@@ -370,7 +315,7 @@ export function PaymentPanel({
                   className="w-full"
                   onClick={() => {
                     onAddPayment(method, effectiveAmount);
-                    reset({ amount: ZERO_MONEY_VALUE });
+                    reset({ amount: 0 });
                   }}
                   disabled={isLoading || effectiveAmount <= 0}
                 >
@@ -381,22 +326,24 @@ export function PaymentPanel({
           ) : (
             <div className="space-y-1">
               <Label htmlFor="payment-amount" className="text-xs">
-                Valor (R$)
+                Valor
               </Label>
               <div className="flex gap-2">
                 <div className="flex-1 space-y-1">
-                  <Input
-                    data-testid="payment-amount-input"
-                    id="payment-amount"
-                    name={amountField.name}
-                    ref={amountField.ref}
-                    onBlur={amountField.onBlur}
-                    value={amountValue}
-                    onChange={handleAmountChange}
-                    onFocus={(event) => keepCaretAtEnd(event.target)}
-                    onClick={(event) => keepCaretAtEnd(event.currentTarget)}
-                    inputMode="numeric"
-                    autoComplete="off"
+                  <Controller
+                    name="amount"
+                    control={control}
+                    render={({ field }) => (
+                      <MoneyInput
+                        data-testid="payment-amount-input"
+                        id="payment-amount"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      />
+                    )}
                   />
                   {errors.amount && (
                     <p className="text-xs text-destructive">
@@ -449,7 +396,7 @@ export function PaymentPanel({
                 Escaneie o QR Code abaixo com o aplicativo do {pixProviderName}
                 para pagar o valor de{" "}
                 <strong className="text-foreground">
-                  R$ {pendingPixAmount.toFixed(2).replace(".", ",")}
+                  {formatCurrency(pendingPixAmount)}
                 </strong>
                 .
               </DialogDescription>

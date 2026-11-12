@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layers, Search, Plus, Package, MapPin } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
+import { MoneyInput } from "@/shared/components/money-input";
 import { stockService } from "@/features/admin/services/stock.service";
 import { warehouseService } from "@/features/admin/services/warehouse.service";
 import { productService } from "@/features/sales/services/product.service";
@@ -59,6 +60,7 @@ function StockForm({
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -183,17 +185,22 @@ function StockForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="unitCost">Custo Unitario da Entrada *</Label>
-        <Input
-          id="unitCost"
-          type="number"
-          step="0.01"
-          min="0.01"
-          {...register("unitCost", {
-            required: "Custo e obrigatorio para entrada de mercadoria",
-            min: { value: 0.01, message: "Custo deve ser maior que zero" },
-            valueAsNumber: true,
-          })}
-          placeholder="0,00"
+        <Controller
+          name="unitCost"
+          control={control}
+          rules={{
+            validate: (value) => (value ?? 0) > 0 || "Custo deve ser maior que zero",
+          }}
+          render={({ field }) => (
+            <MoneyInput
+              id="unitCost"
+              name={field.name}
+              ref={field.ref}
+              onBlur={field.onBlur}
+              value={field.value}
+              onValueChange={field.onChange}
+            />
+          )}
         />
         {errors.unitCost && (
           <p className="text-xs text-destructive">{errors.unitCost.message}</p>

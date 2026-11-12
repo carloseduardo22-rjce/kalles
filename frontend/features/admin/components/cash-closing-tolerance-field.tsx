@@ -5,15 +5,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/shared/components/money-input";
 import { cashClosingToleranceService } from "@/features/admin/services/cash-closing-tolerance.service";
 
 export function CashClosingToleranceField({ companyId }: { companyId: string }) {
   const queryKey = ["cash-closing-tolerance", companyId];
   const fieldId = `tolerance-${companyId}`;
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<string | null>(null);
+  const [draft, setDraft] = useState<number | null>(null);
 
   const tolerance = useQuery({
     queryKey,
@@ -30,37 +30,30 @@ export function CashClosingToleranceField({ companyId }: { companyId: string }) 
     onError: () => toast.error("Erro ao salvar a tolerância de caixa."),
   });
 
-  const amount = draft ?? tolerance.data?.amount.toFixed(2) ?? "";
+  const amount = draft ?? tolerance.data?.amount ?? 0;
 
   function handleSave() {
-    const value = Number(amount);
-    if (!amount.trim() || Number.isNaN(value) || value < 0) {
-      toast.error("Informe uma tolerância igual ou maior que zero.");
-      return;
-    }
-    save.mutate(value);
+    save.mutate(amount);
   }
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={fieldId}>Tolerância no fechamento de caixa (R$)</Label>
+      <Label htmlFor={fieldId}>Tolerância no fechamento de caixa</Label>
       <div className="flex gap-2">
-        <Input
-          id={fieldId}
-          type="number"
-          min="0"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setDraft(e.target.value)}
-          disabled={tolerance.isLoading || tolerance.isError}
-          autoComplete="off"
-          data-testid={fieldId}
-        />
+        <div className="flex-1">
+          <MoneyInput
+            id={fieldId}
+            value={amount}
+            onValueChange={setDraft}
+            disabled={tolerance.isLoading || tolerance.isError}
+            data-testid={fieldId}
+          />
+        </div>
         <Button
           type="button"
           variant="outline"
           onClick={handleSave}
-          disabled={save.isPending || tolerance.isError || !amount.trim()}
+          disabled={save.isPending || tolerance.isLoading || tolerance.isError}
         >
           {save.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           Salvar

@@ -10,10 +10,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/shared/components/loading-spinner";
 import { ErrorAlert } from "@/shared/components/error-alert";
+import { MoneyInput } from "@/shared/components/money-input";
 import { formatCurrency } from "@/shared/utils/formatters";
 import type { SaleItemResponse } from "../types";
 
@@ -34,21 +34,20 @@ export function DiscountDialog({
   onClose,
   onConfirm,
 }: DiscountDialogProps) {
-  const [discountStr, setDiscountStr] = useState("");
+  const [discount, setDiscount] = useState(0);
 
   if (!item) return null;
 
   const maxDiscount = item.unitPrice * item.quantity;
 
   async function handleConfirm() {
-    const discount = parseFloat(discountStr.replace(",", "."));
-    if (isNaN(discount) || discount < 0) return;
+    if (discount <= 0) return;
     await onConfirm(item!.id, discount);
-    setDiscountStr("");
+    setDiscount(0);
   }
 
   function handleClose() {
-    setDiscountStr("");
+    setDiscount(0);
     onClose();
   }
 
@@ -66,15 +65,13 @@ export function DiscountDialog({
 
         <div className="space-y-2">
           <Label htmlFor="discount-amount" className="text-sm">
-            Valor do desconto (R$)
+            Valor do desconto
           </Label>
-          <Input
+          <MoneyInput
             data-testid="discount-amount-input"
             id="discount-amount"
-            value={discountStr}
-            onChange={(e) => setDiscountStr(e.target.value)}
-            placeholder="0,00"
-            inputMode="decimal"
+            value={discount}
+            onValueChange={setDiscount}
           />
           <p className="text-xs text-muted-foreground">
             Desconto máximo permitido: {formatCurrency(maxDiscount)}
@@ -90,7 +87,7 @@ export function DiscountDialog({
           <Button
             data-testid="discount-confirm"
             onClick={handleConfirm}
-            disabled={isLoading || !discountStr.trim()}
+            disabled={isLoading || discount <= 0}
           >
             {isLoading ? <LoadingSpinner size="sm" label="" /> : "Aplicar"}
           </Button>
