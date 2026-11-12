@@ -40,6 +40,7 @@ export function MoneyInput({
   onValueChange,
   className,
   onFocus,
+  onClick,
   ...props
 }: MoneyInputProps) {
   return (
@@ -60,6 +61,10 @@ export function MoneyInput({
         onFocus={(event) => {
           keepCaretAtEnd(event.target);
           onFocus?.(event);
+        }}
+        onClick={(event) => {
+          keepCaretAtEnd(event.currentTarget);
+          onClick?.(event);
         }}
         className={cn("pl-10 text-right tabular-nums", className)}
       />
